@@ -135,6 +135,11 @@ These are my latest posts on [Medium](https://pablodz.medium.com/):
 ### Medium
 
 <!-- MEDIUM:START -->
+- [Download Single Folder of a Repository](https://medium.com/@pablodz/download-single-folder-of-a-repository-2861cfc05bea?source=rss-17f3a01eb2a2------2)
+- [4 Tools For AI Researchers](https://medium.com/@pablodz/4-tools-for-ai-researchers-c9f4e4f35db5?source=rss-17f3a01eb2a2------2)
+- [PID 2020: State of Art](https://medium.com/@pablodz/pid-2020-state-of-art-4613016fe2aa?source=rss-17f3a01eb2a2------2)
+- [How to download all the pdfs in one website](https://medium.com/@pablodz/how-to-download-all-the-pdfs-in-one-website-e1058dc92767?source=rss-17f3a01eb2a2------2)
+- [Francisco Sagasti: 20 libros (Presidente del Perú)](https://medium.com/@pablodz/20-libros-de-francisco-sagasti-presidente-del-per%C3%BA-b774a287966f?source=rss-17f3a01eb2a2------2)
 <!-- MEDIUM:END -->
 ---
 

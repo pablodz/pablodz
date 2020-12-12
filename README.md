@@ -145,11 +145,8 @@ These are my latest posts on [Medium](https://pablodz.medium.com/):
 
 _Disclaimer: Top languages does not indicate skill, it's provided by Github: metric that counts libraries_
 
-<a href="https://github.com/zurmad">
-<img align="center" alt="sabesan's Github Stats" src="https://github-readme-stats.codestackr.vercel.app/api?username=zurmad&show_icons=true&hide_border=true&count_private=true&include_all_commits=true&theme=radical" /></a>
-<a href="https://github.com/zurmad">
-  <img align="center" src="https://github-readme-stats.anuraghazra1.vercel.app/api/top-langs/?username=zurmad&layout=compact&theme=radical" />
-</a>
+![Zurmad's github stats](https://github-readme-stats.vercel.app/api?username=zurmad&show_icons=true&theme=radical)
+[![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=zurmad&layout=compact&langs_count=10&theme=radical)](https://github.com/zurmad/github-readme-stats)
 
 ---
 

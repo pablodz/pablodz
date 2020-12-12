@@ -130,8 +130,6 @@
 
 ## 📝 Latest Blog Posts
 
-These are my latest posts on [Medium](https://pablodz.medium.com/):
-
 ### Medium
 
 <!-- MEDIUM:START -->

@@ -141,6 +141,8 @@
 <!-- MEDIUM:END -->
 ---
 
+## Stats
+
 ![Zurmad's github stats](https://github-readme-stats.vercel.app/api?username=zurmad&show_icons=true&theme=radical)
 [![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=zurmad&layout=compact&langs_count=10&theme=radical)](https://github.com/zurmad/github-readme-stats)
 

@@ -146,7 +146,7 @@ These are my latest posts on [Medium](https://pablodz.medium.com/):
 ![Zurmad's github stats](https://github-readme-stats.vercel.app/api?username=zurmad&show_icons=true&theme=radical)
 [![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=zurmad&layout=compact&langs_count=10&theme=radical)](https://github.com/zurmad/github-readme-stats)
 
-_Disclaimer: Top languages does not indicate skill, it's provided by Github: metric that counts libraries_
+_Disclaimer: Top languages does not indicate skill, it's provided by Github: metric that also counts libraries_
 
 ---
 

@@ -1,11 +1,10 @@
-### Hello, I'm Pablo and this is my [website][website] 👋
+### Hello, I'm [Pablo Diaz][website]
 
-## I'm a Mechatronic Engineer, Bachelor's degree, Developer, and Volunteer
+## I'm a Mechatronic Engineer (Bach.), Developer, Volunteer and Dreamer
 
 - 🔭 Currently working few hours a week on Data Science Research Perú (An ONG from Perú to democratize data science).
-- 🌱 Passionate to learn about artificial intelligence, specially deep learning.
-- 👯 I have developed artificial intelligence projects applied to industry using the state-of-art.
-- 👯 I'm autodidact, looking for the easiest way to implement high-tech on industries.
+- 🌱 Passionate to learn about artificial intelligence, specially deep learning, to automatize real tasks.
+- 👯 Autodidact, looking for the easiest way to implement high-tech on industries.
 
 ### My network:
 

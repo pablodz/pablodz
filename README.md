@@ -1,6 +1,6 @@
 ### Hello, I'm [Pablo Diaz][website]
 
-## I'm a Mechatronic Engineer (Bach.), Developer, Volunteer and Dreamer
+## I'm a Mechatronic Engineer (B.), Developer, Volunteer and Dreamer
 
 - 🔭 Currently working few hours a week on Data Science Research Perú (An ONG from Perú to democratize data science).
 - 🌱 Passionate to learn about artificial intelligence, specially deep learning, to automatize real tasks.

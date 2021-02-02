@@ -1,4 +1,4 @@
-### Hello, I'm [Pablo Diaz][website]
+### Hello, I'm [Pablo Diaz][website] and this is my [genome (CV)](https://bio.torre.co/en/pablodiazv)
 
 ## I'm a Mechatronic Engineer (B.), Developer, Volunteer and Dreamer
 

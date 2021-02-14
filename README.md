@@ -1,6 +1,6 @@
 ### Hello, I'm [Pablo Diaz][website] and this is my [genome (CV)](https://bio.torre.co/en/pablodiazv)
 
-## I'm a Mechatronic Engineer (B.), Developer, Volunteer and Dreamer
+## I'm a Mechatronic Engineer (B.), AI Enthusiast and Py Full Stack.
 
 - 🔭 Currently working few hours a week on Data Science Research Perú (An ONG from Perú to democratize data science).
 - 🌱 Passionate to learn about artificial intelligence, specially deep learning, to automatize real tasks.

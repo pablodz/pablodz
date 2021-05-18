@@ -5,6 +5,15 @@
 - 🔭 Currently working few hours a week on Data Science Research Perú (An ONG from Perú to democratize data science).
 - 🌱 Passionate to learn about artificial intelligence, specially deep learning, to automatize real tasks.
 - 👯 Autodidact, looking for the easiest way to implement high-tech on industries.
+- 😊 Problems solver.
+
+## I'm able to fit in:
+
+- Data scientist (Jr. or not)
+- Data analyitics (Jr.)
+- Python/Golang backend Dev (Jr. or not): WEB and API builder.
+- ML Engineer (Jr.) 
+- DevOps / MLOps (Jr.)
 
 ### My network:
 

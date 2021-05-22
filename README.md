@@ -15,6 +15,8 @@
 - ML Engineer (Jr.) 
 - DevOps / MLOps (Jr.)
 
+Yes, I learned each of them.
+
 ### My network:
 
 <!--

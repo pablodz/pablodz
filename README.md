@@ -9,9 +9,9 @@
 
 ## I'm able to fit in:
 
-- Data scientist (Jr. or not)
+- Data scientist (+Jr.)
 - Data analyitics (Jr.)
-- Python/Golang backend Dev (Jr. or not): WEB and API builder.
+- Python/Golang backend Dev (+Jr.): WEB and API builder.
 - ML Engineer (Jr.) 
 - DevOps / MLOps (Jr.)
 

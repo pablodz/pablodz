@@ -9,10 +9,8 @@
 
 ## I'm able to fit in:
 
-- Data scientist (+Jr.)
-- Data analyitics (Jr.)
+- Data scientist or analytics (+Jr.)
 - Python/Golang backend Dev (+Jr.): WEB and API builder.
-- ML Engineer (Jr.) 
 - DevOps / MLOps (Jr.)
 
 Yes, I learned each of them.

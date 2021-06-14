@@ -29,6 +29,7 @@ Yes, I learned each of them.
 -->
 
 <br>
+<!--
 
 ## Languages, Tools and Programs that I use:
 
@@ -134,7 +135,7 @@ Yes, I learned each of them.
 [<code>
 <img alt="ffmpeg" width="26px" src="https://img.icons8.com/color/48/000000/ffmpeg.png">
 </code>](https://ffmpeg.org/)
-
+ -->
  
 <!--
 [<code>
@@ -161,8 +162,8 @@ Yes, I learned each of them.
 
 ## Stats
 
-![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=zurmad&layout=compact&langs_count=10&theme=radical&hide=HTML)
-![Zurmad's github stats](https://github-readme-stats.vercel.app/api?username=zurmad&show_icons=true&theme=radical)
+![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=pablodz&layout=compact&langs_count=10&theme=radical&hide=HTML)
+![pablodz's github stats](https://github-readme-stats.vercel.app/api?username=pablodz&show_icons=true&theme=radical)
 
 _Disclaimer: Top languages does not indicate skill, it's provided by Github: metric that also counts libraries_
 
@@ -173,4 +174,4 @@ _Disclaimer: Top languages does not indicate skill, it's provided by Github: met
 [medium]: https://pablodz.medium.com/
 [stackoverflow]: https://stackoverflow.com/users/10491422/pablo-d%c3%adaz
 
-[whatever comment text]::<> (Forked from https://raw.githubusercontent.com/zurmad/zurmad/master/README.md)
+[whatever comment text]::<> (Forked from https://raw.githubusercontent.com/pablodz/pablodz/master/README.md)

@@ -13,7 +13,8 @@
 - Python/Golang backend Dev (+Jr.): WEB and API builder.
 - DevOps / MLOps (Jr.)
 
-Yes, I learned each of them.
+Yes, I learned each of them. Challenge me, contact me via 
+[![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/remidz).
 
 ## My network:
 

@@ -7,14 +7,18 @@
 - 👯 Autodidact, looking for the easiest way to implement high-tech on industries.
 - 😊 Problems solver.
 
+Contact me via 
+[![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/remidz).
+
+
 ## I'm able to fit in:
 
 - Data scientist or analytics (+Jr.)
 - Python/Golang backend Dev (+Jr.): WEB and API builder.
 - DevOps / MLOps (Jr.)
 
-Yes, I learned each of them. Contact me via 
-[![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/remidz).
+Yes, I learned each of them.
+
 
 ## My network:
 

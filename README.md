@@ -1,8 +1,9 @@
 ### Hello, I'm [Pablo Diaz][website] and this is my [Genome (CV)](https://bio.torre.co/en/pablodiazv)
 
-## I'm a Mechatronic Engineer (Bsc.)
+## Me
 
-AI Enthusiast working as Software Engineer at [Vozy](https://vozy.co)
+- I'm a Mechatronic Engineer (Bsc.)
+- I'm an AI Enthusiast working as Software Engineer at [Vozy](https://vozy.co)
 
 <!--
 - 🔭 Currently working few hours a week on Data Science Research Perú (An ONG from Perú to democratize data science).

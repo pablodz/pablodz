@@ -19,7 +19,7 @@ Contact me via
 ## I'm able to fit in:
 
 - Data scientist or analytics (+Jr.)
-- Python/Golang backend Dev (+Jr.): WEB and API builder.
+- Python/Golang Backend: Web amd systems - microservices.
 - DevOps / MLOps (Jr.)
 
 Yes, I learned each of them.

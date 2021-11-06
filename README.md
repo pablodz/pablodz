@@ -3,8 +3,10 @@
 ## Me
 
 - I'm a Mechatronic Engineer (Bsc.)
-- I'm an AI Enthusiast working as Software Engineer at [Vozy](https://vozy.co)
+- I'm an AI Enthusiast
+- I'm currently working as Software Engineer at [Vozy](https://vozy.co)
 
+And I want to automatize everything in dev
 <!--
 - 🔭 Currently working few hours a week on Data Science Research Perú (An ONG from Perú to democratize data science).
 - 🌱 Passionate to learn about artificial intelligence, specially deep learning, to automatize real tasks.

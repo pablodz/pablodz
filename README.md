@@ -178,6 +178,7 @@ Yes, I learned each of them.
 ![pablodz's github stats](https://github-readme-stats.vercel.app/api?username=pablodz&show_icons=true&theme=radical)
 
 _Disclaimer: Top languages does not indicate skill, it's provided by Github: metric that also counts libraries
+
 Additional: My Github activity don't show all my dev activity, usually I'm using other accounts to push_
 
 ---

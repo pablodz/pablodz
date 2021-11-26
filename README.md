@@ -177,9 +177,9 @@ Yes, I learned each of them.
 ![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=pablodz&layout=compact&langs_count=10&theme=radical&hide=HTML)
 ![pablodz's github stats](https://github-readme-stats.vercel.app/api?username=pablodz&show_icons=true&theme=radical)
 
-_Disclaimer: Top languages does not indicate skill, it's provided by Github: metric that also counts libraries_
+_Disclaimer: Top languages does not indicate skill, it's provided by Github: metric that also counts libraries
+Additional: My Github activity don't show all my dev activity, usually I'm using other accounts to push_
 
-_Additional: My Github activity don't show all my dev activity, usually I'm using other accounts to push_
 ---
 
 [website]: http://pablocv.herokuapp.com/

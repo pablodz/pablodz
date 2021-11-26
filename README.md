@@ -179,6 +179,7 @@ Yes, I learned each of them.
 
 _Disclaimer: Top languages does not indicate skill, it's provided by Github: metric that also counts libraries_
 
+_Additional: My Github activity don't show all my dev activity, usually I'm using other accounts to push_
 ---
 
 [website]: http://pablocv.herokuapp.com/

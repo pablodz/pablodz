@@ -4,7 +4,7 @@
 
 - I'm a Mechatronic Engineer (Bsc.)
 - I'm an AI Engineer
-- I'm currently working as Software Engineer at [Vozy](https://vozy.co)
+- I'm currently working as Software Engineer and VoIP Engineer at [Vozy](https://vozy.co)
 
 And I want to automatize everything in dev
 <!--

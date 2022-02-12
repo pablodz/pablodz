@@ -176,6 +176,7 @@ Yes, I learned each of them.
 
 ![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=pablodz&layout=compact&langs_count=10&theme=radical&hide=HTML)
 ![pablodz's github stats](https://github-readme-stats.vercel.app/api?username=pablodz&show_icons=true&theme=radical)
+[![GitHub Streak](https://github-readme-streak-stats.herokuapp.com/?user=DenverCoder1&theme=dark)](https://git.io/streak-stats)
 
 Disclaimer: Top languages does not indicate skill, it's provided by Github: metric that also counts libraries
 

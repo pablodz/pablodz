@@ -25,7 +25,7 @@ Contact me via
 - DevOps / MLOps (Jr.)
 
 Yes, I learned each of them.
-
+I'm expert with Golang and Python.
 
 ## My network:
 

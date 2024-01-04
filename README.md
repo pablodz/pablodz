@@ -31,9 +31,9 @@ I love to code and make things happen, no matter what.
 
 <h3 align="left">Connect with me:</h3>
 <p align="left">
-<a href="https://dev.to/https://dev.to/pablodz" target="blank"><img align="center" src="https://raw.githubusercontent.com/rahuldkjain/github-profile-readme-generator/master/src/images/icons/Social/devto.svg" alt="https://dev.to/pablodz" height="30" width="40" /></a>
+<a href="https://dev.to/pablodz" target="blank"><img align="center" src="https://raw.githubusercontent.com/rahuldkjain/github-profile-readme-generator/master/src/images/icons/Social/devto.svg" alt="https://dev.to/pablodz" height="30" width="40" /></a>
 <a href="https://www.linkedin.com/in/pablodzv/" target="blank"><img align="center" src="https://raw.githubusercontent.com/rahuldkjain/github-profile-readme-generator/master/src/images/icons/Social/linked-in-alt.svg" alt="https://www.linkedin.com/in/pablodzv/" height="30" width="40" /></a>
-<a href="https://stackoverflow.com/users/https://stackoverflow.com/users/10491422/pablo-d%c3%adaz" target="blank"><img align="center" src="https://raw.githubusercontent.com/rahuldkjain/github-profile-readme-generator/master/src/images/icons/Social/stack-overflow.svg" alt="https://stackoverflow.com/users/10491422/pablo-d%c3%adaz" height="30" width="40" /></a>
+<a href="https://stackoverflow.com/users/10491422/pablo-d%c3%adaz" target="blank"><img align="center" src="https://raw.githubusercontent.com/rahuldkjain/github-profile-readme-generator/master/src/images/icons/Social/stack-overflow.svg" alt="https://stackoverflow.com/users/10491422/pablo-d%c3%adaz" height="30" width="40" /></a>
 <a href="https://medium.com/@pablodz" target="blank"><img align="center" src="https://raw.githubusercontent.com/rahuldkjain/github-profile-readme-generator/master/src/images/icons/Social/medium.svg" alt="@pablodz" height="30" width="40" /></a>
 </p>
 

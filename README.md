@@ -1,8 +1,7 @@
 <h1 align="center">Hi 👋, I'm Pablo Diaz</h1>
 <h3 align="center">An autodidact</h3>
 
-- I'm an AI Engineer
-- I'm a Senior Software Engineer
+- I'm a Senior Software Engineer + ML Engineer
 - I'm a Mechatronic Engineer (Bsc.)
 
 And I want to automatize everything: simple, fast, scalable, cheap and maintainable.

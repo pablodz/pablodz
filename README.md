@@ -10,10 +10,10 @@ And I want to automatize everything: simple, fast, scalable, cheap and maintaina
 
 ## Experience
 
-- Semi senior: Data scientist or analytics
-- Senior Backend: Python/Golang Web and systems - microservices+grpc. (Sr.)
-- Junior: Vuejs/Nuxtjs Frontend
-- Semi senior: DevOps / MLOps
+- Backend (+5YoE): Python/Golang Web 1and systems - microservices+grpc. (Sr.)
+- Data Scientist / Data Analytics (+4YoE)
+- Frontend (+2YoE): Vuejs/Nuxtjs Frontend
+- DevOps / MLOps (+3YoE)
 
 Yes, I learned each of them.
 I have years using those languages (non-professional and professional): Python(+8y), Golang(+4y) and Js(+2y).

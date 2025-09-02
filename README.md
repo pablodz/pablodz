@@ -1,32 +1,43 @@
 <h1 align="center">Hi 👋, I'm Pablo Diaz</h1>
-<h3 align="center">An autodidact</h3>
+<h3 align="center">Senior Software Engineer | ML Engineer | Autodidact</h3>
 
-- I'm a Senior Software Engineer + ML Engineer
-- I'm a Mechatronic Engineer (Bsc.)
+🚀 Passionate about building systems that are **simple, fast, scalable, affordable, and maintainable**.  
+🎯 Obsessed with automation and making things happen.  
 
-And I want to automatize everything: simple, fast, scalable, cheap and maintainable.
+---
 
+## 🛠️ Experience
+- **Backend (6+ yrs)** – Python / Golang | Microservices + gRPC  
+- **Data Science & Analytics (4+ yrs)**  
+- **DevOps / MLOps (4+ yrs)**  
+- **Frontend (3+ yrs)** – Vue.js / Nuxt.js  
 
+💡 Professional + personal experience:  
+Python (9+ yrs), Golang (5+ yrs), JavaScript (3+ yrs)  
 
-## Experience
+---
 
-- Backend (+6YoE): Python/Golang Web 1and systems - microservices+grpc. (Sr.)
-- Data Scientist / Data Analytics (+4YoE)
-- Frontend (+3YoE): Vuejs/Nuxtjs Frontend
-- DevOps / MLOps (+4YoE)
-
-Yes, I learned each of them.
-I have years using those languages (non-professional and professional): Python(+9y), Golang(+5y) and Js(+3y).
-
-I love to code and make things happen, no matter what.
-
-<p align="left"> <img src="https://komarev.com/ghpvc/?username=pablodz&label=Profile%20views&color=0e75b6&style=flat-square" alt="pablodz" /> </p>
-
-<p align="left"> <a href="https://github.com/ryo-ma/github-profile-trophy"><img src="https://github-profile-trophy.vercel.app/?username=pablodz" alt="pablodz" /></a> </p>
-
-<h3 align="left">Contact me:</h3>
-<p align="left">
-<a href="https://www.linkedin.com/in/pablodzv/" target="blank"><img align="center" src="https://raw.githubusercontent.com/rahuldkjain/github-profile-readme-generator/master/src/images/icons/Social/linked-in-alt.svg" alt="https://www.linkedin.com/in/pablodzv/" height="30" width="40" /></a>
+## 📊 GitHub Stats
+<p align="center">
+  <img src="https://github-readme-stats.vercel.app/api?username=pablodz&show_icons=true&theme=dracula" alt="pablodz stats" />
 </p>
 
-<p>&nbsp;<img align="center" src="https://github-readme-stats.vercel.app/api?username=pablodz&show_icons=true&theme=dracula&locale=en" alt="pablodz" /></p>
+---
+
+## 🏆 Trophies
+<p align="center">
+  <img src="https://github-profile-trophy.vercel.app/?username=pablodz&theme=dracula" alt="pablodz trophies" />
+</p>
+
+---
+
+## 📫 Contact
+<p align="center">
+  <a href="https://www.linkedin.com/in/pablodzv/" target="_blank">
+    <img src="https://raw.githubusercontent.com/rahuldkjain/github-profile-readme-generator/master/src/images/icons/Social/linked-in-alt.svg" alt="LinkedIn" height="30" width="40" />
+  </a>
+</p>
+
+<p align="center">
+  <img src="https://komarev.com/ghpvc/?username=pablodz&label=Profile%20views&color=0e75b6&style=flat-square" alt="profile views" />
+</p>

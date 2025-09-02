@@ -30,5 +30,3 @@ I love to code and make things happen, no matter what.
 </p>
 
 <p>&nbsp;<img align="center" src="https://github-readme-stats.vercel.app/api?username=pablodz&show_icons=true&theme=dracula&locale=en" alt="pablodz" /></p>
-
-<p><img align="center" src="https://github-readme-streak-stats.herokuapp.com/?user=pablodz&theme=dark" alt="pablodz" /></p>

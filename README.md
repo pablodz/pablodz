@@ -1,5 +1,5 @@
 <h1 align="center">Hi 👋, I'm Pablo Diaz</h1>
-<h3 align="center">Senior Software Engineer | ML Engineer | Autodidact</h3>
+<h3 align="center">Senior Software Engineer | ML Engineer </h3>
 
 🚀 Passionate about building systems that are **simple, fast, scalable, affordable, and maintainable**.  
 🎯 Obsessed with automation and making things happen.  

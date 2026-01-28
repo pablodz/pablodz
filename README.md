@@ -26,7 +26,7 @@ Python (9+ yrs), Golang (5+ yrs), JavaScript (3+ yrs)
 
 ## 🏆 Trophies
 <p align="center">
-  <img src="https://github-profile-trophy.vercel.app/?username=pablodz&theme=dracula" alt="pablodz trophies" />
+  <img src="https://trophy.ryglcloud.net/?username=pablodz&theme=dracula" alt="pablodz trophies" />
 </p>
 
 ---

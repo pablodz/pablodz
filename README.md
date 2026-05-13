@@ -4,7 +4,6 @@
 🚀 Passionate about building systems that are **simple, fast, scalable, affordable, and maintainable**.  
 🎯 Obsessed with automation and making things happen.  
 
----
 
 ## 🛠️ Experience
 - **Backend (6+ yrs)** – Python / Golang | Microservices + gRPC  
@@ -15,7 +14,6 @@
 💡 Professional + personal experience:  
 Python (9+ yrs), Golang (5+ yrs), JavaScript (3+ yrs)  
 
----
 
 
 ## 🏆 Trophies
@@ -23,7 +21,6 @@ Python (9+ yrs), Golang (5+ yrs), JavaScript (3+ yrs)
   <img src="https://trophy.ryglcloud.net/?username=pablodz&theme=dracula" alt="pablodz trophies" />
 </p>
 
----
 
 ## 📫 Contact
 <p align="center">

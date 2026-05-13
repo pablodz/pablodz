@@ -17,12 +17,6 @@ Python (9+ yrs), Golang (5+ yrs), JavaScript (3+ yrs)
 
 ---
 
-## 📊 GitHub Stats
-<p align="center">
-  <img src="https://github-readme-stats.vercel.app/api?username=pablodz&show_icons=true&theme=dracula" alt="pablodz stats" />
-</p>
-
----
 
 ## 🏆 Trophies
 <p align="center">

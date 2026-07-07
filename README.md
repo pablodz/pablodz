@@ -1,7 +1,7 @@
 <h1 align="center">Hi 👋, I'm Pablo Diaz</h1>
 <h3 align="center">Senior Software Engineer </h3>
 
-🚀 Passionate about building systems that are **simple, fast, scalable, affordable, and maintainable**.
+🚀 Passionate about building systems that are **simple, fast, scalable, affordable, and maintainable**.  
 🎯 Making things happen.  
 
 ## 🛠️ Experience

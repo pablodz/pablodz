@@ -1,9 +1,8 @@
 <h1 align="center">Hi 👋, I'm Pablo Diaz</h1>
-<h3 align="center">Senior Software Engineer | ML Engineer </h3>
+<h3 align="center">Senior Software Engineer </h3>
 
-🚀 Passionate about building systems that are **simple, fast, scalable, affordable, and maintainable**.  
-🎯 Obsessed with automation and making things happen.  
-
+🚀 Passionate about building systems that are **simple, fast, scalable, affordable, and maintainable**.
+🎯 Making things happen.  
 
 ## 🛠️ Experience
 - **Backend (6+ yrs)** – Python / Golang | Microservices + gRPC  
@@ -13,8 +12,6 @@
 
 💡 Professional + personal experience:  
 Python (9+ yrs), Golang (5+ yrs), JavaScript (3+ yrs)  
-
-
 
 ## 🏆 Trophies
 <p align="center">

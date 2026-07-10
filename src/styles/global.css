@@ -184,6 +184,30 @@ main {
   margin-top: 1.4rem;
 }
 
+.prose {
+  overflow-wrap: break-word;
+}
+
+/* KaTeX: las ecuaciones largas hacen scroll horizontal en vez de
+   desbordar la página en mobile. */
+.prose .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+  padding-block: 0.3rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.prose .katex {
+  font-size: 1.12em;
+}
+
+@media (max-width: 700px) {
+  .prose .katex-display .katex {
+    font-size: 1em;
+  }
+}
+
 .prose h2 {
   font-size: 1.6rem;
   color: var(--orange-bright);
@@ -257,6 +281,19 @@ main {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.88rem;
+}
+
+@media (max-width: 700px) {
+  /* Las tablas anchas hacen scroll propio en vez de romper el layout. */
+  .prose table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .prose td,
+  .prose th {
+    white-space: nowrap;
+  }
 }
 
 .prose th {

@@ -1,0 +1,301 @@
+---
+/**
+ * El motor de la máquina, corriendo en vivo: cooperación → excedente →
+ * concentración → colapso → reinicio. Sliders para las 4 palancas + presets.
+ * Gráfico de líneas con Chart.js (actualización en vivo); pirámide en canvas.
+ */
+---
+
+<figure class="msim panel">
+  <figcaption class="msim-head">
+    <span class="msim-title">◢ EL MOTOR EN VIVO</span>
+    <span class="msim-phase" data-phase>···</span>
+  </figcaption>
+  <div class="msim-grid">
+    <div class="msim-viz">
+      <div class="chart-box"><canvas data-eng></canvas></div>
+      <canvas data-pyr></canvas>
+    </div>
+    <div class="msim-ctrl">
+      <label>Cuánto se acapara (codicia) <b data-l="z">0.32</b>
+        <input type="range" data-s="z" min="0.05" max="0.7" step="0.01" value="0.32" /></label>
+      <label>Redistribución (Estado, impuestos) <b data-l="t">0.040</b>
+        <input type="range" data-s="t" min="0" max="0.25" step="0.005" value="0.04" /></label>
+      <label>Abundancia del mundo (menos escasez) <b data-l="k">10</b>
+        <input type="range" data-s="k" min="4" max="20" step="0.5" value="10" /></label>
+      <label>Amplitud del "nosotros" <b data-l="r">0.35</b>
+        <input type="range" data-s="r" min="0.15" max="0.75" step="0.01" value="0.35" /></label>
+      <div class="msim-presets">
+        <button data-p="laissez">Sin frenos</button>
+        <button data-p="redis">Estado fuerte</button>
+        <button data-p="circ">"Nosotros" amplio</button>
+        <button data-p="post">Abundante + justo</button>
+      </div>
+      <div class="msim-btns">
+        <button data-act="pp" class="prim">⏸ Pausar</button>
+        <button data-act="rs">Reiniciar</button>
+      </div>
+      <div class="msim-readout" data-ro></div>
+    </div>
+  </div>
+  <div class="msim-foot">SIMULACIÓN EN VIVO · MUEVE LAS PALANCAS</div>
+</figure>
+
+<script>
+  import Chart from 'chart.js/auto';
+  import { BASE, rk4, ctxOf, COL, type Params, type State } from '../lib/machine';
+
+  const FONT = { family: "'JetBrains Mono', monospace", size: 11 };
+  const TICK = '#8f8b83';
+  const GRID = 'rgba(255,255,255,0.06)';
+  const WINDOW = 520; // puntos visibles en la ventana deslizante
+
+  function init(root: HTMLElement) {
+    const cv = root.querySelector<HTMLCanvasElement>('[data-eng]')!;
+    const cvp = root.querySelector<HTMLCanvasElement>('[data-pyr]')!;
+    const phase = root.querySelector<HTMLElement>('[data-phase]')!;
+    const ro = root.querySelector<HTMLElement>('[data-ro]')!;
+    const dt = 0.02;
+    let P: Params = { ...BASE };
+    let s: State = [0.35, 0.4, 0.05];
+    let t = 0;
+    let running = true;
+    let maxPw = 1;
+    let frame = 0;
+
+    // Series en vivo (mutadas en sitio; Chart.js las lee por referencia).
+    const labels: string[] = [];
+    const dP: number[] = [];
+    const dC: number[] = [];
+    const dG: number[] = [];
+
+    const chart = new Chart(cv, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Prosperidad',
+            data: dP,
+            borderColor: '#ffcc33',
+            backgroundColor: 'rgba(255,204,51,0.12)',
+            fill: true,
+            yAxisID: 'yL',
+          },
+          {
+            label: 'Cooperación',
+            data: dC,
+            borderColor: '#33b7db',
+            yAxisID: 'yR',
+          },
+          {
+            label: 'Desigualdad',
+            data: dG,
+            borderColor: '#ed8d4c',
+            yAxisID: 'yR',
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        interaction: { mode: 'index', intersect: false },
+        elements: { point: { radius: 0 }, line: { borderWidth: 2, tension: 0 } },
+        scales: {
+          x: {
+            title: { display: true, text: 'Tiempo (el tiempo pasa)', color: TICK, font: FONT },
+            ticks: { color: TICK, font: FONT, maxTicksLimit: 6, maxRotation: 0 },
+            grid: { color: GRID },
+          },
+          yL: {
+            position: 'left',
+            beginAtZero: true,
+            title: { display: true, text: 'Prosperidad', color: '#ffcc33', font: FONT },
+            ticks: { color: TICK, font: FONT },
+            grid: { color: GRID },
+          },
+          yR: {
+            position: 'right',
+            min: 0,
+            max: 100,
+            title: { display: true, text: 'Cooperación y desigualdad (%)', color: TICK, font: FONT },
+            ticks: { color: TICK, font: FONT, callback: (v) => `${v}%` },
+            grid: { drawOnChartArea: false },
+          },
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+            align: 'start',
+            labels: { color: TICK, font: FONT, boxWidth: 14, boxHeight: 3 },
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+            backgroundColor: 'rgba(12,12,14,0.92)',
+            borderColor: 'rgba(255,255,255,0.15)',
+            borderWidth: 1,
+            titleColor: '#e8e4dc',
+            bodyColor: '#c8c4bc',
+            titleFont: FONT,
+            bodyFont: FONT,
+            callbacks: {
+              title: (items) => (items.length ? `t = ${items[0].label}` : ''),
+              label: (c) =>
+                c.dataset.yAxisID === 'yR'
+                  ? `${c.dataset.label}: ${Number(c.parsed.y).toFixed(0)}%`
+                  : `${c.dataset.label}: ${Number(c.parsed.y).toFixed(2)}`,
+            },
+          },
+        },
+      },
+    });
+
+    const key: Record<string, keyof Params> = { z: 'zeta', t: 'tau', k: 'K', r: 'r0' };
+    const fmt = (k: string, v: number) => (k === 't' ? v.toFixed(3) : k === 'k' ? v.toFixed(0) : v.toFixed(2));
+    function syncLabels() {
+      root.querySelectorAll<HTMLElement>('[data-l]').forEach((el) => {
+        const k = el.dataset.l!;
+        el.textContent = fmt(k, P[key[k]] as number);
+      });
+    }
+    root.querySelectorAll<HTMLInputElement>('[data-s]').forEach((inp) => {
+      inp.addEventListener('input', () => {
+        const k = inp.dataset.s!;
+        (P[key[k]] as number) = +inp.value;
+        const b = root.querySelector<HTMLElement>(`[data-l="${k}"]`)!;
+        b.textContent = fmt(k, +inp.value);
+        clearPreset();
+      });
+    });
+
+    const presets: Record<string, Partial<Params>> = {
+      laissez: { zeta: 0.55, tau: 0.01, K: 10, r0: 0.30 },
+      redis: { zeta: 0.45, tau: 0.20, K: 10, r0: 0.35 },
+      circ: { zeta: 0.32, tau: 0.06, K: 10, r0: 0.65 },
+      post: { zeta: 0.20, tau: 0.10, K: 18, r0: 0.55 },
+    };
+    function clearSeries() {
+      labels.length = 0;
+      dP.length = 0;
+      dC.length = 0;
+      dG.length = 0;
+      chart.update('none');
+    }
+    function clearPreset() {
+      root.querySelectorAll('[data-p]').forEach((b) => b.classList.remove('on'));
+    }
+    root.querySelectorAll<HTMLButtonElement>('[data-p]').forEach((b) => {
+      b.onclick = () => {
+        clearPreset();
+        b.classList.add('on');
+        Object.assign(P, presets[b.dataset.p!]);
+        root.querySelectorAll<HTMLInputElement>('[data-s]').forEach((inp) => {
+          inp.value = String(P[key[inp.dataset.s!]]);
+        });
+        syncLabels();
+        clearSeries();
+      };
+    });
+    root.querySelector<HTMLButtonElement>('[data-act="pp"]')!.onclick = (e) => {
+      running = !running;
+      (e.target as HTMLElement).textContent = running ? '⏸ Pausar' : '▶ Reanudar';
+    };
+    root.querySelector<HTMLButtonElement>('[data-act="rs"]')!.onclick = () => {
+      s = [0.35, 0.4, 0.05];
+      t = 0;
+      clearSeries();
+    };
+
+    function phaseLabel(): [string, string] {
+      const [, W, G] = s;
+      const pw = s[0] * W;
+      if (dP.length < 3) return ['···', COL.muted];
+      const prev = dP[dP.length - 2], now = dP[dP.length - 1];
+      if (pw < 0.15 * maxPw) return ['COLAPSO / REINICIO', COL.red];
+      if (G > 0.5 && now < prev) return ['CIMA → DECLIVE', COL.orange];
+      if (now > prev) return ['AUGE', COL.green];
+      return ['CIMA', COL.yellow];
+    }
+
+    function drawPyramid() {
+      const H = Math.max(170, cvp.clientHeight || 170);
+      const { x, w, h } = ctxOf(cvp, H);
+      x.clearRect(0, 0, w, h);
+      const [C, W, G] = s;
+      const baseY = h - 14, apexY = 16, cxp = w / 2, halfW = Math.min(w * 0.42, (baseY - apexY) * 1.35);
+      x.beginPath(); x.moveTo(cxp, apexY); x.lineTo(cxp - halfW, baseY); x.lineTo(cxp + halfW, baseY); x.closePath();
+      x.fillStyle = 'rgba(51,183,219,.14)'; x.fill(); x.strokeStyle = COL.blue; x.lineWidth = 1.2; x.stroke();
+      const gy = apexY + (baseY - apexY) * Math.min(1, G * 1.3);
+      const wAt = (y: number) => halfW * (y - apexY) / (baseY - apexY);
+      x.beginPath(); x.moveTo(cxp, apexY); x.lineTo(cxp - wAt(gy), gy); x.lineTo(cxp + wAt(gy), gy); x.closePath();
+      x.fillStyle = 'rgba(255,204,51,.7)'; x.fill();
+      x.fillStyle = COL.muted; x.font = '11px "JetBrains Mono", monospace';
+      x.fillText('los pocos de arriba tienen ' + (G * 100).toFixed(0) + '%', 8, h - 3);
+
+      const [lab, col] = phaseLabel();
+      phase.textContent = lab; phase.style.color = col;
+      ro.innerHTML = `Prosperidad = <b>${(C * W).toFixed(2)}</b> · pico = <b>${maxPw.toFixed(2)}</b><br>Desigualdad = <b>${(G * 100).toFixed(0)}%</b> · cooperación = <b>${(C * 100).toFixed(0)}%</b>`;
+    }
+
+    syncLabels();
+    function loop() {
+      if (running) {
+        for (let k = 0; k < 3; k++) {
+          s = rk4(s, P, dt);
+          t += dt;
+          labels.push(t.toFixed(1));
+          dP.push(s[0] * s[1]);
+          dC.push(s[0] * 100);
+          dG.push(s[2] * 100);
+        }
+        const over = labels.length - WINDOW;
+        if (over > 0) {
+          labels.splice(0, over);
+          dP.splice(0, over);
+          dC.splice(0, over);
+          dG.splice(0, over);
+        }
+        maxPw = Math.max(1, ...dP);
+        frame++;
+        if (frame % 3 === 0) chart.update('none');
+      }
+      drawPyramid();
+      requestAnimationFrame(loop);
+    }
+    window.addEventListener('resize', drawPyramid);
+    requestAnimationFrame(loop);
+  }
+
+  document.querySelectorAll<HTMLElement>('.msim').forEach(init);
+</script>
+
+<style>
+  .msim { padding: 1rem 1.2rem 0.8rem; margin-block: 2.5rem; }
+  .msim-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
+  .msim-title { color: var(--orange-bright); font-size: 0.78rem; letter-spacing: 0.3em; text-transform: uppercase; }
+  .msim-phase { font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase; }
+  .msim-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 1.4rem; align-items: start; }
+  @media (max-width: 720px) { .msim-grid { grid-template-columns: 1fr; } }
+  .chart-box { position: relative; height: 260px; }
+  @media (max-width: 700px) { .chart-box { height: 220px; } }
+  .msim-viz canvas[data-pyr] { display: block; width: 100%; height: 170px; margin-top: 0.6rem; }
+  @media (min-width: 900px) {
+    .chart-box { height: clamp(280px, 44vh, 560px); }
+    .msim-viz canvas[data-pyr] { height: clamp(170px, 22vh, 280px); }
+  }
+  .msim-ctrl { display: flex; flex-direction: column; gap: 0.7rem; }
+  .msim-ctrl label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.7rem; color: var(--muted); letter-spacing: 0.05em; }
+  .msim-ctrl label b { color: var(--blue); }
+  .msim-ctrl input[type='range'] { width: 100%; accent-color: var(--orange); }
+  .msim-presets { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; }
+  .msim-btns { display: flex; gap: 0.4rem; }
+  .msim button { background: var(--bg-panel-2); color: var(--text); border: 1px solid var(--line); padding: 0.4rem 0.6rem; font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.08em; cursor: pointer; }
+  .msim button:hover { border-color: var(--orange); color: var(--orange-bright); }
+  .msim button.prim { background: var(--orange); color: #000; font-weight: 700; border-color: var(--orange); }
+  .msim button.on { background: var(--yellow); color: #000; border-color: var(--yellow); }
+  .msim-readout { font-size: 0.72rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.6rem 0.7rem; line-height: 1.8; }
+  .msim-readout :global(b) { color: var(--text); }
+  .msim-foot { margin-top: 0.7rem; padding-top: 0.5rem; border-top: 1px dashed var(--line); font-size: 0.6rem; letter-spacing: 0.3em; color: var(--muted); }
+</style>

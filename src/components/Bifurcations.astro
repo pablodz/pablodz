@@ -1,0 +1,77 @@
+---
+/** Paso 12 · Diagramas de bifurcación (ζ y r0) con lectura al pasar el cursor. */
+---
+
+<figure class="panel viz-fig">
+  <canvas data-bif="z"></canvas>
+  <figcaption>Al subir cuánto se acapara (ζ): por debajo de ~0.25 la sociedad es <b>estable y próspera</b>.
+  Justo ahí nace el ciclo (Hopf), y la prosperidad se desploma. <b>El acaparar es el interruptor del
+  colapso.</b> <span class="cap-mut">Pasa el dedo o el cursor por la gráfica.</span></figcaption>
+  <div class="readout" data-ro="z">← Desliza el dedo o el cursor sobre la curva</div>
+</figure>
+
+<figure class="panel viz-fig">
+  <canvas data-bif="r"></canvas>
+  <figcaption>Al ampliar el "nosotros" (r₀) aparecen <b>tres regímenes</b>: círculo muy estrecho →
+  <b>muerte</b> (trampa de pobreza); intermedio → <b>auge-colapso</b>; suficientemente ancho →
+  <b>prosperidad estable</b>. <span class="cap-mut">Pasa el dedo o el cursor por la gráfica.</span></figcaption>
+  <div class="readout" data-ro="r">← Desliza el dedo o el cursor sobre la curva</div>
+</figure>
+
+<script>
+  import { ctxOf, COL } from '../lib/machine';
+
+  function bifChart(cv: HTMLCanvasElement, ro: HTMLElement, xs: number[], amp: number[], mean: number[], xlabel: string, xcrit: number | null, critLabel: string) {
+    const P = 44; let CW = 0;
+    function draw() {
+      const { x, w, h } = ctxOf(cv, 240); CW = w; x.clearRect(0, 0, w, h); const p = 44;
+      x.strokeStyle = 'rgba(255,255,255,0.07)'; for (let i = 0; i <= 4; i++) { const y = p + (h - 2 * p) * i / 4; x.beginPath(); x.moveTo(p, y); x.lineTo(w - p, y); x.stroke(); }
+      const x0 = xs[0], x1 = xs[xs.length - 1], X = (v: number) => p + (w - 2 * p) * (v - x0) / (x1 - x0);
+      const maxM = Math.max(...mean), maxA = Math.max(...amp);
+      const YM = (v: number) => h - p - (h - 2 * p) * v / (maxM * 1.05), YA = (v: number) => h - p - (h - 2 * p) * v / (maxA * 1.05);
+      for (let i = 0; i < xs.length - 1; i++) if (amp[i] > 0.5) { x.fillStyle = 'rgba(255,85,85,.10)'; x.fillRect(X(xs[i]), p, X(xs[i + 1]) - X(xs[i]) + 1, h - 2 * p); }
+      if (xcrit != null) { x.strokeStyle = COL.red; x.setLineDash([5, 4]); x.lineWidth = 1.4; x.beginPath(); x.moveTo(X(xcrit), p); x.lineTo(X(xcrit), h - p); x.stroke(); x.setLineDash([]); x.fillStyle = COL.red; x.font = '10px "JetBrains Mono", monospace'; x.fillText(critLabel, X(xcrit) + 4, p + 12); }
+      x.beginPath(); mean.forEach((v, i) => { const px = X(xs[i]), py = YM(v); i ? x.lineTo(px, py) : x.moveTo(px, py); }); x.strokeStyle = COL.blue; x.lineWidth = 2.2; x.stroke();
+      x.beginPath(); amp.forEach((v, i) => { const px = X(xs[i]), py = YA(v); i ? x.lineTo(px, py) : x.moveTo(px, py); }); x.strokeStyle = COL.yellow; x.lineWidth = 2.2; x.stroke();
+      x.fillStyle = COL.muted; x.font = '11px "JetBrains Mono", monospace'; x.fillText(xlabel, w / 2 - 40, h - p + 22);
+      x.fillStyle = COL.blue; x.fillText('prosperidad media', p + 4, p - 6);
+      x.fillStyle = COL.yellow; x.fillText('amplitud del ciclo', w - 160, p - 6);
+    }
+    draw(); window.addEventListener('resize', draw);
+    const name = xlabel.replace(/[→].*/, '').trim();
+    cv.style.cursor = 'crosshair';
+    cv.style.touchAction = 'pan-y';
+    // pointermove cubre mouse Y dedo (en mobile el hover no existe).
+    cv.addEventListener('pointermove', (ev) => {
+      const rect = cv.getBoundingClientRect(); const u = (ev.clientX - rect.left - P) / (CW - 2 * P);
+      const x0 = xs[0], x1 = xs[xs.length - 1], xv = x0 + (x1 - x0) * Math.min(1, Math.max(0, u));
+      let i = 0, best = 1e9; xs.forEach((v, k) => { const dd = Math.abs(v - xv); if (dd < best) { best = dd; i = k; } });
+      const cyc = amp[i] > 0.5;
+      ro.innerHTML = `${name} = <b>${xs[i].toFixed(2)}</b> · prosperidad = <b>${mean[i].toFixed(2)}</b> · amplitud = <b>${amp[i].toFixed(1)}</b> → <b style="color:${cyc ? COL.red : COL.green}">${cyc ? 'CICLO (colapsa)' : 'ESTABLE'}</b>`;
+    });
+    cv.addEventListener('mouseleave', () => { ro.innerHTML = '← Desliza el dedo o el cursor sobre la curva'; });
+  }
+
+  const root = document;
+  const cz = root.querySelector<HTMLCanvasElement>('[data-bif="z"]');
+  const cr = root.querySelector<HTMLCanvasElement>('[data-bif="r"]');
+  if (cz) bifChart(cz, root.querySelector<HTMLElement>('[data-ro="z"]')!,
+    [0.08, 0.11, 0.14, 0.17, 0.20, 0.23, 0.26, 0.29, 0.32, 0.35, 0.38, 0.41, 0.44, 0.47, 0.50, 0.53, 0.56, 0.59],
+    [0.01, 0, 0, 0, 0, 0, 8.34, 8.25, 8.10, 7.92, 7.71, 7.50, 7.26, 7.02, 6.77, 6.50, 6.23, 5.95],
+    [8.59, 8.12, 7.62, 7.05, 6.39, 5.53, 2.29, 1.68, 1.78, 1.58, 1.42, 1.30, 1.19, 1.11, 1.04, 0.97, 0.91, 0.84],
+    'cuánto se acapara  ζ →', 0.255, '← Hopf: nace el ciclo');
+  if (cr) bifChart(cr, root.querySelector<HTMLElement>('[data-ro="r"]')!,
+    [0.20, 0.23, 0.26, 0.29, 0.32, 0.35, 0.38, 0.41, 0.44, 0.47, 0.50, 0.53, 0.56, 0.59, 0.62, 0.65, 0.68, 0.71, 0.74],
+    [0, 0, 0.01, 8.02, 8.21, 8.10, 7.45, 0.27, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0.01, 0.02, 0.03, 1.23, 1.35, 1.78, 1.89, 2.30, 3.67, 4.21, 4.54, 4.78, 4.98, 5.14, 5.27, 5.39, 5.49, 5.59, 5.67],
+    'amplitud del "nosotros"  r₀ →', null, '');
+</script>
+
+<style>
+  .viz-fig { padding: 1rem 1.2rem 0.8rem; margin-block: 1.5rem; }
+  .viz-fig canvas { display: block; width: 100%; height: 240px; }
+  .viz-fig figcaption { font-size: 0.78rem; color: var(--muted); margin-top: 0.6rem; }
+  .cap-mut { color: #6b6862; }
+  .readout { font-size: 0.76rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.55rem 0.7rem; margin-top: 0.5rem; }
+  .readout :global(b) { color: var(--text); }
+</style>

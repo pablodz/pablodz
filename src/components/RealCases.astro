@@ -1,0 +1,75 @@
+---
+/**
+ * Panel de casos reales que validan una idea central del modelo.
+ * Cada idea generalizada del post trae ~5 casos históricos verificables.
+ */
+interface Case {
+  y: string; // año o rango
+  t: string; // titular del caso
+  d: string; // qué pasó y qué valida
+}
+
+interface Props {
+  title?: string;
+  items: Case[];
+}
+
+const { title = 'la idea, contra la realidad', items } = Astro.props;
+---
+
+<aside class="cases panel">
+  <p class="cases-head">◢ CASOS REALES · {title}</p>
+  <ol class="cases-list">
+    {items.map((c) => (
+      <li>
+        <span class="c-y">{c.y}</span>
+        <span class="c-body"><b>{c.t}.</b> {c.d}</span>
+      </li>
+    ))}
+  </ol>
+</aside>
+
+<style>
+  .cases {
+    padding: 1rem 1.2rem;
+    margin-block: 1.5rem;
+    border-left-color: var(--green);
+  }
+  .cases-head {
+    font-size: 0.7rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 0.8rem;
+  }
+  .cases-list {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+  .cases-list li {
+    display: grid;
+    grid-template-columns: 8ch 1fr;
+    gap: 1ch;
+    font-size: 0.8rem;
+    line-height: 1.65;
+    color: #cfccc5;
+  }
+  .c-y {
+    color: var(--yellow);
+    font-size: 0.72rem;
+    padding-top: 0.2em;
+    letter-spacing: 0.05em;
+  }
+  .c-body b {
+    color: var(--text);
+  }
+  @media (max-width: 700px) {
+    .cases-list li {
+      grid-template-columns: 1fr;
+      gap: 0.1rem;
+    }
+  }
+</style>

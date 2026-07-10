@@ -1,0 +1,191 @@
+---
+/**
+ * La pirámide contra las instrucciones antiguas: el mismo modelo yard-sale
+ * de 40 personas, pero con tres reglas milenarias como deslizadores:
+ * humildad (ceder la ganancia al que tiene menos), compartir (donar del
+ * excedente) y perdón (condonar deudas). Con las tres activas, la pirámide
+ * no logra formarse.
+ */
+---
+
+<figure class="hpyr panel">
+  <figcaption class="hpyr-head">
+    <span class="hpyr-title">◢ LA PIRÁMIDE, CONTRA LAS INSTRUCCIONES ANTIGUAS</span>
+    <span class="hpyr-phase" data-phase>Todos iguales</span>
+  </figcaption>
+  <div class="hpyr-grid">
+    <div><canvas data-cv></canvas></div>
+    <div class="hpyr-ctrl">
+      <label>Humildad (no acumular estatus) <b data-hl>0</b>
+        <input type="range" data-h min="0" max="100" step="1" value="0" /></label>
+      <label>Compartir (dar del excedente) <b data-cl>0</b>
+        <input type="range" data-c min="0" max="100" step="1" value="0" /></label>
+      <label>Perdón (condonar deudas) <b data-pl>0</b>
+        <input type="range" data-p min="0" max="100" step="1" value="0" /></label>
+      <div class="hpyr-presets">
+        <button data-pre="0,0,0" class="on">Sin instrucciones</button>
+        <button data-pre="70,0,0">Solo humildad</button>
+        <button data-pre="60,50,60">Las tres a la vez</button>
+      </div>
+      <div class="hpyr-btns">
+        <button data-play class="prim">▶ Correr</button>
+        <button data-reset>Reiniciar</button>
+      </div>
+      <div class="hpyr-readout" data-ro></div>
+    </div>
+  </div>
+  <div class="hpyr-foot">HUMILDAD, COMPARTIR Y PERDONAR: INGENIERÍA ANTI-PIRÁMIDE CON MILENIOS DE ANTIGÜEDAD</div>
+</figure>
+
+<script>
+  import { ctxOf, COL } from '../lib/machine';
+
+  function init(root: HTMLElement) {
+    const cv = root.querySelector<HTMLCanvasElement>('[data-cv]')!;
+    const play = root.querySelector<HTMLButtonElement>('[data-play]')!;
+    const reset = root.querySelector<HTMLButtonElement>('[data-reset]')!;
+    const hs = root.querySelector<HTMLInputElement>('[data-h]')!;
+    const cs = root.querySelector<HTMLInputElement>('[data-c]')!;
+    const ps = root.querySelector<HTMLInputElement>('[data-p]')!;
+    const hl = root.querySelector<HTMLElement>('[data-hl]')!;
+    const cl = root.querySelector<HTMLElement>('[data-cl]')!;
+    const pl = root.querySelector<HTMLElement>('[data-pl]')!;
+    const phase = root.querySelector<HTMLElement>('[data-phase]')!;
+    const ro = root.querySelector<HTMLElement>('[data-ro]')!;
+    const presets = [...root.querySelectorAll<HTMLButtonElement>('[data-pre]')];
+
+    // Constantes verificadas (600 rondas): 0/0/0 -> top10 ~78%; 60/50/60 -> ~13%.
+    const N = 40;
+    const STAKE_F = 0.12;     // fracción del mínimo apostada en cada trato
+    const DEBT_LINE = 0.3;    // bajo esta riqueza, perder puede empujar a deuda
+    const DEBT_FLOOR = -0.5;  // deuda máxima
+    const SHARE_MAX = 0.02;   // c=100 dona 2% del excedente por ronda
+    const FORGIVE_EVERY = 50; // rondas entre jubileos
+    const RESET_W = 0.05;     // riqueza tras la condonación
+    const MAX_ROUNDS = 1200;
+
+    let wealth: number[] = []; let round = 0; let running = false; let raf = 0;
+
+    function stopA() { running = false; if (raf) cancelAnimationFrame(raf); raf = 0; play.textContent = '▶ Correr'; play.classList.remove('on'); }
+    function resetAll() { wealth = new Array(N).fill(1); round = 0; stopA(); draw(); stats(); }
+
+    function step() {
+      const h = +hs.value, c = +cs.value, p = +ps.value;
+      // tratos al azar
+      for (let k = 0; k < N; k++) {
+        const i = Math.floor(Math.random() * N), j = Math.floor(Math.random() * N);
+        if (i === j) continue;
+        const m = Math.min(wealth[i], wealth[j]);
+        if (m <= 0) continue; // el endeudado no comercia: queda atrapado abajo
+        const stake = STAKE_F * Math.max(m, DEBT_LINE);
+        const richer = wealth[i] >= wealth[j] ? i : j;
+        const poorer = richer === i ? j : i;
+        let winner = Math.random() < 0.5 ? i : j;
+        // humildad: el que tiene más cede la ganancia al que tiene menos
+        if (winner === richer && Math.random() < h / 100) winner = poorer;
+        const loser = winner === i ? j : i;
+        wealth[winner] += stake;
+        wealth[loser] = Math.max(DEBT_FLOOR, wealth[loser] - stake);
+      }
+      // compartir: los que están sobre el promedio donan parte de su excedente
+      if (c > 0) {
+        const mean = wealth.reduce((a, b) => a + b, 0) / N;
+        const below: number[] = []; let pool = 0;
+        for (let q = 0; q < N; q++) {
+          if (wealth[q] > mean) { const d = (c / 100) * SHARE_MAX * (wealth[q] - mean); wealth[q] -= d; pool += d; }
+          else if (wealth[q] < mean) below.push(q);
+        }
+        if (below.length) { const each = pool / below.length; for (const q of below) wealth[q] += each; }
+      }
+      round++;
+      // perdón: jubileo periódico de deudas
+      if (p > 0 && round % FORGIVE_EVERY === 0) {
+        for (let q = 0; q < N; q++) if (wealth[q] < 0 && Math.random() < p / 100) wealth[q] = RESET_W;
+      }
+    }
+
+    function stats() {
+      const s = [...wealth].sort((a, b) => b - a);
+      const tot = s.reduce((a, b) => a + b, 0);
+      const k = Math.max(1, Math.round(N * 0.1));
+      let top = 0; for (let q = 0; q < k; q++) top += s[q];
+      const t10 = top / tot * 100;
+      const debt = wealth.filter((x) => x < 0).length;
+      ro.innerHTML = `Ronda <b>${round}</b> · el <b>10%</b> más rico tiene <b>${t10.toFixed(0)}%</b> · en deuda: <b>${debt}</b> ${debt === 1 ? 'persona' : 'personas'}`;
+      let lab: string, col: string;
+      if (t10 > 60) { lab = 'PIRÁMIDE DURA'; col = COL.red; }
+      else if (t10 > 40) { lab = 'PIRÁMIDE SUAVE'; col = COL.orange; }
+      else { lab = 'REPARTIDO'; col = COL.green; }
+      phase.textContent = lab; phase.style.color = col;
+    }
+
+    function draw() {
+      const H = Math.max(240, cv.clientHeight || 240);
+      const { x, w, h } = ctxOf(cv, H); x.clearRect(0, 0, w, h); const pad = 10;
+      const s = [...wealth].sort((a, b) => a - b);
+      const mx = Math.max(...s, 0.01); const mn = Math.min(...s, 0);
+      const bw = (w - 2 * pad) / N;
+      const top = 24, bot = h - pad;
+      const zero = mn < 0 ? bot + (bot - top) * mn / (mx - mn) : bot; // línea de cero
+      for (let i = 0; i < N; i++) {
+        const bh = (bot - top) * Math.abs(s[i]) / (mx - mn || 0.01);
+        const col = s[i] < 0 ? COL.purple : i >= N * 0.9 ? COL.red : i >= N * 0.7 ? COL.orange : COL.blue;
+        x.fillStyle = col;
+        if (s[i] >= 0) x.fillRect(pad + i * bw, zero - bh, bw - 1.5, bh);
+        else x.fillRect(pad + i * bw, zero, bw - 1.5, bh);
+      }
+      if (mn < 0) { x.strokeStyle = COL.grid; x.beginPath(); x.moveTo(pad, zero); x.lineTo(w - pad, zero); x.stroke(); }
+      x.fillStyle = COL.muted; x.font = '11px "JetBrains Mono", monospace';
+      x.fillText('cada barra = una persona (de la más pobre a la más rica) →', pad, 14);
+    }
+
+    function labels() { hl.textContent = hs.value; cl.textContent = cs.value; pl.textContent = ps.value; }
+    function markPreset() {
+      const cur = `${hs.value},${cs.value},${ps.value}`;
+      presets.forEach((b) => b.classList.toggle('on', b.dataset.pre === cur));
+    }
+    [hs, cs, ps].forEach((el) => el.addEventListener('input', () => { labels(); markPreset(); }));
+    presets.forEach((b) => (b.onclick = () => {
+      const [h, c, p] = b.dataset.pre!.split(',');
+      hs.value = h; cs.value = c; ps.value = p; labels(); markPreset();
+    }));
+
+    function anim() {
+      if (!running) return;
+      for (let r = 0; r < 3; r++) step();
+      draw(); stats();
+      if (round >= MAX_ROUNDS) { stopA(); return; }
+      raf = requestAnimationFrame(anim);
+    }
+    play.onclick = () => { if (running) stopA(); else { running = true; play.textContent = '⏸ Pausar'; play.classList.add('on'); raf = requestAnimationFrame(anim); } };
+    reset.onclick = resetAll;
+    window.addEventListener('resize', draw);
+    labels(); markPreset(); resetAll();
+  }
+  document.querySelectorAll<HTMLElement>('.hpyr').forEach(init);
+</script>
+
+<style>
+  .hpyr { padding: 1rem 1.2rem 0.8rem; margin-block: 2.5rem; }
+  .hpyr-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
+  .hpyr-title { color: var(--orange-bright); font-size: 0.78rem; letter-spacing: 0.3em; text-transform: uppercase; }
+  .hpyr-phase { font-size: 0.72rem; letter-spacing: 0.15em; }
+  .hpyr-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 1.4rem; align-items: start; }
+  @media (max-width: 720px) { .hpyr-grid { grid-template-columns: 1fr; } }
+  .hpyr-grid canvas { display: block; width: 100%; height: 240px; }
+  @media (min-width: 900px) { .hpyr-grid canvas { height: clamp(240px, 36vh, 420px); } }
+  .hpyr-ctrl { display: flex; flex-direction: column; gap: 0.7rem; }
+  .hpyr-ctrl label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.7rem; color: var(--muted); }
+  .hpyr-ctrl label b { color: var(--blue); }
+  .hpyr-ctrl input[type='range'] { width: 100%; accent-color: var(--orange); }
+  .hpyr-presets { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+  .hpyr-btns { display: flex; gap: 0.4rem; }
+  .hpyr button { background: var(--bg-panel-2); color: var(--text); border: 1px solid var(--line); padding: 0.45rem 0.7rem; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.08em; cursor: pointer; }
+  .hpyr button:hover { border-color: var(--orange); color: var(--orange-bright); }
+  .hpyr button.prim { background: var(--orange); color: #000; font-weight: 700; border-color: var(--orange); }
+  .hpyr button.on { background: var(--yellow); color: #000; border-color: var(--yellow); }
+  .hpyr-presets button.on { background: var(--orange); color: #000; border-color: var(--orange); font-weight: 700; }
+  .hpyr-readout { font-size: 0.72rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.6rem 0.7rem; }
+  .hpyr-readout :global(b) { color: var(--text); }
+  .hpyr-foot { margin-top: 0.7rem; padding-top: 0.5rem; border-top: 1px dashed var(--line); font-size: 0.6rem; letter-spacing: 0.28em; color: var(--muted); }
+</style>

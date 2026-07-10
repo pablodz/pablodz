@@ -1,0 +1,232 @@
+---
+/**
+ * Paso 10 · Resolución del mapa de células: de un bloque a muchas escalas.
+ * La resolución funciona como el foco de una lente: cada nivel entra con
+ * fundido y desenfoque simulado (trazos con jitter que convergen a un trazo
+ * nítido), y al cruzar cada umbral un anillo de pulso recorre el nivel
+ * recién revelado. Si nadie toca el slider, la lente respira sola.
+ */
+---
+
+<div class="mapr panel">
+  <div class="mapr-grid">
+    <div><canvas data-c></canvas></div>
+    <div class="mapr-ctrl">
+      <div class="phase" data-st>···</div>
+      <label class="mapr-lab">Resolución del mapa (información / globalización) <b data-v>baja</b></label>
+      <input type="range" data-s min="0" max="100" value="15" />
+      <div class="mapr-auto" data-auto>modo automático · mueve el slider para tomar el control</div>
+      <div class="readout" data-ro></div>
+      <p class="mapr-note">A baja resolución, el mundo parece caber en una idea simple. A alta resolución
+      aparecen las escalas ocultas, y la única salida que encaja es una por cada nivel.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { ctxOf, COL } from '../lib/machine';
+
+  /** Umbrales de nivel: al cruzarlos, ping de radar + etiqueta al costado. */
+  const PL = [
+    { t: 30, col: COL.blue, label: 'naciones y clases' },
+    { t: 60, col: COL.purple, label: 'tribus y redes' },
+    { t: 85, col: COL.green, label: 'todas las escalas' },
+  ];
+  const UP = 18000, HOLD = 3000; // respiración del modo ambiente
+  const ease = (t: number) => 0.5 - 0.5 * Math.cos(Math.PI * t);
+  const ss = (a: number, b: number, v: number) => {
+    const t = Math.min(1, Math.max(0, (v - a) / (b - a)));
+    return t * t * (3 - 2 * t);
+  };
+
+  function init(root: HTMLElement) {
+    const cv = root.querySelector<HTMLCanvasElement>('[data-c]')!;
+    const sl = root.querySelector<HTMLInputElement>('[data-s]')!;
+    const lv = root.querySelector<HTMLElement>('[data-v]')!;
+    const st = root.querySelector<HTMLElement>('[data-st]')!;
+    const ro = root.querySelector<HTMLElement>('[data-ro]')!;
+    const auto = root.querySelector<HTMLElement>('[data-auto]')!;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Geometría fija: 3 grupos, 3 subgrupos por grupo, 7 puntos por subgrupo.
+    const groups = 3, subs = 3, per = 7;
+    const gC: { x: number; y: number }[] = [];
+    const sC: { x: number; y: number }[] = [];
+    const dots: { x: number; y: number }[] = [];
+    for (let g = 0; g < groups; g++) {
+      const ga = g / groups * 2 * Math.PI, gx = 0.5 + 0.28 * Math.cos(ga), gy = 0.5 + 0.28 * Math.sin(ga);
+      gC.push({ x: gx, y: gy });
+      for (let sN = 0; sN < subs; sN++) {
+        const sa = sN / subs * 2 * Math.PI + g, sx = gx + 0.12 * Math.cos(sa), sy = gy + 0.12 * Math.sin(sa);
+        sC.push({ x: sx, y: sy });
+        for (let k = 0; k < per; k++) {
+          const ka = k / per * 2 * Math.PI + sN;
+          dots.push({ x: sx + 0.045 * Math.cos(ka), y: sy + 0.045 * Math.sin(ka) });
+        }
+      }
+    }
+
+    // Altura dictada por CSS: 260px móvil, clamp(260px, 36vh, 420px) en escritorio.
+    const measure = () => ctxOf(cv, Math.max(260, Math.round(cv.getBoundingClientRect().height) || 260));
+    let g = measure();
+
+    let res = +sl.value, target = res;
+    let ambient = !reduced, ambT = 2800; // arranca cerca del valor inicial del slider
+    const pulses: { lv: number; t0: number }[] = [];
+    let lastLab = '', lastLv = '';
+
+    /** Círculo con desenfoque simulado: 3 trazos con jitter que convergen a uno nítido. */
+    function blurRing(cx: number, cy: number, r: number, col: string, lw: number, a: number, f: number, now: number) {
+      const { x } = g;
+      if (f <= 0.01 || a <= 0.01) return;
+      x.strokeStyle = col; x.lineWidth = lw;
+      if (f > 0.97) {
+        x.globalAlpha = a; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.stroke();
+      } else {
+        const j = (1 - f) * 7 + 1;
+        for (let i = 0; i < 3; i++) {
+          const ph = now * 0.0011 + i * 2.09 + r * 0.13;
+          x.globalAlpha = a * (0.16 + 0.5 * f);
+          x.beginPath();
+          x.arc(cx + Math.cos(ph) * j, cy + Math.sin(ph * 1.37) * j, Math.max(1, r + Math.sin(ph * 0.7) * j * 0.5), 0, 7);
+          x.stroke();
+        }
+      }
+      x.globalAlpha = 1;
+    }
+
+    function draw(now: number) {
+      const { x, w, h } = g;
+      x.clearRect(0, 0, w, h);
+      const X = (u: number) => 20 + (w - 40) * u, Y = (v: number) => 20 + (h - 40) * v, S = Math.min(w, h);
+
+      // Foco de cada nivel de la lente (en reduced: cortes limpios, como antes).
+      const fG = reduced ? (res > 30 ? 1 : 0) : ss(24, 46, res);
+      const fS = reduced ? (res > 60 ? 1 : 0) : ss(54, 74, res);
+      const fD = reduced ? (res > 60 ? 1 : 0) : ss(56, 82, res);
+
+      // Contorno global: siempre en foco; se atenúa cuando la lente baja a lo fino.
+      x.strokeStyle = COL.yellow; x.lineWidth = 2;
+      x.globalAlpha = reduced ? (res < 40 ? 0.9 : 0.3) : 0.9 - 0.6 * ss(35, 55, res);
+      x.beginPath(); x.arc(X(0.5), Y(0.5), S * 0.46, 0, 7); x.stroke(); x.globalAlpha = 1;
+
+      // Grupos (naciones y clases): entran en foco y ceden protagonismo a los subgrupos.
+      gC.forEach((c) => blurRing(X(c.x), Y(c.y), S * 0.2, COL.blue, 1.6, 0.85 - 0.5 * fS, fG, now));
+      // Subgrupos (tribus y redes).
+      sC.forEach((c) => blurRing(X(c.x), Y(c.y), S * 0.075, COL.purple, 1.2, 0.7, fS, now));
+
+      // Puntos: de manchas difusas a puntos nítidos que se encienden en naranja.
+      dots.forEach((d, i) => {
+        const cx = X(d.x), cy = Y(d.y), blur = 1 - fD;
+        if (!reduced && blur > 0.02) {
+          x.fillStyle = COL.muted;
+          for (let k = 0; k < 2; k++) {
+            const ph = now * 0.0009 + i * 1.7 + k * 2.3;
+            x.globalAlpha = 0.14 + 0.12 * fD;
+            x.beginPath();
+            x.arc(cx + Math.cos(ph) * blur * 4, cy + Math.sin(ph * 1.3) * blur * 4, 2.2 + blur * 4, 0, 7);
+            x.fill();
+          }
+        }
+        x.fillStyle = COL.muted; x.globalAlpha = (1 - fD) * (0.4 + 0.3 * fD);
+        x.beginPath(); x.arc(cx, cy, 2.6, 0, 7); x.fill();
+        x.fillStyle = COL.orange; x.globalAlpha = fD;
+        x.beginPath(); x.arc(cx, cy, 2.6, 0, 7); x.fill();
+        x.globalAlpha = 1;
+      });
+
+      // Anillos de pulso: ping de radar sobre el nivel recién revelado.
+      for (let i = pulses.length - 1; i >= 0; i--) {
+        const p = pulses[i], age = (now - p.t0) / 950;
+        if (age >= 1) { pulses.splice(i, 1); continue; }
+        const e = 1 - Math.pow(1 - age, 3);
+        x.strokeStyle = PL[p.lv].col; x.lineWidth = 1.6; x.globalAlpha = (1 - age) * 0.9;
+        if (p.lv === 0) gC.forEach((c) => { x.beginPath(); x.arc(X(c.x), Y(c.y), S * 0.2 * (0.25 + 1.1 * e), 0, 7); x.stroke(); });
+        else if (p.lv === 1) sC.forEach((c) => { x.beginPath(); x.arc(X(c.x), Y(c.y), S * 0.075 * (0.3 + 1.9 * e), 0, 7); x.stroke(); });
+        else { x.beginPath(); x.arc(X(0.5), Y(0.5), Math.max(1, S * 0.5 * e), 0, 7); x.stroke(); }
+        x.globalAlpha = 1;
+      }
+
+      // Etiquetas de nivel al costado, con refuerzo mientras dura su pulso.
+      x.font = '10px "JetBrains Mono", monospace'; x.textAlign = 'right';
+      PL.forEach((p, i) => {
+        const fl = reduced ? (res > p.t ? 1 : 0) : ss(p.t, p.t + 6, res);
+        if (fl <= 0.02) return;
+        const boost = pulses.some((q) => q.lv === i) ? 0.4 : 0;
+        x.fillStyle = p.col; x.globalAlpha = Math.min(1, 0.3 + 0.6 * fl + boost);
+        x.fillText(p.label, w - 14, 20 + i * 15);
+      });
+      x.textAlign = 'left'; x.globalAlpha = 1;
+
+      // Lecturas: mismas 4 fases y mensajes de siempre, guiadas por el valor mostrado.
+      const nl = res < 33 ? 'baja' : res < 66 ? 'media' : 'alta';
+      if (nl !== lastLv) { lastLv = nl; lv.textContent = nl; }
+      let lab: string, c: string, msg: string;
+      if (res < 30) { lab = 'Mapa borroso'; c = COL.yellow; msg = 'El mundo parece <b>un solo bloque</b> → parece que un solo ismo basta.'; }
+      else if (res < 60) { lab = 'Aparecen naciones y clases'; c = COL.blue; msg = 'Se ven <b>grandes grupos</b> → aquí nacieron los ismos clásicos (nación, clase, mercado).'; }
+      else if (res < 85) { lab = 'Aparecen tribus y redes'; c = COL.purple; msg = 'El mundo son <b>células dentro de células</b> → ningún ismo de escala única alcanza.'; }
+      else { lab = 'Alta resolución'; c = COL.green; msg = 'Se ven <b>todas las escalas a la vez</b> → la salida es <b>una palanca por escala</b> (policéntrico).'; }
+      if (lab !== lastLab) { lastLab = lab; st.textContent = lab; st.style.color = c; st.style.borderColor = c; ro.innerHTML = msg; }
+    }
+
+    // prefers-reduced-motion: sin respiración ni pulsos, cortes limpios al mover el slider.
+    if (reduced) {
+      auto.style.display = 'none';
+      const redraw = () => { res = target = +sl.value; draw(performance.now()); };
+      sl.addEventListener('input', redraw);
+      window.addEventListener('resize', () => { g = measure(); redraw(); });
+      redraw();
+      return;
+    }
+
+    // rAF único: el valor mostrado persigue al objetivo; se apaga solo al quedar quieto.
+    let raf = 0, last = 0;
+    function frame(now: number) {
+      const dt = Math.min(now - last, 100); last = now;
+      if (ambient) {
+        ambT += dt;
+        const c = ambT % (2 * (UP + HOLD));
+        target = c < UP ? 10 + 85 * ease(c / UP)
+          : c < UP + HOLD ? 95
+          : c < UP + HOLD + UP ? 95 - 85 * ease((c - UP - HOLD) / UP)
+          : 10;
+        sl.value = String(Math.round(target));
+      }
+      const prev = res;
+      res += (target - res) * Math.min(1, dt * 0.005);
+      if (Math.abs(target - res) < 0.05) res = target;
+      PL.forEach((p, i) => { if (prev < p.t && res >= p.t) pulses.push({ lv: i, t0: now }); });
+      draw(now);
+      if (ambient || pulses.length || res !== target) raf = requestAnimationFrame(frame);
+      else raf = 0;
+    }
+    const kick = () => { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } };
+    const takeControl = () => {
+      if (ambient) { ambient = false; auto.classList.add('off'); }
+      target = +sl.value; kick();
+    };
+    sl.addEventListener('pointerdown', takeControl);
+    sl.addEventListener('input', takeControl);
+    window.addEventListener('resize', () => { g = measure(); kick(); });
+    kick();
+  }
+  document.querySelectorAll<HTMLElement>('.mapr').forEach(init);
+</script>
+
+<style>
+  .mapr { padding: 1rem 1.2rem; margin-block: 1.5rem; }
+  .mapr-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 1.4rem; align-items: start; }
+  @media (max-width: 720px) { .mapr-grid { grid-template-columns: 1fr; } }
+  .mapr-grid canvas { display: block; width: 100%; height: 260px; }
+  @media (min-width: 900px) { .mapr-grid canvas { height: clamp(260px, 36vh, 420px); } }
+  .mapr-ctrl { display: flex; flex-direction: column; gap: 0.7rem; }
+  .mapr-lab { font-size: 0.72rem; color: var(--muted); }
+  .mapr-lab b { color: var(--blue); }
+  .mapr input { width: 100%; accent-color: var(--orange); }
+  .mapr-auto { font-size: 0.62rem; letter-spacing: 0.08em; color: var(--muted); opacity: 0.8; transition: opacity 0.5s; }
+  .mapr-auto.off { opacity: 0; }
+  .phase { font-size: 0.74rem; letter-spacing: 0.12em; border: 1px solid; padding: 0.45rem 0.7rem; transition: color 0.4s, border-color 0.4s; }
+  .readout { font-size: 0.76rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.55rem 0.7rem; }
+  .readout :global(b) { color: var(--text); }
+  .mapr-note { font-size: 0.74rem; color: var(--muted); }
+</style>

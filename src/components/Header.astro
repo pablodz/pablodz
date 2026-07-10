@@ -9,35 +9,11 @@ import { url } from "../utils";
             <small aria-hidden="true">BLOG</small>
         </a>
         <nav aria-label="principal">
-            <a href="https://github.com/pablodz" target="_blank" rel="noopener"
-                >GITHUB</a
-            >
-            <a
-                href="https://www.linkedin.com/in/pablodzv/"
-                target="_blank"
-                rel="noopener">LINKEDIN</a
-            >
             <a href={url("/rss.xml")}>RSS</a>
-            <span class="status"
-                >LINK <span data-sync>41.3</span>% <span class="blink">▌</span
-                ></span
-            >
         </nav>
     </div>
     <div class="hazard" aria-hidden="true"></div>
 </header>
-
-<script>
-    // Indicador que deriva lentamente, puro flavor de HUD.
-    const el = document.querySelector<HTMLElement>("[data-sync]");
-    if (el) {
-        let v = 41.3;
-        setInterval(() => {
-            v = Math.min(99.9, Math.max(12, v + (Math.random() - 0.48) * 1.4));
-            el.textContent = v.toFixed(1);
-        }, 1600);
-    }
-</script>
 
 <style>
     header {
@@ -97,11 +73,5 @@ import { url } from "../utils";
 
     nav a:hover {
         color: var(--orange-bright);
-    }
-
-    .status {
-        color: var(--green);
-        font-size: 0.68rem;
-        letter-spacing: 0.15em;
     }
 </style>

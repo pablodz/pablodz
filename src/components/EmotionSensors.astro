@@ -1,0 +1,150 @@
+---
+/** Paso 2 · Curva de emoción (estática) + medidor interactivo de celos. */
+---
+
+<figure class="panel viz-fig">
+  <div class="chart-box"><canvas data-curve></canvas></div>
+  <figcaption>Intensidad de la emoción (celos, miedo, ambición) según la abundancia. Cuando algo abunda, la
+  alarma se apaga sola.</figcaption>
+</figure>
+
+<div class="emo panel">
+  <label class="emo-lab">▸ Pruébalo: ¿qué tan abundante es lo que amas? &nbsp; <b data-v></b></label>
+  <input type="range" data-s min="0" max="100" value="18" />
+  <div class="emo-row">
+    <div class="emo-face" data-face>😰</div>
+    <div class="emo-meter">
+      <canvas data-m></canvas>
+      <div class="phase" data-st>···</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  import Chart from 'chart.js/auto';
+  import { ctxOf, COL } from '../lib/machine';
+
+  const FONT = { family: "'JetBrains Mono', monospace", size: 11 };
+  const TICK = '#8f8b83';
+  const GRID = 'rgba(255,255,255,0.06)';
+  const AXIS = '#2a2a32';
+  const INK = '#cfccc5';
+
+  function initCurve(cv: HTMLCanvasElement) {
+    const N = 120;
+    const pts = Array.from({ length: N + 1 }, (_, i) => ({ x: i / N, y: Math.exp(-3.2 * (i / N)) }));
+
+    const calmLabel = {
+      id: 'calmLabel',
+      afterDatasetsDraw(chart: Chart) {
+        const { ctx, chartArea: { left, right, bottom } } = chart;
+        ctx.save();
+        ctx.font = "11px 'JetBrains Mono', monospace";
+        ctx.fillStyle = COL.green;
+        ctx.textAlign = 'right';
+        ctx.fillText('la alarma se apaga', right - 8, bottom - 14);
+        ctx.restore();
+      },
+    };
+
+    new Chart(cv, {
+      type: 'line',
+      data: {
+        datasets: [
+          {
+            label: 'Intensidad de la emoción (celos · miedo · ambición)',
+            data: pts,
+            borderColor: COL.orange,
+            backgroundColor: 'rgba(237,141,76,0.12)',
+            fill: 'origin',
+            borderWidth: 2.4,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            labels: { usePointStyle: true, boxWidth: 8, boxHeight: 8, color: INK, font: FONT, padding: 14 },
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+            callbacks: {
+              title: (items) => (items.length ? `abundancia: ${((items[0].parsed.x ?? 0) * 100).toFixed(0)}%` : ''),
+              label: (c) => ` intensidad: ${((c.parsed.y ?? 0) * 100).toFixed(0)}%`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            type: 'linear',
+            min: 0,
+            max: 1,
+            title: { display: true, text: 'abundancia: escaso → abundante', color: TICK, font: FONT },
+            ticks: { color: TICK, font: FONT, maxTicksLimit: 5, callback: (v) => (Number(v) * 100).toFixed(0) + '%' },
+            grid: { display: false },
+            border: { color: AXIS },
+          },
+          y: {
+            min: 0,
+            max: 1.05,
+            title: { display: true, text: 'intensidad de la emoción', color: TICK, font: FONT },
+            ticks: { color: TICK, font: FONT, callback: (v) => (Number(v) * 100).toFixed(0) + '%' },
+            grid: { color: GRID },
+            border: { color: AXIS },
+          },
+        },
+      },
+      plugins: [calmLabel],
+    });
+  }
+
+  function initMeter(root: HTMLElement) {
+    const sl = root.querySelector<HTMLInputElement>('[data-s]')!;
+    const face = root.querySelector<HTMLElement>('[data-face]')!;
+    const cv = root.querySelector<HTMLCanvasElement>('[data-m]')!;
+    const lab = root.querySelector<HTMLElement>('[data-v]')!;
+    const st = root.querySelector<HTMLElement>('[data-st]')!;
+    function draw() {
+      const ab = +sl.value, jeal = Math.exp(-3.2 * ab / 100) * 100;
+      lab.textContent = ab > 75 ? 'de sobra' : ab > 45 ? 'suficiente' : ab > 20 ? 'escaso' : 'muy escaso';
+      face.textContent = jeal > 70 ? '😡' : jeal > 45 ? '😰' : jeal > 22 ? '😕' : '😌';
+      const { x, w, h } = ctxOf(cv, 60); x.clearRect(0, 0, w, h); const by = h / 2 - 10;
+      x.fillStyle = 'rgba(255,255,255,0.06)'; x.fillRect(0, by, w, 20);
+      const g = x.createLinearGradient(0, 0, w, 0); g.addColorStop(0, COL.green); g.addColorStop(.5, COL.yellow); g.addColorStop(1, COL.red);
+      x.fillStyle = g; x.fillRect(0, by, w * jeal / 100, 20);
+      st.textContent = 'Celos / miedo: ' + (jeal > 70 ? 'ALTÍSIMOS' : jeal > 45 ? 'altos' : jeal > 22 ? 'bajos' : 'casi cero');
+      const c = jeal > 45 ? COL.red : jeal > 22 ? COL.orange : COL.green; st.style.color = c; st.style.borderColor = c;
+    }
+    sl.addEventListener('input', draw); window.addEventListener('resize', draw); draw();
+  }
+
+  document.querySelectorAll<HTMLCanvasElement>('[data-curve]').forEach(initCurve);
+  document.querySelectorAll<HTMLElement>('.emo').forEach(initMeter);
+</script>
+
+<style>
+  .viz-fig { padding: 1rem 1.2rem 0.8rem; margin-block: 1.5rem; }
+  .chart-box { position: relative; height: 280px; }
+  .viz-fig figcaption { font-size: 0.78rem; color: var(--muted); margin-top: 0.6rem; }
+  .emo { padding: 1rem 1.2rem; margin-block: 1.5rem; }
+  .emo-lab { display: block; font-size: 0.72rem; color: var(--muted); margin-bottom: 0.4rem; }
+  .emo-lab b { color: var(--blue); }
+  .emo input { width: 100%; accent-color: var(--orange); }
+  .emo-row { display: flex; align-items: center; gap: 20px; margin-top: 0.8rem; }
+  .emo-face { font-size: 60px; line-height: 1; }
+  .emo-meter { flex: 1; }
+  .emo-meter canvas { display: block; width: 100%; height: 60px; }
+  .phase { font-size: 0.74rem; letter-spacing: 0.12em; border: 1px solid; padding: 0.45rem 0.7rem; margin-top: 0.6rem; }
+  @media (max-width: 700px) {
+    .chart-box { height: 240px; }
+  }
+</style>

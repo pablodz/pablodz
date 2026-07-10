@@ -1,0 +1,181 @@
+---
+/**
+ * Zoom-out fractal de ambiente: células dentro de células, con una
+ * mini-pirámide (3-2-1) dentro de cada subcélula. El loop se logra
+ * reescalando módulo RATIO: al completar un nivel, la célula madre
+ * ocupa exactamente el lugar de la hija y solo avanza el índice de
+ * profundidad (etiqueta + paleta).
+ */
+---
+
+<figure class="czoom panel">
+  <figcaption class="czoom-head">
+    <span class="czoom-title">◢ Células dentro de células, pirámides en cada piso</span>
+    <button class="czoom-btn" data-pause type="button">⏸ Pausar</button>
+  </figcaption>
+  <canvas data-cv></canvas>
+  <p class="czoom-cap">Cada célula coopera hacia adentro, compite hacia afuera y forma su pequeña
+  pirámide. Y toda célula es parte de una mayor que hace exactamente lo mismo.</p>
+  <div class="czoom-foot">LA MISMA FORMA, DEL CUERPO A LA CIVILIZACIÓN</div>
+</figure>
+
+<script>
+  import { ctxOf, COL } from '../lib/machine';
+
+  const LEVELS = ['célula', 'órgano', 'cuerpo', 'familia', 'barrio', 'ciudad', 'nación', 'civilización'];
+  const PAL = ['#ed8d4c', '#33b7db', '#a78bfa', '#ffcc33', '#52d053'];
+  const APEX = '#ffdd55';
+  const RATIO = 3.4;          // radio de la madre / radio de la hija
+  const MS_PER_LEVEL = 3500;  // un piso cada ~3.5s
+  const SUBDIV = 30;          // por debajo de este radio, la célula muestra su pirámide
+  const H_MIN = 320;          // altura mínima; el CSS puede pedir más (62vh en escritorio)
+
+  const md = (k: number, m: number) => ((k % m) + m) % m;
+
+  function init(root: HTMLElement) {
+    const cv = root.querySelector<HTMLCanvasElement>('[data-cv]')!;
+    const btn = root.querySelector<HTMLButtonElement>('[data-pause]')!;
+    // La altura la dicta el CSS (320px en móvil, ~62vh en escritorio):
+    // se mide en px y se pasa a ctxOf en cada remedición.
+    const measure = () =>
+      ctxOf(cv, Math.max(H_MIN, Math.round(cv.getBoundingClientRect().height) || H_MIN));
+    let g = measure();
+
+    /** Mini-pirámide 3-2-1: el vértice arriba, más brillante (el poder). */
+    function pyramid(cx: number, cy: number, r: number, col: string, a: number) {
+      const { x } = g;
+      const s = r * 0.36, dr = Math.max(1.4, r * 0.11);
+      const rows = [[0, -0.95], [-0.5, 0], [0.5, 0], [-1, 0.95], [0, 0.95], [1, 0.95]];
+      for (let i = 0; i < rows.length; i++) {
+        const px = cx + rows[i][0] * s, py = cy + rows[i][1] * s;
+        if (i === 0) {
+          x.fillStyle = APEX;
+          x.globalAlpha = a * 0.3;
+          x.beginPath(); x.arc(px, py, dr * 2, 0, 7); x.fill();
+          x.globalAlpha = a;
+          x.beginPath(); x.arc(px, py, dr * 1.2, 0, 7); x.fill();
+        } else {
+          x.fillStyle = col;
+          x.globalAlpha = a * 0.85;
+          x.beginPath(); x.arc(px, py, dr, 0, 7); x.fill();
+        }
+      }
+      x.globalAlpha = 1;
+    }
+
+    /**
+     * Dibuja una célula y recurre en sus hijas (1 central + 6-8 en anillo).
+     * La recursión termina sola: bajo SUBDIV se dibuja la pirámide, y el
+     * culling descarta lo que cae fuera del lienzo, así que en la práctica
+     * solo hay 2-3 niveles de profundidad visibles a la vez.
+     */
+    function cell(cx: number, cy: number, r: number, d: number) {
+      const { x, w, h } = g;
+      if (cx + r < -24 || cx - r > w + 24 || cy + r < -24 || cy - r > h + 24) return;
+      const col = PAL[md(d, 5)];
+      let a = Math.min(1, Math.max(0, (r - 8) / 9));               // entra en fade al crecer
+      const rBig = Math.min(w, h) * 1.19;                          // umbral relativo al lienzo
+      if (r > rBig) a *= Math.max(0, 1 - (r - rBig) / (rBig * 2.4)); // sale en fade al desbordar
+      if (a > 0.01) {
+        x.beginPath(); x.arc(cx, cy, r, 0, 7);
+        x.globalAlpha = a * 0.28; x.fillStyle = col + '22'; x.fill();
+        x.globalAlpha = a * 0.8; x.strokeStyle = col; x.lineWidth = r > 100 ? 1.6 : 1.2; x.stroke();
+        x.globalAlpha = 1;
+      }
+      if (r > SUBDIV) {
+        const sub = r / RATIO, n = 6 + md(d, 3), a0 = md(d, 8) * 0.85, dist = r * 0.62;
+        cell(cx, cy, sub, d - 1);
+        for (let k = 0; k < n; k++) {
+          const ang = a0 + (k * Math.PI * 2) / n;
+          cell(cx + dist * Math.cos(ang), cy + dist * Math.sin(ang), sub, d - 1);
+        }
+      } else if (r > 8) {
+        pyramid(cx, cy, r, col, Math.min(1, (r - 8) / 7));
+      }
+    }
+
+    function scene(elapsed: number) {
+      const { x, w, h } = g;
+      x.clearRect(0, 0, w, h);
+      const depth = Math.floor(elapsed / MS_PER_LEVEL);
+      const frac = (elapsed % MS_PER_LEVEL) / MS_PER_LEVEL;
+      const fill = Math.min(w, h) * 0.46;
+      // Zoom-out continuo: la célula actual se encoge de `fill` a `fill/RATIO`.
+      // En frac=1, su madre mide exactamente `fill`: reset sin costura.
+      const rCur = fill * Math.pow(RATIO, -frac);
+      cell(w / 2, h / 2, rCur * RATIO * RATIO, depth + 2);
+      // Etiqueta de escala con crossfade en el cambio de nivel.
+      const la = Math.min(1, frac / 0.09, (1 - frac) / 0.09);
+      const big = h >= 420; // lienzo hero en escritorio: etiqueta más grande
+      x.font = `${big ? 11 : 9}px "JetBrains Mono", monospace`;
+      x.globalAlpha = 0.8; x.fillStyle = COL.muted;
+      x.fillText('E S C A L A', 14, big ? 26 : 22);
+      x.font = `700 ${big ? 20 : 14}px "JetBrains Mono", monospace`;
+      x.globalAlpha = la; x.fillStyle = PAL[md(depth, 5)];
+      x.fillText(LEVELS[md(depth, 8)].toUpperCase(), 14, big ? 52 : 42);
+      x.globalAlpha = 1;
+    }
+
+    /** prefers-reduced-motion: dos niveles anidados, estáticos y etiquetados. */
+    function staticScene() {
+      const { x, w, h } = g;
+      x.clearRect(0, 0, w, h);
+      const fill = Math.min(w, h) * 0.44;
+      cell(w / 2, h / 2, fill, 1);
+      x.font = '700 13px "JetBrains Mono", monospace'; x.textAlign = 'center';
+      x.fillStyle = PAL[1]; x.fillText('órgano', w / 2, h / 2 - fill + 22);
+      x.fillStyle = PAL[0]; x.fillText('célula', w / 2, h / 2 - fill / RATIO - 8);
+      x.textAlign = 'left';
+    }
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      btn.style.display = 'none';
+      staticScene();
+      window.addEventListener('resize', () => { g = measure(); staticScene(); });
+      return;
+    }
+
+    let elapsed = 0, last = performance.now(), raf = 0, running = true;
+    function tick(now: number) {
+      elapsed += Math.min(now - last, 100);
+      last = now;
+      scene(elapsed);
+      raf = requestAnimationFrame(tick);
+    }
+    btn.onclick = () => {
+      running = !running;
+      btn.textContent = running ? '⏸ Pausar' : '▶ Reanudar';
+      if (running) { last = performance.now(); raf = requestAnimationFrame(tick); }
+      else cancelAnimationFrame(raf);
+    };
+    window.addEventListener('resize', () => { g = measure(); if (!running) scene(elapsed); });
+    raf = requestAnimationFrame(tick);
+  }
+  document.querySelectorAll<HTMLElement>('.czoom').forEach(init);
+</script>
+
+<style>
+  .czoom { padding: 1rem 1.2rem 0.8rem; margin-block: 2.5rem; }
+  .czoom-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
+  .czoom-title { color: var(--orange-bright); font-size: 0.78rem; letter-spacing: 0.3em; text-transform: uppercase; }
+  .czoom-btn { background: var(--bg-panel-2); color: var(--text); border: 1px solid var(--line); padding: 0.3rem 0.6rem; font-family: var(--font-mono); font-size: 0.65rem; cursor: pointer; }
+  .czoom-btn:hover { border-color: var(--orange); }
+  .czoom canvas { display: block; width: 100%; height: 320px; }
+  .czoom-cap { font-size: 0.74rem; color: var(--muted); margin-top: 0.7rem; }
+  .czoom-foot { margin-top: 0.7rem; padding-top: 0.5rem; border-top: 1px dashed var(--line); font-size: 0.6rem; letter-spacing: 0.28em; color: var(--muted); }
+  /* Tratamiento hero: casi página completa en escritorio. */
+  @media (min-width: 900px) {
+    .czoom {
+      min-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 1.4rem 2rem 1rem;
+    }
+    .czoom canvas { height: clamp(420px, 62vh, 860px); }
+    .czoom-title { font-size: 0.9rem; }
+    .czoom-btn { font-size: 0.72rem; padding: 0.4rem 0.8rem; }
+    .czoom-cap { font-size: 0.82rem; }
+    .czoom-foot { font-size: 0.66rem; }
+  }
+</style>

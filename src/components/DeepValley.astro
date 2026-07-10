@@ -1,0 +1,260 @@
+---
+/**
+ * El valle profundo: la depresión como un valle de energía muy hondo.
+ * La bola está al fondo con la barra casi en cero. Cada palanca de
+ * recuperación baja la pared o recarga energía. Con suficientes palancas
+ * encendidas, la bola sube la pared y baja al valle amplio de la derecha.
+ */
+---
+
+<figure class="dvalley panel">
+  <figcaption class="dv-head">
+    <span class="dv-title">◢ EL VALLE PROFUNDO</span>
+    <span class="dv-phase" data-phase>···</span>
+  </figcaption>
+  <div class="dv-grid">
+    <div class="dv-cvwrap"><canvas data-valley></canvas></div>
+    <div class="dv-ctrl">
+      <button data-lev="0">Aprender a recibir gratificación</button>
+      <button data-lev="1">Cortar lo que drena</button>
+      <button data-lev="2">Cambiar de paisaje</button>
+      <button data-lev="3">Enfrentar una verdad dolorosa</button>
+      <button data-lev="4">Elegir un rumbo propio</button>
+      <div class="dv-readout" data-ro></div>
+      <button class="dv-reset" data-reset>Reiniciar</button>
+    </div>
+  </div>
+  <div class="dv-foot">LA SALIDA CASI NUNCA ES UNA SOLA COSA. SON VARIAS PALANCAS A LA VEZ</div>
+</figure>
+
+<script>
+  import { ctxOf, COL } from '../lib/machine';
+
+  const LEVERS = [
+    {
+      name: 'Recibir gratificación',
+      text: 'En el fondo del valle, el circuito que dice "esto vale la pena" está apagado. Aprender a registrar lo bueno, aunque sea mínimo, lo vuelve a encender y la barra empieza a recargarse.',
+    },
+    {
+      name: 'Cortar lo que drena',
+      text: 'Hay relaciones y hábitos que extraen más energía de la que devuelven. Mientras sigan conectados, la barra nunca sube por más que descanses. Cortarlos no da energía nueva: deja de perderse la que ya hay.',
+    },
+    {
+      name: 'Cambiar de paisaje',
+      text: 'A veces el valle también es un lugar físico: la casa, la ciudad, la rutina. Moverse no lo resuelve todo, pero rompe los disparadores que empujan hacia abajo cada día y baja la pared un tramo.',
+    },
+    {
+      name: 'Enfrentar una verdad dolorosa',
+      text: 'Sostener una mentira, propia o ajena, cuesta energía todos los días. Nombrar lo que duele libera esa carga fija y permite decidir sobre terreno real, no imaginado.',
+    },
+    {
+      name: 'Elegir un rumbo propio',
+      text: 'Sin dirección, cualquier esfuerzo se siente inútil y la energía se gasta en dar vueltas. Un rumbo elegido por uno mismo convierte cada paso en avance, aunque sea lento.',
+    },
+  ];
+
+  const MSG_START =
+    'Cinco palancas. Cada una recarga un poco la barra y baja un poco la pared. El orden no importa; la suma sí.';
+
+  const GRAY = '#6f7d90';
+
+  function mixHex(a: string, b: string, t: number) {
+    const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+    const ch = (s: number) => {
+      const ca = (pa >> s) & 255, cb = (pb >> s) & 255;
+      return Math.round(ca + (cb - ca) * t);
+    };
+    return `rgb(${ch(16)},${ch(8)},${ch(0)})`;
+  }
+
+  function init(root: HTMLElement) {
+    const cv = root.querySelector<HTMLCanvasElement>('[data-valley]')!;
+    const phase = root.querySelector<HTMLElement>('[data-phase]')!;
+    const ro = root.querySelector<HTMLElement>('[data-ro]')!;
+    const reset = root.querySelector<HTMLButtonElement>('[data-reset]')!;
+    const btns = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-lev]'));
+
+    const IN_U = 0.22, OUT_U = 0.72;
+    const lit = new Set<number>();
+    let out = false, arrived = false, raf = 0;
+    const disp = { wall: 0.97, energy: 0.05, mix: 0, bu: IN_U };
+
+    const wallT = () => 0.97 - lit.size * 0.14;
+    const energyT = () => Math.min(1, 0.05 + lit.size * 0.19);
+
+    function elev(u: number): number {
+      const pts: [number, number][] = [
+        [0, 0.98], [IN_U, 0.05], [0.44, disp.wall],
+        [0.58, 0.36], [OUT_U, 0.24], [0.86, 0.34], [1, 0.28],
+      ];
+      for (let i = 0; i < pts.length - 1; i++) {
+        const [u0, e0] = pts[i], [u1, e1] = pts[i + 1];
+        if (u >= u0 && u <= u1) {
+          const k = (1 - Math.cos(Math.PI * (u - u0) / (u1 - u0))) / 2;
+          return e0 + (e1 - e0) * k;
+        }
+      }
+      return pts[pts.length - 1][1];
+    }
+
+    function draw() {
+      // La altura la dicta el CSS del wrapper (240px en móvil, ~46vh en
+      // escritorio): se mide en px y se pasa a ctxOf en cada draw.
+      const wrap = cv.parentElement as HTMLElement;
+      const hCv = Math.max(240, Math.round(wrap.getBoundingClientRect().height) || 240);
+      const { x, w, h } = ctxOf(cv, hCv);
+      x.clearRect(0, 0, w, h);
+      const sc = Math.min(1.5, Math.max(1, h / 240)); // factor para detalles cosméticos
+      const p = 22, top = 12 * sc, baseY = h - 44 * sc;
+      const X = (u: number) => p + (w - 2 * p) * u;
+      const Y = (e: number) => top + (1 - e) * (baseY - top);
+
+      // punto de luz cálida sobre los valles amplios
+      const gx = X(0.88), gy = Y(0.78), gr = 30 * sc;
+      const g = x.createRadialGradient(gx, gy, 0, gx, gy, gr);
+      g.addColorStop(0, 'rgba(255,204,51,0.5)');
+      g.addColorStop(1, 'rgba(255,204,51,0)');
+      x.fillStyle = g; x.beginPath(); x.arc(gx, gy, gr, 0, 7); x.fill();
+      x.fillStyle = COL.yellow; x.beginPath(); x.arc(gx, gy, 3.5 * sc, 0, 7); x.fill();
+
+      // terreno
+      x.beginPath();
+      for (let i = 0; i <= 240; i++) {
+        const u = i / 240, px = X(u), py = Y(elev(u));
+        i ? x.lineTo(px, py) : x.moveTo(px, py);
+      }
+      x.strokeStyle = 'rgba(255,255,255,0.28)'; x.lineWidth = 2.5; x.stroke();
+      x.lineTo(X(1), baseY); x.lineTo(X(0), baseY); x.closePath();
+      x.fillStyle = 'rgba(255,255,255,0.03)'; x.fill();
+
+      // etiquetas
+      const fpx = Math.round(10 * Math.min(sc, 1.25));
+      x.font = `${fpx}px "JetBrains Mono", monospace`; x.textAlign = 'center';
+      x.fillStyle = COL.muted; x.fillText('valle profundo', X(IN_U), baseY + fpx + 3);
+      x.fillStyle = COL.green; x.fillText('valles amplios', X(OUT_U), baseY + fpx + 3);
+
+      // barra de energía disponible
+      const bh = 8 * Math.min(sc, 1.3);
+      const bx0 = p + 62 * Math.min(sc, 1.25), bx1 = w - p - 40 * Math.min(sc, 1.25);
+      const by = h - 15 * sc, colBall = mixHex(GRAY, COL.green, disp.mix);
+      x.fillStyle = COL.muted; x.textAlign = 'left'; x.fillText('ENERGÍA', p, by + 4);
+      x.fillStyle = 'rgba(255,255,255,0.08)'; x.fillRect(bx0, by - bh / 2, bx1 - bx0, bh);
+      x.fillStyle = colBall; x.fillRect(bx0, by - bh / 2, (bx1 - bx0) * disp.energy, bh);
+      x.textAlign = 'right'; x.fillText(`${Math.round(disp.energy * 100)}%`, w - p, by + 4);
+      x.textAlign = 'left';
+
+      // la bola
+      const br = 9 * Math.min(sc, 1.35);
+      const bx = X(disp.bu), byy = Y(elev(disp.bu)) - (br + 1);
+      x.fillStyle = colBall;
+      x.beginPath(); x.arc(bx, byy, br, 0, 7); x.fill();
+      x.strokeStyle = '#fff'; x.globalAlpha = 0.45; x.lineWidth = 1; x.stroke(); x.globalAlpha = 1;
+    }
+
+    function status() {
+      const n = lit.size;
+      if (out && arrived) {
+        phase.textContent = '✓ AFUERA. EL VALLE NO ERA EL MUNDO ENTERO';
+        phase.style.color = COL.green;
+      } else if (out) {
+        phase.textContent = 'SUBIENDO LA PARED...';
+        phase.style.color = COL.yellow;
+      } else if (n === 0) {
+        phase.textContent = 'EN EL FONDO · ENERGÍA CASI EN CERO';
+        phase.style.color = COL.muted;
+      } else {
+        phase.textContent = `${n}/5 PALANCAS · LA PARED ESTÁ BAJANDO`;
+        phase.style.color = COL.yellow;
+      }
+    }
+
+    function tick() {
+      const eT = energyT(), wT = wallT(), mT = lit.size / 5, bT = out ? OUT_U : IN_U;
+      disp.wall += (wT - disp.wall) * 0.1;
+      disp.energy += (eT - disp.energy) * 0.1;
+      disp.mix += (mT - disp.mix) * 0.1;
+      disp.bu += (bT - disp.bu) * 0.04;
+      if (out && !arrived && Math.abs(disp.bu - OUT_U) < 0.01) { arrived = true; status(); }
+      draw();
+      const settled =
+        Math.abs(wT - disp.wall) < 0.002 && Math.abs(eT - disp.energy) < 0.002 &&
+        Math.abs(mT - disp.mix) < 0.002 && Math.abs(bT - disp.bu) < 0.002;
+      raf = settled ? 0 : requestAnimationFrame(tick);
+    }
+    function kick() { if (!raf) raf = requestAnimationFrame(tick); }
+
+    btns.forEach((btn, i) => {
+      btn.onclick = () => {
+        if (lit.has(i)) return;
+        lit.add(i);
+        btn.classList.add('on');
+        ro.innerHTML = `<b>${LEVERS[i].name}</b> · ${LEVERS[i].text}`;
+        if (lit.size >= 4 && !out) { out = true; arrived = false; }
+        status(); kick();
+      };
+    });
+
+    reset.onclick = () => {
+      lit.clear(); out = false; arrived = false;
+      btns.forEach((b) => b.classList.remove('on'));
+      disp.bu = IN_U;
+      ro.textContent = MSG_START;
+      status(); kick();
+    };
+
+    window.addEventListener('resize', draw);
+    ro.textContent = MSG_START;
+    status(); draw();
+  }
+  document.querySelectorAll<HTMLElement>('.dvalley').forEach(init);
+</script>
+
+<style>
+  .dvalley { padding: 1rem 1.2rem 0.8rem; margin-block: 2.5rem; }
+  .dv-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
+  .dv-title { color: var(--orange-bright); font-size: 0.78rem; letter-spacing: 0.3em; text-transform: uppercase; }
+  .dv-phase { font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase; }
+  .dv-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 1.4rem; align-items: start; }
+  @media (max-width: 720px) { .dv-grid { grid-template-columns: 1fr; } }
+  .dv-cvwrap { height: 240px; }
+  .dv-grid canvas { display: block; width: 100%; height: 100%; }
+  .dv-ctrl { display: flex; flex-direction: column; gap: 0.45rem; }
+  .dv-ctrl button[data-lev] {
+    background: var(--bg-panel-2); color: var(--text); border: 1px solid var(--line);
+    font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.06em;
+    text-align: left; padding: 0.45rem 0.6rem; cursor: pointer;
+  }
+  .dv-ctrl button[data-lev]:hover { border-color: #52d053; }
+  .dv-ctrl button[data-lev].on {
+    background: #52d053; color: #000; border-color: #52d053; font-weight: 700; cursor: default;
+  }
+  .dv-readout {
+    font-size: 0.72rem; color: var(--muted); background: var(--bg-deep);
+    border: 1px solid var(--line); padding: 0.6rem 0.7rem; min-height: 4.6em; margin-top: 0.35rem;
+  }
+  .dv-readout :global(b) { color: var(--text); }
+  .dv-reset {
+    background: transparent; color: var(--muted); border: 1px dashed var(--line);
+    font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.18em;
+    text-transform: uppercase; padding: 0.4rem 0.6rem; cursor: pointer; align-self: flex-start;
+  }
+  .dv-reset:hover { color: var(--text); border-color: var(--muted); }
+  .dv-foot { margin-top: 0.7rem; padding-top: 0.5rem; border-top: 1px dashed var(--line); font-size: 0.6rem; letter-spacing: 0.28em; color: var(--muted); }
+  /* Tratamiento hero: media página en escritorio. */
+  @media (min-width: 900px) {
+    .dvalley {
+      min-height: 72vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 1.4rem 1.8rem 1rem;
+    }
+    .dv-cvwrap { height: clamp(300px, 46vh, 640px); }
+    .dv-title { font-size: 0.88rem; }
+    .dv-phase { font-size: 0.8rem; }
+    .dv-ctrl button[data-lev] { font-size: 0.78rem; padding: 0.55rem 0.75rem; }
+    .dv-readout { font-size: 0.8rem; padding: 0.7rem 0.8rem; }
+    .dv-reset { font-size: 0.68rem; }
+    .dv-foot { font-size: 0.66rem; }
+  }
+</style>

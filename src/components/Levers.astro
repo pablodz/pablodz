@@ -1,0 +1,200 @@
+---
+/**
+ * Las 4 palancas de la solución, aplicadas al modelo real. Enciende cada una
+ * y mira si la sociedad se estabiliza o sigue colapsando.
+ *
+ * Parámetros calibrados numéricamente (script en scratchpad) para que:
+ *   0 palancas  -> ciclos violentos sostenidos (4 auges y colapsos visibles)
+ *   1 palanca   -> mejora parcial (menos vaivén, aún sin prosperar)
+ *   3-4 palancas -> próspera y estable
+ * y añadir palancas nunca empeora el veredicto.
+ */
+---
+
+<figure class="lev panel">
+  <figcaption class="lev-head">
+    <span class="lev-title">◢ PRUEBA LAS PALANCAS</span>
+    <span class="lev-phase" data-phase>···</span>
+  </figcaption>
+  <div class="lev-grid">
+    <div class="chart-box"><canvas data-lev></canvas></div>
+    <div class="lev-ctrl">
+      <button data-l="alarm">1 · Bajar la alarma de escasez</button>
+      <button data-l="fab">2 · Destrabar la escasez fabricada</button>
+      <button data-l="redis">3 · Redistribuir en serio</button>
+      <button data-l="circle">4 · Ampliar el "nosotros"</button>
+      <div class="lev-readout" data-ro></div>
+    </div>
+  </div>
+  <div class="lev-foot">ENCIENDE VARIAS A LA VEZ · CORRE EL MODELO REAL</div>
+</figure>
+
+<script>
+  import Chart from 'chart.js/auto';
+  import { BASE, simulate, COL, type Params } from '../lib/machine';
+
+  const FONT = { family: "'JetBrains Mono', monospace", size: 11 };
+  const TICK = '#8f8b83';
+  const GRID = 'rgba(255,255,255,0.06)';
+
+  // Ventana simulada: t en (60, 180], suficiente para ver 4 ciclos en el caso base.
+  const STEPS = 9000;
+  const SKIP = 3000;
+  const DT = 0.02;
+  const SAMPLE = 6; // 1 punto de cada 6 para el gráfico
+
+  function init(root: HTMLElement) {
+    const cv = root.querySelector<HTMLCanvasElement>('[data-lev]')!;
+    const phase = root.querySelector<HTMLElement>('[data-phase]')!;
+    const ro = root.querySelector<HTMLElement>('[data-ro]')!;
+    const on: Record<string, boolean> = { alarm: false, fab: false, redis: false, circle: false };
+
+    function params(): Params {
+      const P: Params = { ...BASE, zeta: 0.59, tau: 0.01, K: 10, r0: 0.38, eta: 0.027, psi: 4.3, omega: 3.25 };
+      if (on.alarm) P.zeta -= 0.21;
+      if (on.fab) { P.K += 3; P.zeta -= 0.06; P.lam -= 0.25; }
+      if (on.redis) P.tau += 0.17;
+      if (on.circle) P.r0 += 0.2;
+      P.zeta = Math.max(0.08, P.zeta);
+      return P;
+    }
+
+    const labels: string[] = [];
+    const dP: number[] = [];
+    const dG: number[] = [];
+    const chart = new Chart(cv, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Prosperidad',
+            data: dP,
+            borderColor: '#ffcc33',
+            backgroundColor: 'rgba(255,204,51,0.12)',
+            fill: true,
+            yAxisID: 'yL',
+          },
+          {
+            label: 'Desigualdad',
+            data: dG,
+            borderColor: '#ed8d4c',
+            yAxisID: 'yR',
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        interaction: { mode: 'index', intersect: false },
+        elements: { point: { radius: 0 }, line: { borderWidth: 2, tension: 0 } },
+        scales: {
+          x: {
+            title: { display: true, text: 'Tiempo', color: TICK, font: FONT },
+            ticks: { color: TICK, font: FONT, maxTicksLimit: 7, maxRotation: 0 },
+            grid: { color: GRID },
+          },
+          yL: {
+            position: 'left',
+            beginAtZero: true,
+            title: { display: true, text: 'Prosperidad', color: '#ffcc33', font: FONT },
+            ticks: { color: TICK, font: FONT },
+            grid: { color: GRID },
+          },
+          yR: {
+            position: 'right',
+            min: 0,
+            max: 100,
+            title: { display: true, text: 'Desigualdad (%)', color: '#ed8d4c', font: FONT },
+            ticks: { color: TICK, font: FONT, callback: (v) => `${v}%` },
+            grid: { drawOnChartArea: false },
+          },
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+            align: 'start',
+            labels: { color: TICK, font: FONT, boxWidth: 14, boxHeight: 3 },
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+            backgroundColor: 'rgba(12,12,14,0.92)',
+            borderColor: 'rgba(255,255,255,0.15)',
+            borderWidth: 1,
+            titleColor: '#e8e4dc',
+            bodyColor: '#c8c4bc',
+            titleFont: FONT,
+            bodyFont: FONT,
+            callbacks: {
+              title: (items) => (items.length ? `t = ${items[0].label}` : ''),
+              label: (c) =>
+                c.dataset.yAxisID === 'yR'
+                  ? `${c.dataset.label}: ${Number(c.parsed.y).toFixed(0)}%`
+                  : `${c.dataset.label}: ${Number(c.parsed.y).toFixed(2)}`,
+            },
+          },
+        },
+      },
+    });
+
+    function refresh() {
+      const d = simulate(params(), STEPS, DT).slice(SKIP);
+      const pw = d.map((z) => z[3]);
+      const mn = Math.min(...pw);
+      const mx = Math.max(...pw);
+      const mean = pw.reduce((a, b) => a + b, 0) / pw.length;
+      const amp = mx - mn;
+
+      labels.length = 0;
+      dP.length = 0;
+      dG.length = 0;
+      for (let i = 0; i < d.length; i += SAMPLE) {
+        labels.push(((SKIP + i) * DT).toFixed(1));
+        dP.push(d[i][3]);
+        dG.push(d[i][2] * 100);
+      }
+      chart.update('none');
+
+      const stable = amp < 0.8;
+      let lab: string, c: string;
+      if (stable && mean > 3) { lab = '✓ PRÓSPERA Y ESTABLE'; c = COL.green; }
+      else if (stable) { lab = 'ESTABLE, PERO POBRE'; c = COL.blue; }
+      else if (amp > 4) { lab = 'CICLOS VIOLENTOS'; c = COL.red; }
+      else { lab = 'SIGUE COLAPSANDO'; c = COL.orange; }
+      phase.textContent = lab;
+      phase.style.color = c;
+      const count = Object.values(on).filter(Boolean).length;
+      let hint = '';
+      if (stable) hint = '<br>El ciclo desapareció: la línea amarilla ya no se derrumba.';
+      else if (amp > 4) hint = '<br>Cada pico termina en colapso.';
+      ro.innerHTML = `Palancas activas: <b>${count}/4</b> · prosperidad media: <b>${mean.toFixed(2)}</b> · vaivén del ciclo: <b style="color:${amp < 0.8 ? COL.green : COL.red}">${amp.toFixed(1)}</b>${hint}`;
+    }
+
+    root.querySelectorAll<HTMLButtonElement>('[data-l]').forEach((b) => {
+      b.onclick = () => { const k = b.dataset.l!; on[k] = !on[k]; b.classList.toggle('on', on[k]); refresh(); };
+    });
+    refresh();
+  }
+  document.querySelectorAll<HTMLElement>('.lev').forEach(init);
+</script>
+
+<style>
+  .lev { padding: 1rem 1.2rem 0.8rem; margin-block: 2.5rem; }
+  .lev-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
+  .lev-title { color: var(--orange-bright); font-size: 0.78rem; letter-spacing: 0.3em; text-transform: uppercase; }
+  .lev-phase { font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase; }
+  .lev-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 1.4rem; align-items: start; }
+  @media (max-width: 720px) { .lev-grid { grid-template-columns: 1fr; } }
+  .chart-box { position: relative; height: 260px; }
+  @media (max-width: 700px) { .chart-box { height: 220px; } }
+  @media (min-width: 900px) { .chart-box { height: clamp(260px, 40vh, 520px); } }
+  .lev-ctrl { display: flex; flex-direction: column; gap: 0.5rem; }
+  .lev-ctrl button { text-align: left; background: var(--bg-panel-2); color: var(--text); border: 1px solid var(--line); padding: 0.5rem 0.7rem; font-family: var(--font-mono); font-size: 0.72rem; cursor: pointer; }
+  .lev-ctrl button:hover { border-color: var(--orange); }
+  .lev-ctrl button.on { background: var(--orange); color: #000; font-weight: 700; border-color: var(--orange); }
+  .lev-readout { font-size: 0.72rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.6rem 0.7rem; margin-top: 0.3rem; }
+  .lev-readout :global(b) { color: var(--text); }
+  .lev-foot { margin-top: 0.7rem; padding-top: 0.5rem; border-top: 1px dashed var(--line); font-size: 0.6rem; letter-spacing: 0.28em; color: var(--muted); }
+</style>

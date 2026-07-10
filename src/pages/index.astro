@@ -23,7 +23,6 @@ const episodeOf = (post: (typeof posts)[number], i: number) =>
             <div class="entry-meta">
               <span class="ep">LOG:{pad(episodeOf(post, i))}</span>
               <time datetime={post.data.pubDate.toISOString()}>{formatDate(post.data.pubDate)}</time>
-              {post.data.tags.map((tag) => <span class="tag">#{tag}</span>)}
             </div>
             <h2 class="entry-title">{post.data.title}</h2>
             <p class="entry-desc">{post.data.description}</p>
@@ -84,10 +83,6 @@ const episodeOf = (post: (typeof posts)[number], i: number) =>
 
   time {
     color: var(--muted);
-  }
-
-  .tag {
-    color: var(--purple);
   }
 
   .entry-title {

@@ -1,0 +1,107 @@
+---
+/**
+ * Modelo "yard-sale": 40 personas iguales hacen tratos justos y, aun así,
+ * la riqueza se condensa arriba. La pirámide se forma sola.
+ */
+---
+
+<figure class="yard panel">
+  <figcaption class="yard-head">
+    <span class="yard-title">◢ 40 PERSONAS, EMPIEZAN IGUALES</span>
+    <span class="yard-phase" data-phase>Todos iguales</span>
+  </figcaption>
+  <div class="yard-grid">
+    <div><canvas data-yard></canvas></div>
+    <div class="yard-ctrl">
+      <label>Ventaja extra del que ya tiene más <b data-l>ninguna (trato justo)</b>
+        <input type="range" data-b min="0" max="20" step="1" value="0" /></label>
+      <div class="yard-btns">
+        <button data-play class="prim">▶ Correr rondas</button>
+        <button data-reset>Reiniciar</button>
+      </div>
+      <div class="yard-readout" data-ro></div>
+    </div>
+  </div>
+  <div class="yard-foot">CADA TRATO ES JUSTO · Y AUN ASÍ LA RIQUEZA SE VA ARRIBA</div>
+</figure>
+
+<script>
+  import { ctxOf, COL } from '../lib/machine';
+
+  function init(root: HTMLElement) {
+    const cv = root.querySelector<HTMLCanvasElement>('[data-yard]')!;
+    const play = root.querySelector<HTMLButtonElement>('[data-play]')!;
+    const reset = root.querySelector<HTMLButtonElement>('[data-reset]')!;
+    const bs = root.querySelector<HTMLInputElement>('[data-b]')!;
+    const bl = root.querySelector<HTMLElement>('[data-l]')!;
+    const phase = root.querySelector<HTMLElement>('[data-phase]')!;
+    const ro = root.querySelector<HTMLElement>('[data-ro]')!;
+
+    const N = 40; let wealth: number[] = []; let round = 0; let running = false; let raf = 0;
+    function stopA() { running = false; if (raf) cancelAnimationFrame(raf); raf = 0; play.textContent = '▶ Correr rondas'; play.classList.remove('on'); }
+    function resetAll() { wealth = new Array(N).fill(1); round = 0; stopA(); draw(); stats(); }
+    function step() {
+      const bias = +bs.value / 100;
+      for (let k = 0; k < N; k++) {
+        const i = Math.floor(Math.random() * N), j = Math.floor(Math.random() * N); if (i === j) continue;
+        const stake = 0.12 * Math.min(wealth[i], wealth[j]); if (stake <= 1e-6) continue;
+        const richer = wealth[i] >= wealth[j] ? i : j;
+        const winner = Math.random() < 0.5 + bias ? richer : (richer === i ? j : i);
+        if (winner === i) { wealth[i] += stake; wealth[j] -= stake; } else { wealth[j] += stake; wealth[i] -= stake; }
+      }
+      round++;
+    }
+    function share(frac: number) {
+      const s = [...wealth].sort((a, b) => b - a); const k = Math.max(1, Math.round(N * frac));
+      let t = 0, tot = 0; for (let q = 0; q < N; q++) tot += s[q]; for (let q = 0; q < k; q++) t += s[q]; return t / tot * 100;
+    }
+    function stats() {
+      const t10 = share(0.1), tot = wealth.reduce((a, b) => a + b, 0);
+      ro.innerHTML = `Ronda <b>${round}</b> · el <b>10%</b> más rico tiene <b>${t10.toFixed(0)}%</b> · el más rico solo: <b>${(Math.max(...wealth) / tot * 100).toFixed(0)}%</b>`;
+      let lab: string, c: string;
+      if (t10 < 20) { lab = 'Repartido / igualitario'; c = COL.green; }
+      else if (t10 < 45) { lab = 'Empieza la pirámide'; c = COL.yellow; }
+      else if (t10 < 70) { lab = 'Pirámide marcada'; c = COL.orange; }
+      else { lab = 'Casi todo está arriba'; c = COL.red; }
+      phase.textContent = lab; phase.style.color = c;
+    }
+    function draw() {
+      const { x, w, h } = ctxOf(cv, 240); x.clearRect(0, 0, w, h); const p = 10;
+      const s = [...wealth].sort((a, b) => a - b); const mx = Math.max(...s, 0.01); const bw = (w - 2 * p) / N;
+      for (let i = 0; i < N; i++) {
+        const bh = (h - 24) * s[i] / mx; const col = i >= N * 0.9 ? COL.red : i >= N * 0.7 ? COL.orange : COL.blue;
+        x.fillStyle = col; x.fillRect(p + i * bw, h - p - bh, bw - 1.5, bh);
+      }
+      x.fillStyle = COL.muted; x.font = '11px "JetBrains Mono", monospace'; x.fillText('cada barra = una persona (de la más pobre a la más rica) →', p, 14);
+    }
+    bs.addEventListener('input', () => { const v = +bs.value; bl.textContent = v === 0 ? 'ninguna (trato justo)' : '+' + v + '% al que ya tiene más'; });
+    function anim() { if (!running) return; for (let r = 0; r < 3; r++) step(); draw(); stats(); if (round >= 600) { stopA(); return; } raf = requestAnimationFrame(anim); }
+    play.onclick = () => { if (running) stopA(); else { running = true; play.textContent = '⏸ Pausar'; play.classList.add('on'); raf = requestAnimationFrame(anim); } };
+    reset.onclick = resetAll;
+    window.addEventListener('resize', draw);
+    resetAll();
+  }
+  document.querySelectorAll<HTMLElement>('.yard').forEach(init);
+</script>
+
+<style>
+  .yard { padding: 1rem 1.2rem 0.8rem; margin-block: 2.5rem; }
+  .yard-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
+  .yard-title { color: var(--orange-bright); font-size: 0.78rem; letter-spacing: 0.3em; text-transform: uppercase; }
+  .yard-phase { font-size: 0.72rem; letter-spacing: 0.15em; }
+  .yard-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 1.4rem; align-items: start; }
+  @media (max-width: 720px) { .yard-grid { grid-template-columns: 1fr; } }
+  .yard-grid canvas { display: block; width: 100%; height: 240px; }
+  .yard-ctrl { display: flex; flex-direction: column; gap: 0.9rem; }
+  .yard-ctrl label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.7rem; color: var(--muted); }
+  .yard-ctrl label b { color: var(--blue); }
+  .yard-ctrl input[type='range'] { width: 100%; accent-color: var(--orange); }
+  .yard-btns { display: flex; gap: 0.4rem; }
+  .yard button { background: var(--bg-panel-2); color: var(--text); border: 1px solid var(--line); padding: 0.45rem 0.7rem; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.08em; cursor: pointer; }
+  .yard button:hover { border-color: var(--orange); color: var(--orange-bright); }
+  .yard button.prim { background: var(--orange); color: #000; font-weight: 700; border-color: var(--orange); }
+  .yard button.on { background: var(--yellow); color: #000; border-color: var(--yellow); }
+  .yard-readout { font-size: 0.72rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.6rem 0.7rem; }
+  .yard-readout :global(b) { color: var(--text); }
+  .yard-foot { margin-top: 0.7rem; padding-top: 0.5rem; border-top: 1px dashed var(--line); font-size: 0.6rem; letter-spacing: 0.28em; color: var(--muted); }
+</style>

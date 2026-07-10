@@ -1,0 +1,247 @@
+---
+/**
+ * La energía de activación hecha juguete: una bola en un pozo doble.
+ * Modo ambiente: la bola intenta salir sola cada ~4 s (anticipación, subida,
+ * caída con rebote y marca roja del punto alcanzado). Solo cruza al valle
+ * bueno si la energía disponible supera la colina; entonces descansa y el
+ * botón pasa a reiniciar el paisaje.
+ */
+---
+
+<figure class="ewell panel">
+  <figcaption class="ewell-head">
+    <span class="ewell-title">◢ LA BOLA EN EL POZO</span>
+    <span class="ewell-phase" data-phase>···</span>
+  </figcaption>
+  <div class="ewell-grid">
+    <div><canvas data-well></canvas></div>
+    <div class="ewell-ctrl">
+      <label>Holgura / energía disponible (menos escasez) <b data-l="e">baja</b>
+        <input type="range" data-s="e" min="0" max="100" value="20" /></label>
+      <label>Tolerancia a la frustración <b data-l="t">media</b>
+        <input type="range" data-s="t" min="0" max="100" value="40" /></label>
+      <button data-kick class="prim">↑ Intentar cambiar</button>
+      <div class="ewell-readout" data-ro></div>
+    </div>
+  </div>
+  <div class="ewell-foot">CON POCA ENERGÍA, LA BOLA NO PASA LA COLINA: TE QUEDAS PEGADO</div>
+</figure>
+
+<script>
+  import { ctxOf, COL } from '../lib/machine';
+
+  function init(root: HTMLElement) {
+    const cv = root.querySelector<HTMLCanvasElement>('[data-well]')!;
+    const we = root.querySelector<HTMLInputElement>('[data-s="e"]')!;
+    const wt = root.querySelector<HTMLInputElement>('[data-s="t"]')!;
+    const lE = root.querySelector<HTMLElement>('[data-l="e"]')!;
+    const lT = root.querySelector<HTMLElement>('[data-l="t"]')!;
+    const phase = root.querySelector<HTMLElement>('[data-phase]')!;
+    const ro = root.querySelector<HTMLElement>('[data-ro]')!;
+    const kick = root.querySelector<HTMLButtonElement>('[data-kick]')!;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const V = (u: number) => 8 * Math.pow(u * u - 0.55, 2) - 1.2 * u;
+    const LEFT = -0.74, RIGHT = 0.74;
+    let vmin = Infinity, vmax = -Infinity;
+    for (let i = 0; i <= 200; i++) { const v = V(-1 + 2 * i / 200); if (v < vmin) vmin = v; if (v > vmax) vmax = v; }
+
+    const barrier = () => Math.max(8, 62 - +we.value * 0.34);
+    const energy = () => +we.value * 0.6 + +wt.value * 0.4;
+    const reachU = () => LEFT + (0 - LEFT) * (energy() / barrier()) * 0.92;
+    const lv = (v: number) => (v < 33 ? 'baja' : v < 66 ? 'media' : 'alta');
+
+    /* Estado vivo: máquina de fases sobre un solo rAF. */
+    type Mode = 'idle' | 'squat' | 'climb' | 'fall' | 'cross' | 'rest';
+    let mode: Mode = 'idle';
+    let ballU = LEFT, t0 = 0, attemptAt = Infinity, lastT = 0, raf = 0, visible = false;
+    let charge = 1, squash = 0, yOff = 0, target = LEFT, willCross = false;
+    const marks: number[] = [];
+    let flashU = 0, flashT = -1e9;
+    const trail: { u: number; a: number }[] = [];
+
+    /* Superficie cacheada: solo se re-crea el contexto si cambia el tamaño. */
+    let sx: CanvasRenderingContext2D | null = null, sw = 0, sh = 0;
+    function surface() {
+      const H = Math.max(240, cv.clientHeight || 240);
+      const W = cv.clientWidth || cv.parentElement!.clientWidth;
+      if (!sx || W !== sw || H !== sh) { const s = ctxOf(cv, H); sx = s.x; sw = s.w; sh = s.h; }
+      return { x: sx!, w: sw, h: sh };
+    }
+
+    function draw(now: number) {
+      const { x, w, h } = surface(); x.clearRect(0, 0, w, h); const p = 26;
+      const X = (u: number) => p + (w - 2 * p) * (u + 1) / 2;
+      const Y = (v: number) => p + (h - 2 * p) * (v - vmin) / (vmax - vmin);
+      x.beginPath(); for (let i = 0; i <= 200; i++) { const u = -1 + 2 * i / 200, px = X(u), py = Y(V(u)); i ? x.lineTo(px, py) : x.moveTo(px, py); }
+      x.strokeStyle = 'rgba(255,255,255,0.28)'; x.lineWidth = 2.5; x.stroke();
+
+      /* Marquitas de intentos fallidos: la insistencia queda escrita en la pared. */
+      x.strokeStyle = 'rgba(255,80,80,0.38)'; x.lineWidth = 1.5;
+      for (const mu of marks) { const mx = X(mu), my = Y(V(mu)); x.beginPath(); x.moveTo(mx - 3, my - 10); x.lineTo(mx + 3, my - 3); x.stroke(); }
+
+      /* Destello rojo del último borde alcanzado, se desvanece en unos segundos. */
+      const fk = (now - flashT) / 2600;
+      if (fk >= 0 && fk < 1) {
+        const fa = (1 - fk) * 0.8, fx = X(flashU), fy = Y(V(flashU)) - 6;
+        x.strokeStyle = `rgba(255,60,60,${fa})`; x.lineWidth = 2;
+        x.beginPath(); x.arc(fx, fy, 8 + fk * 14, 0, 7); x.stroke();
+      }
+
+      /* Estela del cruce. */
+      for (const t of trail) { if (t.a <= 0) continue; x.fillStyle = `rgba(82,208,83,${(t.a * 0.5).toFixed(3)})`; x.beginPath(); x.arc(X(t.u), Y(V(t.u)) - 11, 6, 0, 7); x.fill(); }
+
+      x.font = '10px "JetBrains Mono", monospace'; x.textAlign = 'center';
+      x.fillStyle = COL.red; x.fillText('valle malo', X(LEFT), Y(V(LEFT)) + 26); x.fillText('(negación/conformismo)', X(LEFT), Y(V(LEFT)) + 39);
+      x.fillStyle = COL.green; x.fillText('valle bueno', X(RIGHT), Y(V(RIGHT)) + 26); x.fillText('(cambio)', X(RIGHT), Y(V(RIGHT)) + 39);
+      x.fillStyle = COL.muted; x.fillText('energía de activación ↑', X(0), Y(V(0)) - 10); x.textAlign = 'left';
+
+      /* La bola, con sentadilla (squash) y rebote (yOff). */
+      const bx = X(ballU), by = Y(V(ballU)) - 11 + yOff;
+      x.save(); x.translate(bx, by); x.scale(1 + squash * 0.45, 1 - squash);
+      if (ballU > 0.1) { x.shadowColor = COL.green; x.shadowBlur = 18; }
+      x.fillStyle = ballU > 0.1 ? COL.green : COL.orange;
+      x.beginPath(); x.arc(0, 0, 10, 0, 7); x.fill();
+      x.shadowBlur = 0; x.strokeStyle = '#fff'; x.globalAlpha = 0.5; x.lineWidth = 1; x.stroke();
+      x.restore(); x.globalAlpha = 1;
+
+      /* Barra de energía pulsante junto a la bola (puramente visual). */
+      if (!reduced && ballU <= 0.1) {
+        const pulse = 0.6 + 0.3 * Math.sin(now / 280);
+        const barX = bx + 16, barY = by - 14, bh = 28;
+        x.strokeStyle = 'rgba(255,255,255,0.25)'; x.lineWidth = 1; x.strokeRect(barX, barY, 5, bh);
+        const fillH = Math.max(1, bh * charge);
+        x.fillStyle = `rgba(255,204,51,${pulse.toFixed(3)})`;
+        x.fillRect(barX + 1, barY + bh - fillH + 1, 3, Math.max(0, fillH - 2));
+      }
+    }
+
+    function status() {
+      const E = energy(), B = barrier();
+      phase.textContent = ballU > 0.1 ? '✓ CRUZASTE AL VALLE BUENO' : (E >= B ? 'PUEDES CRUZAR: ¡INTÉNTALO!' : 'PEGADO: NO ALCANZA');
+      phase.style.color = ballU > 0.1 ? COL.green : (E >= B ? COL.yellow : COL.orange);
+      ro.innerHTML = `Energía disponible: <b>${E.toFixed(0)}</b> · colina a superar: <b>${B.toFixed(0)}</b> → <b style="color:${E >= B ? COL.green : COL.red}">${E >= B ? 'ALCANZA' : 'NO alcanza'}</b>`;
+    }
+    function syncBtn() { kick.textContent = ballU > 0.1 ? '↻ Reiniciar el paisaje' : '↑ Intentar cambiar'; }
+    function refresh() {
+      lE.textContent = lv(+we.value); lT.textContent = lv(+wt.value);
+      status(); syncBtn();
+      if (reduced || !raf) draw(performance.now());
+    }
+
+    function startAttempt(now: number) {
+      if (mode !== 'idle' || ballU > 0.1) return;
+      mode = 'squat'; t0 = now;
+    }
+    function settle(now: number) {
+      ballU = LEFT; yOff = 0; squash = 0; mode = 'idle';
+      attemptAt = now + 3600 + Math.random() * 1000;
+      refresh();
+    }
+
+    function tick(now: number) {
+      const dt = Math.min(0.05, (now - lastT) / 1000 || 0); lastT = now;
+      if (mode === 'idle') {
+        charge = Math.min(1, charge + dt * 0.22);
+        if (now >= attemptAt) startAttempt(now);
+      } else if (mode === 'squat') {
+        /* Anticipación: pequeña sentadilla antes de lanzarse. */
+        const k = Math.min(1, (now - t0) / 400); squash = Math.sin(k * Math.PI) * 0.35;
+        if (k >= 1) {
+          squash = 0; charge = Math.max(0.12, charge - 0.35);
+          const E = energy(), B = barrier(); willCross = E >= B;
+          target = willCross ? 0 : reachU();
+          mode = 'climb'; t0 = now;
+        }
+      } else if (mode === 'climb') {
+        /* Subida con desaceleración (ease-out): la energía se agota al subir. */
+        const k = Math.min(1, (now - t0) / 650);
+        ballU = LEFT + (target - LEFT) * (1 - Math.pow(1 - k, 3));
+        if (k >= 1) {
+          if (willCross) { mode = 'cross'; t0 = now; trail.length = 0; }
+          else {
+            flashU = target; flashT = now;
+            if (marks.length < 14) marks.push(target - Math.random() * 0.025);
+            mode = 'fall'; t0 = now;
+          }
+        }
+      } else if (mode === 'fall') {
+        /* Caída acelerada de vuelta y rebote corto al tocar el fondo. */
+        const k = Math.min(1, (now - t0) / 820);
+        const kr = Math.min(1, k / 0.68);
+        ballU = target + (LEFT - target) * kr * kr;
+        yOff = k > 0.68 ? -Math.sin((k - 0.68) / 0.32 * Math.PI) * 6 : 0;
+        squash = k > 0.68 ? Math.sin((k - 0.68) / 0.32 * Math.PI) * 0.18 : 0;
+        if (k >= 1) settle(now);
+      } else if (mode === 'cross') {
+        /* Pasó la cima: baja al valle bueno dejando estela. */
+        const k = Math.min(1, (now - t0) / 900);
+        const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+        ballU = RIGHT * e;
+        trail.push({ u: ballU, a: 0.9 });
+        if (k >= 1) { ballU = RIGHT; mode = 'rest'; status(); syncBtn(); }
+      }
+      for (const t of trail) t.a -= dt * 1.4;
+      while (trail.length && trail[0].a <= 0) trail.shift();
+      draw(now);
+      raf = visible ? requestAnimationFrame(tick) : 0;
+    }
+
+    kick.onclick = () => {
+      const now = performance.now();
+      if (ballU > 0.1) {
+        /* Reiniciar el paisaje: de vuelta al valle malo, ciclo desde cero. */
+        ballU = LEFT; marks.length = 0; trail.length = 0; flashT = -1e9;
+        charge = 1; yOff = 0; squash = 0; mode = 'idle';
+        attemptAt = now + 3800;
+        refresh(); return;
+      }
+      if (reduced) {
+        /* Sin animaciones: resultado inmediato. */
+        const E = energy(), B = barrier();
+        if (E >= B) ballU = RIGHT;
+        else if (marks.length < 14) marks.push(reachU() - Math.random() * 0.025);
+        refresh(); return;
+      }
+      startAttempt(now); /* intento manual inmediato */
+    };
+
+    we.addEventListener('input', () => { if (ballU < 0.1 && (mode === 'idle' || reduced)) ballU = LEFT; refresh(); });
+    wt.addEventListener('input', refresh);
+    window.addEventListener('resize', () => { sx = null; refresh(); });
+
+    refresh();
+    if (!reduced) {
+      attemptAt = performance.now() + 2200;
+      new IntersectionObserver((es) => {
+        visible = es[0].isIntersecting;
+        if (visible && !raf) {
+          lastT = performance.now();
+          attemptAt = Math.max(attemptAt, lastT + 1500);
+          raf = requestAnimationFrame(tick);
+        }
+      }, { threshold: 0.15 }).observe(root);
+    }
+  }
+  document.querySelectorAll<HTMLElement>('.ewell').forEach(init);
+</script>
+
+<style>
+  .ewell { padding: 1rem 1.2rem 0.8rem; margin-block: 2.5rem; }
+  .ewell-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
+  .ewell-title { color: var(--orange-bright); font-size: 0.78rem; letter-spacing: 0.3em; text-transform: uppercase; }
+  .ewell-phase { font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase; }
+  .ewell-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 1.4rem; align-items: start; }
+  @media (max-width: 720px) { .ewell-grid { grid-template-columns: 1fr; } }
+  .ewell-grid canvas { display: block; width: 100%; height: 240px; }
+  @media (min-width: 900px) { .ewell-grid canvas { height: clamp(240px, 34vh, 380px); } }
+  .ewell-ctrl { display: flex; flex-direction: column; gap: 0.8rem; }
+  .ewell-ctrl label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.7rem; color: var(--muted); }
+  .ewell-ctrl label b { color: var(--blue); }
+  .ewell-ctrl input[type='range'] { width: 100%; accent-color: var(--orange); }
+  .ewell button.prim { background: var(--orange); color: #000; font-weight: 700; border: none; padding: 0.5rem 0.9rem; font-family: var(--font-mono); letter-spacing: 0.12em; cursor: pointer; }
+  .ewell button.prim:hover { background: var(--orange-bright); }
+  .ewell-readout { font-size: 0.72rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.6rem 0.7rem; }
+  .ewell-readout :global(b) { color: var(--text); }
+  .ewell-foot { margin-top: 0.7rem; padding-top: 0.5rem; border-top: 1px dashed var(--line); font-size: 0.6rem; letter-spacing: 0.28em; color: var(--muted); }
+</style>

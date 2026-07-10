@@ -1,0 +1,69 @@
+---
+/**
+ * Panel de casos conceptuales de personas comunes: debajo de los casos
+ * históricos, ejemplos del tipo "Una persona que..." para que el lector
+ * se proyecte en la idea.
+ */
+interface Case {
+  t: string; // arquetipo ("Una persona que...")
+  d: string; // qué hace y qué muestra
+}
+
+interface Props {
+  title?: string;
+  items: Case[];
+}
+
+const { title = 'la misma idea, en gente común', items } = Astro.props;
+---
+
+<aside class="pcases panel">
+  <p class="pcases-head">◢ ASÍ SE VE EN LA GENTE · {title}</p>
+  <ul class="pcases-list">
+    {items.map((c) => (
+      <li>
+        <span class="p-dot" aria-hidden="true">●</span>
+        <span class="p-body"><b>{c.t}</b> {c.d}</span>
+      </li>
+    ))}
+  </ul>
+</aside>
+
+<style>
+  .pcases {
+    padding: 1rem 1.2rem;
+    margin-block: 1.5rem;
+    border-left-color: var(--blue);
+  }
+  .pcases-head {
+    font-size: 0.7rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: 0.8rem;
+  }
+  .pcases-list {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+  .pcases-list li {
+    display: grid;
+    grid-template-columns: 1.2ch 1fr;
+    gap: 1ch;
+    font-size: 0.8rem;
+    line-height: 1.65;
+    color: #cfccc5;
+  }
+  .p-dot {
+    color: var(--blue);
+    font-size: 0.6rem;
+    padding-top: 0.45em;
+  }
+  .p-body b {
+    color: var(--text);
+    font-weight: 600;
+  }
+</style>

@@ -1,0 +1,251 @@
+---
+/** Paso 7 · Curva imperial de Dalio (modelo vs arquetipo) + riqueza del 1% (Turchin). */
+---
+
+<figure class="panel viz-fig">
+  <div class="chart-box"><canvas data-dalio></canvas></div>
+  <figcaption>La prosperidad de la máquina (dorado) contra el arquetipo imperial de Dalio (punteado).
+  Holanda → Reino Unido → EE.UU. → …: cada relevo es la máquina reiniciándose a mayor escala.
+  <span class="cap-mut">(Misma forma, mismo mecanismo: el modelo y los datos de Dalio coinciden en el patrón de auge y declive.)</span></figcaption>
+</figure>
+
+<figure class="panel viz-fig">
+  <div class="chart-box"><canvas data-turchin></canvas></div>
+  <figcaption>Riqueza del 1% más rico en EE.UU. (naranja, datos reales) y la desigualdad de la máquina
+  (dorado punteado). Dos picos, dos crisis. <span class="cap-mut">(La curva del modelo es ilustrativa, alineada al eje
+  temporal para comparar la forma.)</span></figcaption>
+</figure>
+
+<script>
+  import Chart from 'chart.js/auto';
+  import { BASE, simulate, COL } from '../lib/machine';
+
+  const FONT = { family: "'JetBrains Mono', monospace", size: 11 };
+  const TICK = '#8f8b83';
+  const GRID = 'rgba(255,255,255,0.06)';
+  const AXIS = '#2a2a32';
+  const INK = '#cfccc5';
+  const RED = '#ff5555';
+
+  const legendOpts = {
+    display: true,
+    position: 'top' as const,
+    labels: { usePointStyle: true, boxWidth: 8, boxHeight: 8, color: INK, font: FONT, padding: 14 },
+  };
+
+  /** Remuestrea una serie larga a n+1 puntos equiespaciados (misma ventana, menos vértices). */
+  function resample(arr: number[], n: number): number[] {
+    return Array.from({ length: n + 1 }, (_, i) => arr[Math.round((i * (arr.length - 1)) / n)]);
+  }
+
+  function initDalio(cv: HTMLCanvasElement) {
+    const win = simulate(BASE, 6000, 0.02).map((d) => d[3]).slice(1490, 3492);
+    const mx = Math.max(...win);
+    const N = 200;
+    const model = resample(win, N).map((v, i) => ({ x: i / N, y: v / mx }));
+    const arch = (u: number) => (1 / (1 + Math.exp(-10 * (u - 0.26)))) * (1 / (1 + Math.exp(10 * (u - 0.64))));
+    const archPts = Array.from({ length: N + 1 }, (_, i) => ({ x: i / N, y: arch(i / N) * 0.92 }));
+
+    const phaseLabels = {
+      id: 'phaseLabels',
+      afterDatasetsDraw(chart: Chart) {
+        const { ctx, chartArea: { left, right, top, bottom } } = chart;
+        const W = right - left;
+        ctx.save();
+        ctx.font = "10px 'JetBrains Mono', monospace";
+        ctx.textAlign = 'center';
+        ctx.fillStyle = COL.blue; ctx.fillText('ascenso', left + W * 0.25, bottom - 10);
+        ctx.fillStyle = COL.yellow; ctx.fillText('cima', left + W * 0.45, top + 12);
+        ctx.fillStyle = COL.orange; ctx.fillText('declive', left + W * 0.78, bottom - 10);
+        ctx.restore();
+      },
+    };
+
+    new Chart(cv, {
+      type: 'line',
+      data: {
+        datasets: [
+          {
+            label: 'Prosperidad del modelo',
+            data: model,
+            borderColor: COL.yellow,
+            backgroundColor: 'rgba(255,204,51,0.14)',
+            fill: 'origin',
+            borderWidth: 2.2,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+          },
+          {
+            label: 'Arquetipo imperial (Dalio)',
+            data: archPts,
+            borderColor: COL.muted,
+            borderDash: [6, 4],
+            borderWidth: 1.8,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            fill: false,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: legendOpts,
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+            callbacks: {
+              title: () => '',
+              label: (c) => ` ${c.dataset.label}: ${((c.parsed.y ?? 0) * 100).toFixed(0)}% del pico`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            type: 'linear',
+            min: 0,
+            max: 1,
+            title: { display: true, text: 'el tiempo pasa →', color: TICK, font: FONT },
+            ticks: { display: false },
+            grid: { display: false },
+            border: { color: AXIS },
+          },
+          y: {
+            min: 0,
+            max: 1.08,
+            title: { display: true, text: 'prosperidad', color: TICK, font: FONT },
+            ticks: { color: TICK, font: FONT, callback: (v) => (Number(v) * 100).toFixed(0) + '%' },
+            grid: { color: GRID },
+            border: { color: AXIS },
+          },
+        },
+      },
+      plugins: [phaseLabels],
+    });
+  }
+
+  function initTurchin(cv: HTMLCanvasElement) {
+    const real: [number, number][] = [[1913, 45], [1922, 47], [1929, 48], [1936, 42], [1949, 32], [1965, 28], [1976, 22], [1985, 26], [1995, 30], [2005, 34], [2012, 40], [2018, 39], [2023, 37]];
+    const gwin = simulate(BASE, 6000, 0.02).map((d) => d[2]).slice(1490, 5490);
+    const Y0 = 1910, Y1 = 2025, M = 230;
+    // Misma alineación que antes: la ventana del modelo se estira sobre 1910-2025
+    // y su altura relativa (v/0.75) se lleva al eje de 15-50%.
+    const model = resample(gwin, M).map((v, i) => ({
+      x: Y0 + ((Y1 - Y0) * i) / M,
+      y: 15 + 35 * Math.min(1, v / 0.75),
+    }));
+    const crisisData = [
+      { x: 1929, y: 15 }, { x: 1929, y: 50 },
+      { x: 1975, y: NaN },
+      { x: 2020, y: 15 }, { x: 2020, y: 50 },
+    ];
+
+    const crisisLabels = {
+      id: 'crisisLabels',
+      afterDatasetsDraw(chart: Chart) {
+        const x = chart.scales.x;
+        const { ctx, chartArea: { top } } = chart;
+        ctx.save();
+        ctx.font = "10px 'JetBrains Mono', monospace";
+        ctx.fillStyle = RED;
+        ctx.textAlign = 'center';
+        [1929, 2020].forEach((yr) => ctx.fillText(String(yr), x.getPixelForValue(yr), top + 10));
+        ctx.restore();
+      },
+    };
+
+    new Chart(cv, {
+      type: 'line',
+      data: {
+        datasets: [
+          {
+            label: 'Riqueza del 1% (datos reales)',
+            data: real.map(([x, y]) => ({ x, y })),
+            borderColor: COL.orange,
+            backgroundColor: COL.orange,
+            borderWidth: 2.2,
+            pointRadius: 3,
+            pointHoverRadius: 5,
+            fill: false,
+          },
+          {
+            label: 'Desigualdad del modelo',
+            data: model,
+            borderColor: COL.yellow,
+            borderDash: [6, 4],
+            borderWidth: 1.6,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            fill: false,
+          },
+          {
+            label: 'Crisis (1929 y 2020)',
+            data: crisisData,
+            borderColor: RED,
+            borderDash: [3, 4],
+            borderWidth: 1.5,
+            pointRadius: 0,
+            pointHoverRadius: 0,
+            spanGaps: false,
+            fill: false,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        interaction: { mode: 'nearest', axis: 'x', intersect: false },
+        plugins: {
+          legend: legendOpts,
+          tooltip: {
+            mode: 'nearest',
+            axis: 'x',
+            intersect: false,
+            filter: (item) => item.datasetIndex !== 2,
+            callbacks: {
+              title: (items) => (items.length ? 'año ' + Math.round(items[0].parsed.x ?? 0) : ''),
+              label: (c) => ` ${c.dataset.label}: ${(c.parsed.y ?? 0).toFixed(0)}%`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            type: 'linear',
+            min: Y0,
+            max: Y1,
+            title: { display: true, text: 'año', color: TICK, font: FONT },
+            ticks: { color: TICK, font: FONT, maxTicksLimit: 7, callback: (v) => String(v) },
+            grid: { display: false },
+            border: { color: AXIS },
+          },
+          y: {
+            min: 15,
+            max: 50,
+            title: { display: true, text: '% de la riqueza del 1%', color: TICK, font: FONT },
+            ticks: { color: TICK, font: FONT, callback: (v) => v + '%' },
+            grid: { color: GRID },
+            border: { color: AXIS },
+          },
+        },
+      },
+      plugins: [crisisLabels],
+    });
+  }
+
+  document.querySelectorAll<HTMLCanvasElement>('[data-dalio]').forEach(initDalio);
+  document.querySelectorAll<HTMLCanvasElement>('[data-turchin]').forEach(initTurchin);
+</script>
+
+<style>
+  .viz-fig { padding: 1rem 1.2rem 0.8rem; margin-block: 1.5rem; }
+  .chart-box { position: relative; height: 280px; }
+  .viz-fig figcaption { font-size: 0.78rem; color: var(--muted); margin-top: 0.6rem; }
+  .cap-mut { color: #6b6862; display: block; margin-top: 0.2rem; }
+  @media (max-width: 700px) {
+    .chart-box { height: 240px; }
+  }
+</style>

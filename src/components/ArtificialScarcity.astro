@@ -1,0 +1,369 @@
+---
+/** Paso 5 · Escasez fabricada: SVG estático (realidad vs cercado) + escena viva de acaparamiento. */
+let s = '';
+s += `<text x="220" y="26" fill="#52d053" font-size="14" font-family="monospace" text-anchor="middle" font-weight="700">LA REALIDAD: tierra de sobra</text>`;
+s += `<text x="680" y="26" fill="#ff5555" font-size="14" font-family="monospace" text-anchor="middle" font-weight="700">LO QUE HACEN: cercar y retener</text>`;
+for (let r = 0; r < 4; r++) for (let c = 0; c < 6; c++) { const px = 50 + c * 60, py = 50 + r * 45; s += `<rect x="${px}" y="${py}" width="48" height="34" rx="4" fill="rgba(82,208,83,.20)" stroke="#52d053" stroke-width="1"/>`; }
+s += `<text x="220" y="235" fill="#8f8b83" font-size="12" font-family="monospace" text-anchor="middle">hay espacio para todos</text>`;
+s += `<line x1="450" y1="40" x2="450" y2="220" stroke="#2a2a32" stroke-width="1.5"/>`;
+for (let r = 0; r < 4; r++) for (let c = 0; c < 6; c++) {
+  const px = 500 + c * 60, py = 50 + r * 45, avail = (r * 6 + c) % 9 === 0;
+  if (avail) { s += `<rect x="${px}" y="${py}" width="48" height="34" rx="4" fill="rgba(255,204,51,.25)" stroke="#ffcc33" stroke-width="1.4"/>`; s += `<text x="${px + 24}" y="${py + 22}" fill="#ffcc33" font-size="11" font-family="monospace" text-anchor="middle">$$$</text>`; }
+  else { s += `<rect x="${px}" y="${py}" width="48" height="34" rx="4" fill="rgba(255,85,85,.08)" stroke="#ff5555" stroke-width="1" stroke-dasharray="3,3"/>`; s += `<line x1="${px}" y1="${py}" x2="${px + 48}" y2="${py + 34}" stroke="#ff5555" stroke-width="1" opacity=".5"/>`; }
+}
+s += `<text x="680" y="235" fill="#8f8b83" font-size="12" font-family="monospace" text-anchor="middle">poco disponible → precio por las nubes</text>`;
+---
+
+<figure class="panel viz-fig">
+  <div class="svg-scroll">
+    <svg viewBox="0 0 900 260" set:html={s}></svg>
+  </div>
+  <figcaption>Izquierda: la realidad, tierra de sobra. Derecha: lo que hace la máquina: cercar, retener y
+  restringir para que el precio suba. La escasez fabricada.</figcaption>
+</figure>
+
+<div class="art panel">
+  <label class="art-lab">
+    <span>▸ Pruébalo: ¿cuánto suelo retiras del mercado? &nbsp; <b data-v>10%</b></span>
+    <span class="art-auto" data-auto>modo automático · mueve el slider para tomar el control</span>
+  </label>
+  <input type="range" data-s min="0" max="88" step="1" value="10" />
+  <canvas data-c></canvas>
+  <div class="readout" data-ro></div>
+  <p class="art-note">No creaste ni destruiste tierra: solo cerraste una parte. Y aun así el precio se
+  dispara y la cola de compradores se vacía. Esa es toda la jugada de la escasez fabricada.</p>
+</div>
+
+<script>
+  import { ctxOf, COL } from '../lib/machine';
+
+  const COLS = 16, ROWS = 4, N = COLS * ROWS;
+  const BMAX = 8;              // compradores en cola a mercado abierto
+  const BUILD_S = 0.3;         // segundos que tarda en cerrar una cerca
+  const FADE_S = 0.35;         // segundos que tarda una cerca en desvanecerse
+  const RELEASE_EVERY = 0.15;  // cadencia al liberar varios lotes
+  const SPEED = 280;           // px/s del acaparador
+  const AMB_PERIOD = 30;       // s del ciclo del modo ambiente (10% ↔ 70%)
+  const RED = '#ff5555';
+
+  /** PRNG determinista (mulberry32) para el orden de cercado. */
+  function mulberry32(seed: number) {
+    let t = seed >>> 0;
+    return () => {
+      t = (t + 0x6d2b79f5) >>> 0;
+      let r = Math.imul(t ^ (t >>> 15), 1 | t);
+      r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
+      return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function init(root: HTMLElement) {
+    const sl = root.querySelector<HTMLInputElement>('[data-s]')!;
+    const cv = root.querySelector<HTMLCanvasElement>('[data-c]')!;
+    const lab = root.querySelector<HTMLElement>('[data-v]')!;
+    const ro = root.querySelector<HTMLElement>('[data-ro]')!;
+    const autoEl = root.querySelector<HTMLElement>('[data-auto]')!;
+
+    // Orden de cercado: barrido izquierda → derecha con dispersión determinista.
+    const rnd = mulberry32(0x5eed);
+    const keys: number[] = [];
+    for (let i = 0; i < N; i++) keys.push((i % COLS) + rnd() * 4.6 + Math.floor(i / COLS) * 0.17);
+    const order = Array.from({ length: N }, (_, i) => i).sort((a, b) => keys[a] - keys[b]);
+
+    const measure = () =>
+      ctxOf(cv, Math.max(240, Math.round(cv.getBoundingClientRect().height) || 240));
+    let g = measure();
+
+    // Estado de la escena -------------------------------------------------
+    const lotF = new Float32Array(N);                    // 0 libre · 1 cercado
+    let done = 0;                                        // lotes cercados firmes
+    let build: { idx: number; f: number } | null = null; // cerca en construcción
+    const fades: { idx: number; f: number }[] = [];      // cercas desvaneciéndose
+    let fadeT = 0;
+    let hx = 0, hy = 0, hWalk = 0, hMoving = false;      // acaparador
+    let disp = 1, pulse = 0, pulseDir = 1;               // ticker de precio
+    const buyers = Array.from({ length: BMAX }, () => ({ a: 1 }));
+    const floats: { x: number; y: number; t: number; txt: string; col: string }[] = [];
+    let ambient = true, tAmb = 0, lastRo = '';
+
+    function geom() {
+      const { w, h } = g;
+      const p = 10, band = 56;
+      const gw = w - 2 * p, gh = h - band - 16;
+      const cw = gw / COLS;
+      const ch = Math.min(gh / ROWS, cw * 1.15);
+      return { p, band, cw, ch, gy: 8 + (gh - ch * ROWS) / 2, bandY: h - band };
+    }
+    function center(i: number) {
+      const G = geom();
+      return {
+        x: G.p + (i % COLS) * G.cw + G.cw / 2,
+        y: G.gy + Math.floor(i / COLS) * G.ch + G.ch / 2,
+      };
+    }
+    function walkTo(tx: number, ty: number, dt: number) {
+      const dx = tx - hx, dy = ty - hy, d = Math.hypot(dx, dy);
+      if (d < 3) { hMoving = false; return true; }
+      hMoving = true;
+      const sp = Math.min(d, SPEED * dt);
+      hx += (dx / d) * sp; hy += (dy / d) * sp; hWalk += sp;
+      return false;
+    }
+
+    // Simulación ----------------------------------------------------------
+    function step(dt: number) {
+      const pct = +sl.value;
+      lab.textContent = pct + '%';
+      const target = Math.round(N * pct / 100);
+
+      for (let i = fades.length - 1; i >= 0; i--) {
+        const fd = fades[i];
+        fd.f -= dt / FADE_S;
+        if (fd.f <= 0) { lotF[fd.idx] = 0; fades.splice(i, 1); }
+        else lotF[fd.idx] = fd.f;
+      }
+      fadeT -= dt;
+
+      if (build && target <= done) { fades.push(build); build = null; } // abortar y soltar
+      if (build) {
+        build.f = Math.min(1, build.f + dt / BUILD_S);
+        lotF[build.idx] = build.f;
+        if (build.f >= 1) {
+          const c = center(build.idx);
+          floats.push({ x: c.x, y: c.y, t: 0, txt: '+$', col: RED });
+          done++; build = null; pulse = 1; pulseDir = 1;
+        }
+      } else if (target > done) {
+        const idx = order[done];
+        const c = center(idx);
+        if (walkTo(c.x, c.y, dt)) {
+          const fi = fades.findIndex(f => f.idx === idx);
+          build = { idx, f: fi >= 0 ? fades.splice(fi, 1)[0].f : 0 };
+        }
+      } else if (fades.length) {
+        // liberando: camina hacia la última cerca que está abriendo
+        const c = center(fades[fades.length - 1].idx);
+        walkTo(c.x, c.y, dt);
+      } else hMoving = false;
+
+      while (target < done && fadeT <= 0) {
+        done--;
+        const idx = order[done];
+        fades.push({ idx, f: lotF[idx] });
+        const c = center(idx);
+        floats.push({ x: c.x, y: c.y, t: 0, txt: '-$', col: COL.green });
+        fadeT += RELEASE_EVERY;
+        pulse = 1; pulseDir = -1;
+      }
+
+      const avail = N - done;
+      const priceT = avail > 0 ? N / avail : N;
+      disp += (priceT - disp) * Math.min(1, dt * 4);
+      pulse = Math.max(0, pulse - dt * 2.2);
+
+      const want = Math.round(BMAX * avail / N);
+      for (let i = 0; i < BMAX; i++) {
+        buyers[i].a += ((i < want ? 1 : 0) - buyers[i].a) * Math.min(1, dt * 2.2);
+      }
+
+      for (let i = floats.length - 1; i >= 0; i--) {
+        floats[i].t += dt;
+        if (floats[i].t > 0.9) floats.splice(i, 1);
+      }
+
+      const pc = priceT > 4 ? RED : priceT > 2 ? COL.orange : COL.green;
+      const roTxt = `Suelo disponible: <b>${avail}/${N}</b> · precio relativo: ` +
+        `<b style="color:${pc}">×${priceT.toFixed(1)}</b> · verde = disponible · rojo = cercado`;
+      if (roTxt !== lastRo) { ro.innerHTML = roTxt; lastRo = roTxt; }
+    }
+
+    // Render ---------------------------------------------------------------
+    function draw(t: number, hoarder: boolean) {
+      const { x, w, h } = g;
+      const G = geom();
+      x.clearRect(0, 0, w, h);
+
+      // Lotes: verde disponible, cerca roja que se cierra alrededor + rayado.
+      for (let i = 0; i < N; i++) {
+        const px = G.p + (i % COLS) * G.cw, py = G.gy + Math.floor(i / COLS) * G.ch;
+        const cw = G.cw - 3, ch = G.ch - 3, f = lotF[i];
+        if (f < 1) {
+          const a = 1 - f;
+          x.fillStyle = `rgba(82,208,83,${0.2 * a})`;
+          x.strokeStyle = `rgba(82,208,83,${0.9 * a})`;
+          x.lineWidth = 1;
+          x.fillRect(px, py, cw, ch); x.strokeRect(px, py, cw, ch);
+        }
+        if (f > 0) {
+          const per = 2 * (cw + ch);
+          x.strokeStyle = RED; x.lineWidth = 1.4;
+          x.setLineDash([per * Math.min(1, f / 0.7), per]);
+          x.strokeRect(px, py, cw, ch);
+          x.setLineDash([]); x.lineWidth = 1;
+          if (f > 0.55) {
+            const a2 = (f - 0.55) / 0.45;
+            x.fillStyle = `rgba(255,85,85,${0.12 * a2})`;
+            x.fillRect(px, py, cw, ch);
+            x.strokeStyle = `rgba(255,85,85,${0.55 * a2})`;
+            x.beginPath(); x.moveTo(px, py); x.lineTo(px + cw, py + ch); x.stroke();
+            x.beginPath(); x.moveTo(px + cw, py); x.lineTo(px, py + ch); x.stroke();
+          }
+        }
+      }
+
+      // Textos flotantes +$ / -$ sobre los lotes recién cercados o liberados.
+      x.font = '700 11px "JetBrains Mono", monospace'; x.textAlign = 'center';
+      for (const fl of floats) {
+        x.globalAlpha = Math.max(0, 1 - fl.t / 0.9);
+        x.fillStyle = fl.col;
+        x.fillText(fl.txt, fl.x, fl.y - fl.t * 18);
+      }
+      x.globalAlpha = 1; x.textAlign = 'left';
+
+      // El acaparador: cuadrado naranja con patas, ojos y maletín.
+      if (hoarder) {
+        const bob = build ? Math.sin(t * 16) * 1.4 : hMoving ? 0 : Math.sin(t * 4) * 0.8;
+        const sw = hMoving ? Math.sin(hWalk * 0.45) * 3 : build ? Math.sin(t * 14) * 1.5 : 0;
+        x.strokeStyle = COL.orange; x.lineWidth = 1.6;
+        x.beginPath();
+        x.moveTo(hx - 2, hy + 1); x.lineTo(hx - 2 + sw, hy + 7);
+        x.moveTo(hx + 2, hy + 1); x.lineTo(hx + 2 - sw, hy + 7);
+        x.stroke();
+        x.fillStyle = COL.orange;
+        x.fillRect(hx - 5, hy - 9 + bob, 10, 11);
+        x.fillStyle = '#141418';
+        x.fillRect(hx - 3, hy - 6 + bob, 1.8, 1.8);
+        x.fillRect(hx + 1, hy - 6 + bob, 1.8, 1.8);
+        x.fillStyle = '#8a5a2b';
+        x.fillRect(hx + 5.5, hy - 2 + bob, 6, 4.5);
+        x.fillRect(hx + 7.5, hy - 3.5 + bob, 2, 1.5);
+        x.lineWidth = 1;
+      }
+
+      // Banda inferior: ticker de precio + cola de compradores.
+      const by = G.bandY;
+      x.strokeStyle = 'rgba(255,255,255,0.12)'; x.setLineDash([4, 4]);
+      x.beginPath(); x.moveTo(G.p, by); x.lineTo(w - G.p, by); x.stroke();
+      x.setLineDash([]);
+
+      x.fillStyle = COL.muted; x.font = '9px "JetBrains Mono", monospace';
+      x.fillText('PRECIO DEL SUELO', G.p, by + 16);
+      const pc = disp > 4 ? RED : disp > 2 ? COL.orange : COL.green;
+      x.fillStyle = pc;
+      x.font = `700 ${24 + pulse * 5}px "JetBrains Mono", monospace`;
+      const txt = '×' + disp.toFixed(1);
+      x.fillText(txt, G.p, by + 44);
+      if (pulse > 0.05) {
+        const bx0 = G.p + x.measureText(txt).width + 10, ay = by + 38;
+        x.globalAlpha = pulse;
+        x.fillStyle = pulseDir > 0 ? RED : COL.green;
+        x.beginPath();
+        if (pulseDir > 0) { x.moveTo(bx0, ay); x.lineTo(bx0 + 9, ay); x.lineTo(bx0 + 4.5, ay - 9); }
+        else { x.moveTo(bx0, ay - 9); x.lineTo(bx0 + 9, ay - 9); x.lineTo(bx0 + 4.5, ay); }
+        x.closePath(); x.fill();
+        x.globalAlpha = 1;
+      }
+
+      x.fillStyle = COL.muted; x.font = '9px "JetBrains Mono", monospace';
+      x.textAlign = 'right';
+      x.fillText('COMPRADORES EN COLA', w - G.p, by + 16);
+      x.textAlign = 'left';
+      const qy = by + 44;
+      for (let i = 0; i < BMAX; i++) {
+        const b = buyers[i];
+        if (b.a <= 0.02) continue;
+        const moving = b.a > 0.05 && b.a < 0.95;
+        const bx = w - G.p - 8 - i * 16 + (1 - b.a) * 34; // se marcha caminando a la derecha
+        const bob = moving ? 0 : Math.sin(t * 2 + i * 1.7) * 0.8;
+        const leg = moving ? Math.sin(t * 16 + i) * 2.5 : 0;
+        x.globalAlpha = b.a;
+        x.strokeStyle = COL.blue; x.lineWidth = 1.5;
+        x.beginPath();
+        x.moveTo(bx, qy - 9 + bob); x.lineTo(bx, qy - 3 + bob);
+        x.moveTo(bx, qy - 3 + bob); x.lineTo(bx - 2 + leg, qy + 3 + bob);
+        x.moveTo(bx, qy - 3 + bob); x.lineTo(bx + 2 - leg, qy + 3 + bob);
+        x.stroke();
+        x.fillStyle = COL.blue;
+        x.beginPath(); x.arc(bx, qy - 12 + bob, 2.6, 0, 7); x.fill();
+        x.globalAlpha = 1;
+      }
+      x.lineWidth = 1;
+    }
+
+    /** prefers-reduced-motion: estado final según el slider, sin acaparador. */
+    function settle() {
+      const pct = +sl.value;
+      lab.textContent = pct + '%';
+      const target = Math.round(N * pct / 100);
+      lotF.fill(0); fades.length = 0; build = null; floats.length = 0;
+      for (let i = 0; i < target; i++) lotF[order[i]] = 1;
+      done = target;
+      const avail = N - done;
+      disp = avail > 0 ? N / avail : N;
+      pulse = 0;
+      const want = Math.round(BMAX * avail / N);
+      for (let i = 0; i < BMAX; i++) buyers[i].a = i < want ? 1 : 0;
+      lastRo = '';
+      step(0);
+      draw(0, false);
+    }
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      autoEl.style.display = 'none';
+      settle();
+      sl.addEventListener('input', settle);
+      window.addEventListener('resize', () => { g = measure(); settle(); });
+      return;
+    }
+
+    // Modo ambiente: el objetivo oscila solo entre 10% y 70% (~30 s el ciclo)
+    // hasta que el usuario toca el slider por primera vez.
+    sl.addEventListener('input', () => {
+      if (!ambient) return;
+      ambient = false;
+      autoEl.textContent = 'control manual';
+      autoEl.classList.add('off');
+    });
+    window.addEventListener('resize', () => { g = measure(); });
+
+    const start = center(0);
+    hx = geom().p + 4; hy = start.y;
+    let last = performance.now();
+    function tick(now: number) {
+      const dt = Math.min((now - last) / 1000, 0.1);
+      last = now;
+      if (ambient) {
+        tAmb += dt;
+        sl.value = String(Math.round(40 - 30 * Math.cos((tAmb * Math.PI * 2) / AMB_PERIOD)));
+      }
+      step(dt);
+      draw(now / 1000, true);
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+  document.querySelectorAll<HTMLElement>('.art').forEach(init);
+</script>
+
+<style>
+  .viz-fig { padding: 1rem 1.2rem 0.8rem; margin-block: 1.5rem; }
+  .viz-fig figcaption { font-size: 0.78rem; color: var(--muted); margin-top: 0.6rem; }
+  .svg-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .svg-scroll svg { display: block; width: 100%; }
+  @media (max-width: 700px) {
+    .svg-scroll svg { min-width: 640px; }
+  }
+  .art { padding: 1rem 1.2rem; margin-block: 1.5rem; }
+  .art-lab { display: flex; justify-content: space-between; align-items: baseline; gap: 0.8rem; flex-wrap: wrap; font-size: 0.72rem; color: var(--muted); margin-bottom: 0.4rem; }
+  .art-lab b { color: var(--blue); }
+  .art-auto { color: var(--orange); font-size: 0.66rem; letter-spacing: 0.05em; transition: color 0.6s, opacity 0.6s; }
+  .art-auto.off { color: var(--muted); opacity: 0.7; }
+  .art input { width: 100%; accent-color: var(--orange); }
+  .art canvas { display: block; width: 100%; height: 240px; margin-top: 0.6rem; }
+  @media (min-width: 900px) {
+    .art canvas { height: clamp(240px, 36vh, 400px); }
+  }
+  .readout { font-size: 0.76rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.55rem 0.7rem; margin-top: 0.7rem; }
+  .readout :global(b) { color: var(--text); }
+  .art-note { font-size: 0.74rem; color: var(--muted); margin-top: 0.7rem; }
+</style>

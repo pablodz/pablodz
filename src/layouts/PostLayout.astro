@@ -1,30 +1,26 @@
 ---
 import BaseLayout from './BaseLayout.astro';
-import { url, formatDate, pad } from '../utils';
+import { url, formatDate } from '../utils';
 
 interface Props {
   title: string;
   description: string;
   pubDate: Date;
   updatedDate?: Date | undefined;
-  tags: string[];
-  episode: number;
 }
 
-const { title, description, pubDate, updatedDate, tags, episode } = Astro.props;
+const { title, description, pubDate, updatedDate } = Astro.props;
 ---
 
 <BaseLayout title={`${title} — Pablo Diaz`} description={description}>
   <article>
     <div class="title-card">
       <div class="wrap">
-        <p class="episode-no">LOG:{pad(episode)}</p>
         <h1 class="episode-title">{title.toUpperCase()}</h1>
         <p class="episode-desc">{description}</p>
         <div class="meta">
           <span class="t-label t-label--orange">DATE {formatDate(pubDate)}</span>
           {updatedDate && <span class="t-label">UPDATED {formatDate(updatedDate)}</span>}
-          {tags.map((tag) => <span class="t-label t-label--purple">#{tag}</span>)}
         </div>
       </div>
       <div class="hazard" aria-hidden="true"></div>
@@ -53,13 +49,6 @@ const { title, description, pubDate, updatedDate, tags, episode } = Astro.props;
     padding-block: 3.5rem 2.5rem;
   }
 
-  .episode-no {
-    font-size: 0.75rem;
-    letter-spacing: 0.5em;
-    color: var(--orange-bright);
-    margin-bottom: 1rem;
-  }
-
   .episode-title {
     font-size: clamp(1.8rem, 5vw, 3.2rem);
     color: #fff;
@@ -67,9 +56,6 @@ const { title, description, pubDate, updatedDate, tags, episode } = Astro.props;
   }
 
   @media (prefers-reduced-motion: no-preference) {
-    .episode-no {
-      animation: cut-in 0.35s steps(1, end) both;
-    }
     .episode-title {
       animation: cut-in 0.5s steps(1, end) 0.1s both;
     }

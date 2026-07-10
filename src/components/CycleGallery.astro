@@ -1,0 +1,366 @@
+---
+/**
+ * Galería de ciclos, versión escalera: UNA sola curva continua encadena los
+ * cinco arcos "cooperación → auge → concentración → colapso". Colapsar no es
+ * volver a cero: cada valle queda más arriba que el anterior, cada pico sube
+ * más, y el quinto arco (el nuestro) todavía no termina. En cada caída, unos
+ * fragmentos mueren y otros sobreviven para fundar la etapa siguiente.
+ */
+---
+
+<div class="cygal panel">
+  <div class="cygal-head">
+    <span class="cygal-title">◢ EL MISMO ARCO, CADA VEZ MÁS ARRIBA</span>
+  </div>
+  <div class="cygal-svg" data-svg></div>
+  <div class="readout" data-info></div>
+  <div class="cygal-foot">COLAPSAR NO ES VOLVER A CERO: EL PISO SUBE</div>
+</div>
+
+<script>
+  interface Caso {
+    nombre: string;
+    rango: string;
+    coop: string;
+    auge: string;
+    conc: string;
+    colapso: string;
+    colLabel: string;
+    final: string;
+  }
+
+  const COL = { coop: '#33b7db', auge: '#ffcc33', conc: '#ed8d4c', colapso: '#ff5555' };
+  const VERDE = '#5fd068';
+
+  const CASOS: Caso[] = [
+    {
+      nombre: 'Dinastías chinas',
+      rango: '206 a.C. – 1912',
+      coop: 'unificación y reforma agraria al fundar cada dinastía.',
+      auge: 'siglos de prosperidad (Han, Tang, Ming…).',
+      conc: 'las tierras se acumulan en pocas familias, el campesino pierde su parcela.',
+      colapso: 'hambruna, rebelión, nueva dinastía.',
+      colLabel: 'Colapso',
+      final: 'Los historiadores chinos lo llamaban "ciclo dinástico" siglos antes de cualquier modelo moderno.',
+    },
+    {
+      nombre: 'República romana',
+      rango: '509 – 27 a.C.',
+      coop: 'ciudadanos-soldados con parcela propia.',
+      auge: 'dominio del Mediterráneo.',
+      conc: 'los latifundios absorben las parcelas de los veteranos; Tiberio Graco intenta frenarlo (133 a.C.) y el Senado lo mata.',
+      colapso: 'un siglo de guerras civiles; muere la república.',
+      colLabel: 'Colapso',
+      final: '',
+    },
+    {
+      nombre: 'Venecia',
+      rango: '697 – 1797',
+      coop: 'la colleganza: contratos que dejaban a cualquiera invertir y ascender.',
+      auge: 'la potencia comercial más rica de Europa.',
+      conc: 'la Serrata (1297) cierra el Gran Consejo, la élite se blinda.',
+      colapso: 'estancamiento de siglos; termina como museo.',
+      colLabel: 'Colapso',
+      final: '',
+    },
+    {
+      nombre: 'VOC holandesa',
+      rango: '1602 – 1799',
+      coop: 'la primera sociedad por acciones abierta al público.',
+      auge: 'dominio del comercio global.',
+      conc: 'dividendos extractivos y directores incontestables.',
+      colapso: 'corrupción interna y quiebra.',
+      colLabel: 'Colapso',
+      final: '',
+    },
+    {
+      nombre: 'Capitalismo global',
+      rango: '1750 – hoy',
+      coop: 'mercados y ciencia conectando al planeta entero.',
+      auge: 'más riqueza creada en dos siglos que en toda la historia previa junta.',
+      conc: 'la sección 04 del ensayo corriendo a escala global.',
+      colapso: 'es el único arco cuyo final nadie ha visto.',
+      colLabel: '¿Colapso?',
+      final: 'La única certeza del modelo: si nadie toca las palancas, la forma se repite.',
+    },
+  ];
+
+  // ── Geometría de escalera ──────────────────────────────────────────────
+  // Los valles suben (6% → 58% de la altura útil) y los picos suben más
+  // (24% → 78%, y el quinto sigue subiendo fuera de la ventana). Los ciclos
+  // antiguos son anchos y suaves; los modernos, cortos y empinados.
+  const W = 1000, H = 320, X0 = 10, YB = 250, ALTO = 230;
+  const PISOS = [0.06, 0.16, 0.28, 0.42, 0.58];
+  const PICOS = [0.24, 0.40, 0.58, 0.78];
+  const ANCHOS = [0.25, 0.22, 0.20, 0.17, 0.16]; // fracciones de 980
+  const POSPICO = [0.62, 0.60, 0.58, 0.55];      // el pico llega antes en los modernos
+  const XFIN5 = 968;                             // el 5.º sale por arriba a la derecha
+  const T_LOOP = 14000;                          // ms de la vuelta completa del token
+
+  const yDe = (f: number) => YB - ALTO * f;
+  const suave = (u: number) => u * u * (3 - 2 * u);
+
+  interface Pt { x: number; y: number }
+
+  function init(root: HTMLElement) {
+    const host = root.querySelector<HTMLElement>('[data-svg]')!;
+    const info = root.querySelector<HTMLElement>('[data-info]')!;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let sel = 0;
+
+    // ── Muestreo de la curva continua ────────────────────────────────────
+    const ciclos: { pts: Pt[]; xa: number; xb: number; fallIni: number }[] = [];
+    let cx = X0;
+    for (let i = 0; i < 5; i++) {
+      const w = 980 * ANCHOS[i], xa = cx, xb = cx + w;
+      const pts: Pt[] = [];
+      let fallIni = -1;
+      if (i < 4) {
+        const xp = xa + w * POSPICO[i];
+        for (let k = 0; k <= 40; k++) {
+          const t = k / 40;
+          pts.push({ x: xa + (xp - xa) * t, y: yDe(PISOS[i] + (PICOS[i] - PISOS[i]) * suave(t)) });
+        }
+        fallIni = pts.length - 1;
+        for (let k = 1; k <= 32; k++) {
+          const t = k / 32;
+          pts.push({ x: xp + (xb - xp) * t, y: yDe(PICOS[i] + (PISOS[i + 1] - PICOS[i]) * suave(t)) });
+        }
+      } else {
+        // Subida acelerada que se corta en el borde superior derecho.
+        for (let k = 0; k <= 64; k++) {
+          const t = k / 64;
+          pts.push({ x: xa + (XFIN5 - xa) * t, y: yDe(PISOS[4] + (0.983 - PISOS[4]) * Math.pow(t, 2.2)) });
+        }
+      }
+      ciclos.push({ pts, xa, xb, fallIni });
+      cx = xb;
+    }
+
+    // Curva completa + longitudes acumuladas para el token a velocidad constante.
+    const todos: Pt[] = ciclos.flatMap((c) => c.pts);
+    const cum: number[] = [0];
+    for (let j = 1; j < todos.length; j++) {
+      const d = Math.hypot(todos[j].x - todos[j - 1].x, todos[j].y - todos[j - 1].y);
+      cum.push(cum[j - 1] + d);
+    }
+    const TOTAL = cum[cum.length - 1];
+    function posEn(s: number): Pt {
+      let lo = 0, hi = cum.length - 1;
+      while (lo < hi - 1) {
+        const m = (lo + hi) >> 1;
+        if (cum[m] <= s) lo = m; else hi = m;
+      }
+      const seg = cum[hi] - cum[lo] || 1;
+      const p = (s - cum[lo]) / seg;
+      return { x: todos[lo].x + (todos[hi].x - todos[lo].x) * p, y: todos[lo].y + (todos[hi].y - todos[lo].y) * p };
+    }
+
+    // Punto de estallido: 40% de la caída de cada ciclo 0..3.
+    const estallidos = ciclos.slice(0, 4).map((c, i) => {
+      const idx = c.fallIni + 13;
+      let base = 0;
+      for (let k = 0; k < i; k++) base += ciclos[k].pts.length;
+      return { s: cum[base + idx], origen: c.pts[idx], destino: ciclos[i + 1].pts[0] };
+    });
+
+    // ── SVG estático (se construye una sola vez) ─────────────────────────
+    function construir() {
+      let s =
+        '<defs><linearGradient id="cygal-g" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0" stop-color="#ffcc33" stop-opacity="0.22"/>' +
+        '<stop offset="1" stop-color="#ffcc33" stop-opacity="0.02"/>' +
+        '</linearGradient></defs>';
+      s += `<text x="14" y="16" fill="#8f8b83" font-size="12" font-family="monospace">toca un tramo para ver su ciclo</text>`;
+
+      // Piso acumulado: línea escalonada punteada verde bajo la curva.
+      let piso = '';
+      for (let i = 0; i < 5; i++) {
+        const y = yDe(PISOS[i]).toFixed(1);
+        piso += (i === 0 ? `M ${ciclos[i].xa} ${y}` : ` L ${ciclos[i].xa} ${y}`) + ` L ${ciclos[i].xb} ${y}`;
+      }
+      s += `<path d="${piso}" fill="none" stroke="${VERDE}" stroke-width="1" stroke-dasharray="2 5" opacity="0.5"/>`;
+      s += `<text x="14" y="264" fill="${VERDE}" font-size="9.5" font-family="monospace" opacity="0.85">lo que sobrevive al colapso funda la siguiente etapa</text>`;
+
+      // Un tramo de curva (y su área) por ciclo, sobre la misma línea continua.
+      for (let i = 0; i < 5; i++) {
+        const c = ciclos[i];
+        let linea = '', area = `M ${c.pts[0].x.toFixed(1)} ${YB}`;
+        for (let k = 0; k < c.pts.length; k++) {
+          const X = c.pts[k].x.toFixed(1), Y = c.pts[k].y.toFixed(1);
+          linea += (k === 0 ? 'M ' : ' L ') + X + ' ' + Y;
+          area += ` L ${X} ${Y}`;
+        }
+        area += ` L ${c.pts[c.pts.length - 1].x.toFixed(1)} ${YB} Z`;
+        s += `<path data-a="${i}" d="${area}" fill="url(#cygal-g)" style="display:none"/>`;
+        s += `<path data-c="${i}" d="${linea}" fill="none" stroke="#63636e" stroke-width="1.5" opacity="0.6"/>`;
+      }
+
+      // Abanico de futuros posibles al final del quinto ciclo.
+      const fin = ciclos[4].pts[ciclos[4].pts.length - 1];
+      const fx = fin.x.toFixed(1), fy = fin.y.toFixed(1);
+      s += `<line x1="${fx}" y1="${fy}" x2="996" y2="4" stroke="${COL.auge}" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.8"/>`;
+      s += `<line x1="${fx}" y1="${fy}" x2="998" y2="22" stroke="#8f8b83" stroke-width="1.2" stroke-dasharray="4 4" opacity="0.7"/>`;
+      s += `<line x1="${fx}" y1="${fy}" x2="994" y2="66" stroke="${COL.colapso}" stroke-width="1.2" stroke-dasharray="4 4" opacity="0.55"/>`;
+      s += `<text x="946" y="12" fill="${COL.auge}" font-size="11" font-family="monospace" text-anchor="end">¿hasta dónde? ¿hasta cuándo?</text>`;
+
+      // Puntos de fase y etiquetas por ciclo.
+      for (let i = 0; i < 5; i++) {
+        const c = ciclos[i];
+        const fases: [Pt, string][] = i < 4
+          ? [[c.pts[19], COL.coop], [c.pts[40], COL.auge], [c.pts[57], COL.conc], [c.pts[71], COL.colapso]]
+          : [[c.pts[22], COL.coop], [c.pts[48], COL.auge], [c.pts[59], COL.conc], [c.pts[64], COL.colapso]];
+        for (let f = 0; f < fases.length; f++) {
+          const [p, col] = fases[f];
+          const hueco = i === 4 && f === 3; // el colapso que nadie ha visto: círculo vacío
+          s += hueco
+            ? `<circle data-f="${i}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="none" stroke="${col}" stroke-width="1.5" stroke-dasharray="2 2" opacity="0.55"/>`
+            : `<circle data-f="${i}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="${col}" opacity="0.55"/>`;
+        }
+        const cxm = ((c.xa + c.xb) / 2).toFixed(1);
+        s += `<text data-nm="${i}" x="${cxm}" y="284" fill="#8f8b83" font-size="11.5" font-family="monospace" text-anchor="middle">${CASOS[i].nombre}</text>`;
+        s += `<text x="${cxm}" y="300" fill="#8f8b83" font-size="9.5" font-family="monospace" text-anchor="middle" opacity="0.8">${CASOS[i].rango}</text>`;
+      }
+
+      // Capa de fragmentos + token de luz.
+      s += '<g data-fx></g>';
+      s += `<circle data-halo r="7" fill="${COL.auge}" opacity="0.18" style="display:none"/>`;
+      s += `<circle data-tok r="3.2" fill="#fff2cc" style="display:none"/>`;
+
+      // Zonas de toque generosas, encima de todo.
+      for (let i = 0; i < 5; i++) {
+        s += `<rect data-i="${i}" x="${ciclos[i].xa.toFixed(1)}" y="0" width="${(ciclos[i].xb - ciclos[i].xa).toFixed(1)}" height="${H}" fill="transparent" style="cursor:pointer"/>`;
+      }
+
+      host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%">${s}</svg>`;
+      host.querySelectorAll<SVGRectElement>('[data-i]').forEach((r) => {
+        r.addEventListener('click', () => {
+          sel = Number(r.dataset.i);
+          refresh();
+        });
+      });
+    }
+
+    function refresh() {
+      for (let i = 0; i < 5; i++) {
+        const on = i === sel;
+        const linea = host.querySelector<SVGPathElement>(`[data-c="${i}"]`)!;
+        linea.setAttribute('stroke', on ? COL.auge : '#63636e');
+        linea.setAttribute('stroke-width', on ? '2.5' : '1.5');
+        linea.setAttribute('opacity', on ? '1' : '0.6');
+        host.querySelector<SVGPathElement>(`[data-a="${i}"]`)!.style.display = on ? '' : 'none';
+        const nm = host.querySelector<SVGTextElement>(`[data-nm="${i}"]`)!;
+        nm.setAttribute('fill', on ? COL.auge : '#8f8b83');
+        nm.setAttribute('font-weight', on ? 'bold' : 'normal');
+        host.querySelectorAll<SVGCircleElement>(`[data-f="${i}"]`).forEach((d) => d.setAttribute('opacity', on ? '1' : '0.55'));
+      }
+      const c = CASOS[sel];
+      info.innerHTML =
+        `<b>${c.nombre}</b> (${c.rango})<br>` +
+        `<b style="color:${COL.coop}">Cooperación</b>: ${c.coop}<br>` +
+        `<b style="color:${COL.auge}">Auge</b>: ${c.auge}<br>` +
+        `<b style="color:${COL.conc}">Concentración</b>: ${c.conc}<br>` +
+        `<b style="color:${COL.colapso}">${c.colLabel}</b>: ${c.colapso}` +
+        (c.final ? `<br>${c.final}` : '');
+    }
+
+    construir();
+    refresh();
+    if (reduced) return;
+
+    // ── Animación: token de luz + fragmentos de colapso ──────────────────
+    const halo = host.querySelector<SVGCircleElement>('[data-halo]')!;
+    const tok = host.querySelector<SVGCircleElement>('[data-tok]')!;
+    const capaFx = host.querySelector<SVGGElement>('[data-fx]')!;
+    halo.style.display = '';
+    tok.style.display = '';
+
+    interface Frag {
+      vive: boolean;          // true: sobrevive y funda la siguiente etapa
+      x: number; y: number;   // posición actual (solo los que mueren)
+      vx: number; vy: number;
+      origen: Pt; destino: Pt;
+      edad: number; vida: number;
+    }
+    let frags: Frag[] = [];
+
+    function estallar(e: { origen: Pt; destino: Pt }) {
+      const n = 5 + Math.floor(Math.random() * 3); // 5..7
+      const vivos = 2 + Math.floor(Math.random() * 2); // 2..3 sobreviven
+      for (let k = 0; k < n; k++) {
+        const vive = k < vivos;
+        frags.push({
+          vive,
+          x: e.origen.x, y: e.origen.y,
+          vx: -25 + Math.random() * 75,
+          vy: 15 + Math.random() * 35,
+          origen: e.origen, destino: e.destino,
+          edad: 0,
+          vida: vive ? 1400 + Math.random() * 300 : 900 + Math.random() * 400,
+        });
+      }
+    }
+
+    function pintarFrags(dt: number) {
+      let out = '';
+      frags = frags.filter((f) => (f.edad += dt) < f.vida);
+      for (const f of frags) {
+        const p = f.edad / f.vida;
+        if (f.vive) {
+          // Se desliza hacia el inicio del ciclo siguiente y se funde con la curva.
+          const q = suave(p);
+          const x = f.origen.x + (f.destino.x - f.origen.x) * q;
+          const y = f.origen.y + (f.destino.y - f.origen.y) * q + Math.sin(Math.PI * p) * 10;
+          const a = p > 0.82 ? (1 - p) / 0.18 : 1;
+          out += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.2" fill="${VERDE}" opacity="${(0.9 * a).toFixed(2)}"/>`;
+        } else {
+          // Cae y se desvanece: célula que no sobrevive al colapso.
+          f.vy += 140 * (dt / 1000);
+          f.x += f.vx * (dt / 1000);
+          f.y += f.vy * (dt / 1000);
+          out += `<circle cx="${f.x.toFixed(1)}" cy="${f.y.toFixed(1)}" r="1.8" fill="${COL.colapso}" opacity="${(0.5 * (1 - p)).toFixed(2)}"/>`;
+        }
+      }
+      capaFx.innerHTML = out;
+    }
+
+    const t0 = performance.now();
+    let prevNow = t0;
+    let prevS = 0;
+    function frame(now: number) {
+      const dt = Math.min(64, now - prevNow);
+      prevNow = now;
+      const s = (((now - t0) % T_LOOP) / T_LOOP) * TOTAL;
+      // ¿El token cruzó algún punto de colapso en este paso (con vuelta incluida)?
+      for (const e of estallidos) {
+        const cruzo = prevS <= s ? e.s > prevS && e.s <= s : e.s > prevS || e.s <= s;
+        if (cruzo) estallar(e);
+      }
+      prevS = s;
+      const p = posEn(s);
+      halo.setAttribute('cx', p.x.toFixed(1));
+      halo.setAttribute('cy', p.y.toFixed(1));
+      tok.setAttribute('cx', p.x.toFixed(1));
+      tok.setAttribute('cy', p.y.toFixed(1));
+      pintarFrags(dt);
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+  document.querySelectorAll<HTMLElement>('.cygal').forEach(init);
+</script>
+
+<style>
+  .cygal { padding: 1rem 1.2rem 0.8rem; margin-block: 2.5rem; }
+  .cygal-head { margin-bottom: 0.9rem; }
+  .cygal-title { color: var(--orange-bright); font-size: 0.78rem; letter-spacing: 0.3em; text-transform: uppercase; }
+  .cygal-svg { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .cygal-svg :global(svg) { display: block; width: 100%; }
+  @media (max-width: 700px) {
+    /* La escalera completa mantiene un ancho legible en mobile y se desplaza. */
+    .cygal-svg :global(svg) { min-width: 720px; }
+  }
+  .readout { font-size: 0.78rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.65rem 0.8rem; margin-top: 0.8rem; line-height: 1.7; }
+  .readout :global(b) { color: var(--text); }
+  .cygal-foot { margin-top: 0.7rem; padding-top: 0.5rem; border-top: 1px dashed var(--line); font-size: 0.6rem; letter-spacing: 0.28em; color: var(--muted); }
+</style>

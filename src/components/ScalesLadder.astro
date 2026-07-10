@@ -1,0 +1,116 @@
+---
+/** Paso 8 · Células anidadas (SVG estático) + escalera de escaseces (interactiva). */
+const labels = ['civilización', 'Estado', 'empresa', 'organismo', 'célula', 'genes'];
+const cols = ['#ffcc33', '#f0abfc', '#a78bfa', '#818cf8', '#33b7db', '#6ee7ff'];
+const cx = 210, cy = 210;
+let nest = '';
+for (let i = 0; i < 6; i++) {
+  const R = 200 - i * 30;
+  nest += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${cols[i]}" stroke-width="1.4" opacity="${0.35 + 0.09 * i}"/>`;
+  nest += `<text x="${cx}" y="${cy - R + 15}" fill="${cols[i]}" font-size="11" font-family="monospace" text-anchor="middle">${labels[i]}</text>`;
+}
+for (let i = 0; i < 6; i++) {
+  const R = 200 - i * 30;
+  for (let k = 0; k < 8; k++) {
+    const ang = k / 8 * 6.283 + i * 0.4;
+    nest += `<circle cx="${(cx + R * Math.cos(ang)).toFixed(1)}" cy="${(cy + R * Math.sin(ang)).toFixed(1)}" r="2.5" fill="${k % 4 === 0 ? '#ed8d4c' : cols[i]}"/>`;
+  }
+}
+const nestSvg = `<svg viewBox="0 0 420 420" style="max-width:400px;width:100%">${nest}</svg>`;
+---
+
+<div class="scales panel">
+  <div class="scales-grid">
+    <div class="scales-nest" set:html={nestSvg}></div>
+    <div class="scales-txt">
+      <p>Genes que cooperan dentro de una célula. Células dentro de un organismo. Personas dentro de una
+      empresa. Empresas y clases dentro de un país. Países dentro de una civilización. En cada nivel, la misma
+      máquina: cooperar hacia adentro, competir hacia afuera. Un "imperio" es, literalmente,
+      <strong>un montón de células que agrandaron su "nosotros"</strong> hasta abarcar a millones.</p>
+      <p>Por eso la historia parece un caos: es la <em>suma</em> de muchas máquinas girando a distintas
+      velocidades. Debajo no hay una sola causa, pero sí una <em>gramática compartida</em>.</p>
+    </div>
+  </div>
+</div>
+
+<div class="ladder panel">
+  <div class="ladder-svg" data-svg></div>
+  <p class="ladder-cap">La escalera de las escaseces. Resuelves una, subes a la siguiente. La máquina no
+  muere: cambia de combustible y se hace más grande.</p>
+  <div class="ladder-btns">
+    <button data-up class="prim">✓ Resolver esta escasez → subir un piso</button>
+    <button data-reset>Volver al principio</button>
+  </div>
+  <div class="readout" data-info></div>
+</div>
+
+<script>
+  function init(root) {
+    const host = root.querySelector('[data-svg]');
+    const info = root.querySelector('[data-info]');
+    const up = root.querySelector('[data-up]');
+    const rs = root.querySelector('[data-reset]');
+    const rungs = [['Comida', 'sobrevivir el día'], ['Tierra', 'un lugar propio'], ['Dinero', 'seguridad y opciones'], ['Atención', 'ser visto'], ['Estatus', 'estar por encima'], ['Sentido', 'que todo importe'], ['¿ ?', 'la próxima escasez']];
+    const n = rungs.length, x0 = 70, x1 = 830, y0 = 270, y1 = 30;
+    let cur = 0;
+    function draw() {
+      let s = '<defs><marker id="lam" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill="#4a4a55"/></marker></defs>';
+      s += '<text x="450" y="18" fill="#8f8b83" font-size="12" font-family="monospace" text-anchor="middle">resuelves una escasez, subes a la siguiente</text>';
+      for (let i = 0; i < n; i++) {
+        const t = i / (n - 1), px = x0 + (x1 - x0) * t, py = y0 + (y1 - y0) * t, r = 16 + i * 3;
+        if (i < n - 1) {
+          const t2 = (i + 1) / (n - 1), px2 = x0 + (x1 - x0) * t2, py2 = y0 + (y1 - y0) * t2;
+          s += `<line x1="${px + r * 0.7}" y1="${py - r * 0.7}" x2="${px2 - r - 6}" y2="${py2 + (16 + (i + 1) * 3) * 0.7}" stroke="#4a4a55" stroke-width="1.5" marker-end="url(#lam)"/>`;
+        }
+      }
+      for (let i = 0; i < n; i++) {
+        const t = i / (n - 1), px = x0 + (x1 - x0) * t, py = y0 + (y1 - y0) * t, r = 16 + i * 3;
+        const base = `hsl(${28 + 6 * i},80%,${58 + 2 * i}%)`;
+        let stroke = base, fill = '#101014', op = 1, lw = 2, glow = '';
+        if (i < cur) { fill = base + '22'; op = 0.5; }
+        else if (i === cur) { stroke = '#ffcc33'; lw = 3.5; glow = `<circle cx="${px}" cy="${py}" r="${r + 7}" fill="none" stroke="#ffcc33" stroke-width="1" opacity="0.5"/>`; }
+        else { op = 0.35; }
+        s += glow;
+        s += `<circle cx="${px}" cy="${py}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${lw}" opacity="${op}"/>`;
+        if (i < cur) s += `<text x="${px}" y="${py + 5}" fill="${base}" font-size="15" text-anchor="middle" opacity="0.8">&#10003;</text>`;
+        s += `<text x="${px}" y="${py + r + 16}" fill="${stroke}" font-size="12" font-family="monospace" text-anchor="middle" opacity="${op}">${rungs[i][0]}</text>`;
+      }
+      host.innerHTML = `<svg viewBox="0 0 900 300" style="max-width:100%;width:100%">${s}</svg>`;
+    }
+    function refresh() {
+      draw();
+      const r = rungs[cur];
+      info.innerHTML = cur < n - 1
+        ? `Ahora peleas por <b style="color:#ffcc33">${r[0]}</b>, ${r[1]}. Resuélvela y aparecerá una escasez nueva, un piso más arriba.`
+        : `Llegaste al tope imaginable (<b>${r[0]}</b>)… y aun así surge una escasez nueva. La máquina solo cambia de nivel.`;
+      up.disabled = cur >= n - 1;
+      up.style.opacity = cur >= n - 1 ? '0.4' : '1';
+    }
+    up.onclick = () => { if (cur < n - 1) { cur++; refresh(); } };
+    rs.onclick = () => { cur = 0; refresh(); };
+    refresh();
+  }
+  document.querySelectorAll('.ladder').forEach(init);
+</script>
+
+<style>
+  .scales { padding: 1rem 1.2rem; margin-block: 1.5rem; }
+  .scales-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; align-items: center; }
+  @media (max-width: 720px) { .scales-grid { grid-template-columns: 1fr; } }
+  .scales-nest { display: grid; place-items: center; }
+  .scales-txt p { font-size: 0.86rem; color: #cfccc5; }
+  .scales-txt p + p { margin-top: 0.8rem; }
+  .ladder { padding: 1rem 1.2rem; margin-block: 1.5rem; }
+  .ladder-svg { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .ladder-svg :global(svg) { display: block; width: 100%; }
+  @media (max-width: 700px) {
+    /* La escalera mantiene un ancho legible en mobile y se desplaza. */
+    .ladder-svg :global(svg) { min-width: 640px; }
+  }
+  .ladder-cap { font-size: 0.78rem; color: var(--muted); margin-top: 0.6rem; }
+  .ladder-btns { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.8rem; }
+  .ladder-btns button { background: var(--bg-panel-2); color: var(--text); border: 1px solid var(--line); padding: 0.45rem 0.7rem; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; }
+  .ladder-btns button.prim { background: var(--orange); color: #000; font-weight: 700; border-color: var(--orange); }
+  .readout { font-size: 0.78rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.6rem 0.7rem; margin-top: 0.7rem; }
+  .readout :global(b) { color: var(--text); }
+</style>

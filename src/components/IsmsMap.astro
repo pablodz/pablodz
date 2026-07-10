@@ -1,0 +1,168 @@
+---
+/**
+ * El mapa de cada ismo: comunismo, nacionalismo y capitalismo fijaron su mapa
+ * de la humanidad en UNA sola escala y borraron las demás. La realidad tiene
+ * todas las escalas a la vez (gobernanza policéntrica de Elinor Ostrom).
+ */
+---
+
+<div class="ismmap panel">
+  <div class="ism-head">
+    <span class="ism-title">◢ EL MAPA DE CADA ISMO · Y LO QUE BORRA</span>
+  </div>
+  <div class="ism-grid">
+    <div>
+      <canvas data-c></canvas>
+      <div class="ism-legend">
+        <span><i style="background:#ed8d4c"></i>individuo</span>
+        <span><i style="background:#33b7db"></i>familia/tribu</span>
+        <span><i style="background:#a78bfa"></i>clase/gremio</span>
+        <span><i style="background:#ffcc33"></i>nación</span>
+        <span><i style="background:#52d053"></i>humanidad</span>
+      </div>
+    </div>
+    <div class="ism-ctrl">
+      <div class="ism-btns" data-btns></div>
+      <div class="readout" data-ro></div>
+    </div>
+  </div>
+  <div class="ism-foot">UN MAPA DE UNA SOLA ESCALA SIEMPRE CHOCA CON LAS DEMÁS</div>
+</div>
+
+<script>
+  import { ctxOf, COL } from '../lib/machine';
+
+  type Nivel = 'ind' | 'fam' | 'cla' | 'nac' | 'hum';
+
+  interface Vista { tab: string; on: Nivel[]; borra: Nivel | null; ro: string }
+
+  const VISTAS: Vista[] = [
+    {
+      tab: 'COMUNISMO · la clase', on: ['cla'], borra: 'nac',
+      ro: 'El mapa ve solo la <b>clase</b>. Familia, nación e individuo quedan borrados. La factura: la URSS (1917-1991), que abolió el mercado pero no la escasez (colas, mercado negro), y la pirámide volvió como <b>nomenklatura</b>.',
+    },
+    {
+      tab: 'NACIONALISMO · la nación', on: ['nac'], borra: 'hum',
+      ro: 'El mapa ve solo la <b>nación</b>. La clase y la humanidad desaparecen. La factura: cooperación interna récord usada como arma en <b>1914 y 1939</b>.',
+    },
+    {
+      tab: 'CAPITALISMO · el individuo', on: ['ind'], borra: 'fam',
+      ro: 'El mapa ve solo al <b>individuo y el mercado</b>. La comunidad desaparece. La factura: acaparamiento sin freno, el 1% con ~48% de la riqueza y el <b>crash de 1929</b>; repetido en 2008.',
+    },
+    {
+      tab: 'POLICÉNTRICO · todas a la vez', on: ['ind', 'fam', 'cla', 'nac', 'hum'], borra: null,
+      ro: 'La realidad tiene <b>todas las escalas al mismo tiempo</b>. La respuesta que sí funciona no es otro ismo: es una palanca por escala, reajustada sin parar: la gobernanza <b>policéntrica</b> de Elinor Ostrom (Nobel 2009).',
+    },
+  ];
+
+  // Púrpura más claro que COL.purple: a trazo fino sobre fondo oscuro no se veía.
+  const TINTA: Record<Nivel, string> = {
+    ind: COL.orange, fam: COL.blue, cla: '#a78bfa', nac: COL.yellow, hum: COL.green,
+  };
+
+  function init(root: HTMLElement) {
+    const cv = root.querySelector<HTMLCanvasElement>('[data-c]')!;
+    const btns = root.querySelector<HTMLElement>('[data-btns]')!;
+    const ro = root.querySelector<HTMLElement>('[data-ro]')!;
+    let cur = 0;
+
+    VISTAS.forEach((vs, i) => {
+      const b = document.createElement('button');
+      b.textContent = vs.tab;
+      b.onclick = () => { cur = i; draw(); };
+      btns.appendChild(b);
+    });
+
+    // Geometría de MapResolution: 3 grupos, 3 subgrupos, 7 puntos cada uno (coords unitarias).
+    const grupos = 3, subs = 3, por = 7;
+
+    function draw() {
+      btns.querySelectorAll('button').forEach((b, i) => b.classList.toggle('on', i === cur));
+      const vs = VISTAS[cur];
+      ro.innerHTML = vs.ro;
+
+      const { x, w, h } = ctxOf(cv, 280);
+      x.clearRect(0, 0, w, h);
+      const cx = w / 2, cy = h / 2, R = Math.min(w, h) / 2 - 14;
+      const enc = (n: Nivel) => vs.on.includes(n);
+
+      // Trazo de un nivel: color pleno si está encendido; apagado = rojo punteado, opacidad baja.
+      function anillo(px: number, py: number, r: number, n: Nivel, lw: number) {
+        x.beginPath(); x.arc(px, py, r, 0, 7);
+        if (enc(n)) { x.strokeStyle = TINTA[n]; x.globalAlpha = 1; x.setLineDash([]); x.lineWidth = lw + 1; }
+        else { x.strokeStyle = COL.red; x.globalAlpha = 0.38; x.setLineDash([4, 4]); x.lineWidth = 1.2; }
+        x.stroke(); x.globalAlpha = 1; x.setLineDash([]);
+      }
+
+      // Anillo exterior: humanidad / civilización.
+      anillo(cx, cy, R, 'hum', 2);
+      // Círculo grande: la nación.
+      anillo(cx, cy, R * 0.86, 'nac', 2);
+
+      const posBorra: Record<string, [number, number]> = {};
+      posBorra.nac = [cx, cy - R * 0.86 - 5];
+      posBorra.hum = [cx, cy - R - 5];
+
+      for (let g = 0; g < grupos; g++) {
+        const ga = (g / grupos) * 2 * Math.PI - Math.PI / 2;
+        const gx = cx + R * 0.48 * Math.cos(ga), gy = cy + R * 0.48 * Math.sin(ga);
+        // Círculo mediano: clase / gremio.
+        anillo(gx, gy, R * 0.34, 'cla', 1.8);
+        if (g === 0) posBorra.cla = [gx, gy - R * 0.34 - 5];
+        for (let sN = 0; sN < subs; sN++) {
+          const sa = (sN / subs) * 2 * Math.PI + g;
+          const sx = gx + R * 0.2 * Math.cos(sa), sy = gy + R * 0.2 * Math.sin(sa);
+          // Círculo pequeño: familia / tribu.
+          anillo(sx, sy, R * 0.125, 'fam', 1.4);
+          if (g === 0 && sN === 0) posBorra.fam = [sx, sy - R * 0.125 - 5];
+          for (let k = 0; k < por; k++) {
+            const ka = (k / por) * 2 * Math.PI + sN;
+            const px = sx + R * 0.075 * Math.cos(ka), py = sy + R * 0.075 * Math.sin(ka);
+            // Punto: la persona individual.
+            x.beginPath(); x.arc(px, py, enc('ind') ? 2.8 : 2, 0, 7);
+            if (enc('ind')) { x.fillStyle = TINTA.ind; x.globalAlpha = 1; }
+            else { x.fillStyle = COL.red; x.globalAlpha = 0.35; }
+            x.fill(); x.globalAlpha = 1;
+          }
+        }
+      }
+
+      // Etiqueta roja junto a un nivel apagado (vistas 1-3).
+      if (vs.borra) {
+        const [ex, ey] = posBorra[vs.borra];
+        x.font = '600 11px "JetBrains Mono", ui-monospace, monospace';
+        x.textAlign = 'center'; x.textBaseline = 'bottom';
+        x.fillStyle = COL.red; x.globalAlpha = 0.85;
+        x.fillText('◤ borrado del mapa', ex, ey);
+        x.globalAlpha = 1;
+      }
+    }
+
+    window.addEventListener('resize', draw);
+    draw();
+  }
+  document.querySelectorAll<HTMLElement>('.ismmap').forEach(init);
+</script>
+
+<style>
+  .ismmap { padding: 1rem 1.2rem 0.8rem; margin-block: 2.5rem; }
+  .ism-head { margin-bottom: 0.9rem; }
+  .ism-title { color: var(--orange-bright); font-size: 0.78rem; letter-spacing: 0.3em; text-transform: uppercase; }
+  .ism-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 1.4rem; align-items: start; }
+  @media (max-width: 720px) { .ism-grid { grid-template-columns: 1fr; } }
+  .ism-grid canvas { display: block; width: 100%; height: 280px; }
+  .ism-legend { display: flex; gap: 0.9rem; flex-wrap: wrap; font-size: 0.64rem; color: var(--muted); margin-top: 0.5rem; }
+  .ism-legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 0.4ch; vertical-align: middle; }
+  .ism-ctrl { display: flex; flex-direction: column; gap: 0.8rem; }
+  .ism-btns { display: flex; flex-direction: column; gap: 0.4rem; }
+  .ism-btns :global(button) {
+    background: var(--bg-panel-2); color: var(--text); border: 1px solid var(--line);
+    padding: 0.45rem 0.7rem; font-family: var(--font-mono); font-size: 0.68rem;
+    letter-spacing: 0.08em; cursor: pointer; text-align: left;
+  }
+  .ism-btns :global(button:hover) { border-color: var(--orange); color: var(--orange-bright); }
+  .ism-btns :global(button.on) { background: var(--orange); color: #000; font-weight: 700; border-color: var(--orange); }
+  .readout { font-size: 0.76rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.6rem 0.75rem; line-height: 1.7; }
+  .readout :global(b) { color: var(--text); }
+  .ism-foot { margin-top: 0.9rem; padding-top: 0.5rem; border-top: 1px dashed var(--line); font-size: 0.6rem; letter-spacing: 0.28em; color: var(--muted); }
+</style>

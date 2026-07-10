@@ -1,0 +1,192 @@
+---
+/**
+ * Mapa de ruta del ensayo: TÚ → TU GRUPO → LA SOCIEDAD → EL MUNDO.
+ * Ilustración ambiente: un punto de luz recorre las cuatro estaciones
+ * y las va encendiendo en loop. Sin interacción.
+ */
+---
+
+<div class="rmap panel">
+  <canvas data-cv height="110"></canvas>
+  <div class="rmap-cap">
+    El ensayo sube por esta escalera: lo que pasa dentro de ti es lo mismo que pasa entre países.
+  </div>
+</div>
+
+<script>
+  import { COL, ctxOf } from '../lib/machine';
+
+  const STATIONS = [
+    { label: 'TÚ', color: COL.orange },
+    { label: 'TU GRUPO', color: COL.blue },
+    { label: 'LA SOCIEDAD', color: '#a78bfa' },
+    { label: 'EL MUNDO', color: COL.yellow },
+  ];
+
+  const H = 110;        // alto del lienzo (px CSS)
+  const CY = 44;        // eje vertical de la línea
+  const R = 8;          // radio de cada estación
+  const START = 500;    // ms antes de que arranque el primer viaje
+  const SEG = 1900;     // ms por tramo entre estaciones
+  const T = 8000;       // ciclo completo (deja ~1.8s de pausa al final)
+  const PULSE = 900;    // duración del anillo de llegada
+
+  function rgba(hex: string, a: number) {
+    const n = parseInt(hex.slice(1), 16);
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+  }
+  const ease = (p: number) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+
+  function init(root: HTMLElement) {
+    const cv = root.querySelector<HTMLCanvasElement>('[data-cv]')!;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let g = ctxOf(cv, H);
+
+    const xs = () => {
+      const pad = Math.max(44, Math.min(72, g.w * 0.13));
+      return STATIONS.map((_, i) => pad + (i * (g.w - 2 * pad)) / (STATIONS.length - 1));
+    };
+
+    function drawStation(x: number, i: number, lit: boolean) {
+      const c = STATIONS[i].color;
+      g.x.save();
+      if (lit) {
+        g.x.shadowColor = c;
+        g.x.shadowBlur = 12;
+        g.x.fillStyle = rgba(c, 0.22);
+        g.x.beginPath();
+        g.x.arc(x, CY, R, 0, Math.PI * 2);
+        g.x.fill();
+        g.x.strokeStyle = c;
+        g.x.lineWidth = 1.5;
+        g.x.stroke();
+        g.x.fillStyle = c;
+        g.x.beginPath();
+        g.x.arc(x, CY, 3, 0, Math.PI * 2);
+        g.x.fill();
+      } else {
+        g.x.fillStyle = 'rgba(255,255,255,0.03)';
+        g.x.beginPath();
+        g.x.arc(x, CY, R, 0, Math.PI * 2);
+        g.x.fill();
+        g.x.strokeStyle = rgba(COL.muted, 0.55);
+        g.x.lineWidth = 1;
+        g.x.stroke();
+      }
+      g.x.restore();
+      g.x.font = '600 10px ui-monospace, monospace';
+      g.x.textAlign = 'center';
+      g.x.fillStyle = lit ? c : COL.muted;
+      g.x.fillText(STATIONS[i].label, x, CY + R + 20);
+    }
+
+    function drawSegment(x0: number, x1: number, i: number, frac: number) {
+      // base tenue
+      g.x.strokeStyle = COL.grid;
+      g.x.lineWidth = 1;
+      g.x.beginPath();
+      g.x.moveTo(x0 + R + 2, CY);
+      g.x.lineTo(x1 - R - 2, CY);
+      g.x.stroke();
+      if (frac <= 0) return;
+      // porción recorrida, con degradado entre los colores de las estaciones
+      const grad = g.x.createLinearGradient(x0, 0, x1, 0);
+      grad.addColorStop(0, rgba(STATIONS[i].color, 0.55));
+      grad.addColorStop(1, rgba(STATIONS[i + 1].color, 0.55));
+      g.x.strokeStyle = grad;
+      g.x.lineWidth = 1.5;
+      g.x.beginPath();
+      g.x.moveTo(x0 + R + 2, CY);
+      g.x.lineTo(x0 + R + 2 + (x1 - x0 - 2 * R - 4) * Math.min(1, frac), CY);
+      g.x.stroke();
+    }
+
+    function draw(t: number) {
+      g.x.clearRect(0, 0, g.w, H);
+      const X = xs();
+      const arrival = (i: number) => (i === 0 ? 0 : START + i * SEG);
+
+      // tramos
+      for (let i = 0; i < 3; i++) {
+        const s0 = START + i * SEG;
+        const frac = t <= s0 ? 0 : t >= s0 + SEG ? 1 : ease((t - s0) / SEG);
+        drawSegment(X[i], X[i + 1], i, frac);
+      }
+      // estaciones
+      STATIONS.forEach((_, i) => drawStation(X[i], i, t >= arrival(i)));
+      // anillos de llegada
+      STATIONS.forEach((st, i) => {
+        const age = t - arrival(i);
+        if (age < 0 || age > PULSE) return;
+        const p = age / PULSE;
+        g.x.strokeStyle = rgba(st.color, 0.5 * (1 - p));
+        g.x.lineWidth = 1.5;
+        g.x.beginPath();
+        g.x.arc(X[i], CY, R + 3 + p * 15, 0, Math.PI * 2);
+        g.x.stroke();
+      });
+      // punto viajero
+      let dx: number | null = null;
+      let alpha = 1;
+      if (t < START) dx = X[0];
+      else if (t < START + 3 * SEG) {
+        const i = Math.min(2, Math.floor((t - START) / SEG));
+        const p = ease(((t - START) % SEG) / SEG);
+        dx = X[i] + (X[i + 1] - X[i]) * p;
+      } else {
+        dx = X[3];
+        alpha = Math.max(0, 1 - (t - (START + 3 * SEG)) / 700); // se apaga en la pausa
+      }
+      if (dx !== null && alpha > 0) {
+        g.x.save();
+        g.x.shadowColor = COL.yellow;
+        g.x.shadowBlur = 10;
+        g.x.fillStyle = rgba('#fff2cc', alpha);
+        g.x.beginPath();
+        g.x.arc(dx, CY, 3.2, 0, Math.PI * 2);
+        g.x.fill();
+        g.x.restore();
+      }
+    }
+
+    // estado final estático: todo encendido, sin punto
+    const drawStatic = () => draw(START + 3 * SEG + PULSE + 1);
+
+    window.addEventListener('resize', () => {
+      g = ctxOf(cv, H);
+      if (reduced) drawStatic();
+    });
+
+    if (reduced) {
+      drawStatic();
+      return;
+    }
+    const t0 = performance.now();
+    const frame = (now: number) => {
+      draw((now - t0) % T);
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  }
+
+  document.querySelectorAll<HTMLElement>('.rmap').forEach(init);
+</script>
+
+<style>
+  .rmap {
+    padding: 1rem;
+    margin-block: 2.5rem;
+    background: var(--bg-deep);
+  }
+  .rmap canvas {
+    display: block;
+    width: 100%;
+    height: 110px;
+  }
+  .rmap-cap {
+    margin-top: 0.55rem;
+    font-size: 0.72rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+</style>

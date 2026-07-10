@@ -1,0 +1,86 @@
+---
+/** Paso 3 · El bucle de la máquina: SVG animado + etapas clicables. */
+---
+
+<div class="loop panel">
+  <div class="loop-grid">
+    <svg data-svg viewBox="0 0 440 400"></svg>
+    <ol class="loop-steps">
+      <li><b>La gente coopera.</b> Cuando actuamos como un "nosotros", producimos de sobra: comida, confianza, inventos, riqueza. El único motor que crea algo nuevo.</li>
+      <li><b>Se acumula un excedente.</b> La cooperación deja valor sobre la mesa. La sociedad prospera. Es el <em>auge</em>.</li>
+      <li><b>Alguien lo acapara.</b> Todo excedente es un premio. Aparecen los que toman más de lo que aportan. Basta con que la escasez susurre "asegúrate".</li>
+      <li><b>Se forma una pirámide.</b> Acaparar, repetido, concentra el poder arriba. Pocos tienen casi todo. Es la <em>cima</em>.</li>
+      <li><b>Colapsa.</b> La desigualdad rompe el "nosotros", la cooperación muere, el excedente se destruye… y la máquina se reinicia. Un poco más grande.</li>
+    </ol>
+  </div>
+  <div class="loop-btns">
+    <button data-play class="prim">▶ Animar el ciclo</button>
+    <span class="loop-hint">(o haz clic en cada etapa del círculo)</span>
+  </div>
+  <div class="readout" data-info>Haz clic en una etapa (o dale a "Animar") para ver qué ocurre en cada punto del ciclo.</div>
+</div>
+
+<script>
+  import { COL } from '../lib/machine';
+  function init(root: HTMLElement) {
+    const svg = root.querySelector<SVGSVGElement>('[data-svg]')!;
+    const info = root.querySelector<HTMLElement>('[data-info]')!;
+    const btn = root.querySelector<HTMLButtonElement>('[data-play]')!;
+    const cx = 220, cy = 200, R = 140;
+    const nodes = [
+      { t: 'Cooperación', c: COL.blue, d: 'La gente actúa como un "nosotros" y produce de sobra. Es el único motor que crea algo nuevo.' },
+      { t: 'Excedente', c: COL.yellow, d: 'La cooperación deja valor sobre la mesa. La sociedad prospera: es el auge.' },
+      { t: 'Se acapara', c: COL.orange, d: 'Todo premio atrae a quien toma más de lo que aporta. Basta con que la escasez susurre "asegúrate".' },
+      { t: 'Pirámide', c: COL.purple, d: 'Acaparar, repetido, concentra el poder arriba. Pocos tienen casi todo: la cima.' },
+      { t: 'Colapso', c: COL.red, d: 'La desigualdad rompe el "nosotros", la cooperación muere y todo se reinicia, un poco más grande.' },
+    ];
+    const n = nodes.length, ang = (i: number) => -Math.PI / 2 + i / n * 2 * Math.PI;
+    let s = `<defs><marker id="lar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0 0 L7 3 L0 6 z" fill="#4a4a55"/></marker></defs>`;
+    for (let i = 0; i < n; i++) {
+      const a0 = ang(i) + 0.42, a1 = ang(i + 1) - 0.42;
+      const x0 = cx + R * Math.cos(a0), y0 = cy + R * Math.sin(a0), x1 = cx + R * Math.cos(a1), y1 = cy + R * Math.sin(a1);
+      const mx = cx + (R + 26) * Math.cos((a0 + a1) / 2), my = cy + (R + 26) * Math.sin((a0 + a1) / 2);
+      s += `<path d="M${x0} ${y0} Q ${mx} ${my} ${x1} ${y1}" fill="none" stroke="#4a4a55" stroke-width="2" marker-end="url(#lar)"/>`;
+    }
+    for (let i = 0; i < n; i++) {
+      const x = cx + R * Math.cos(ang(i)), y = cy + R * Math.sin(ang(i));
+      s += `<g data-node="${i}" style="cursor:pointer"><circle data-c="${i}" cx="${x}" cy="${y}" r="36" fill="#101014" stroke="${nodes[i].c}" stroke-width="2.5"/><text x="${x}" y="${y + 4}" fill="${nodes[i].c}" font-size="12" font-family="monospace" font-weight="700" text-anchor="middle" style="pointer-events:none">${nodes[i].t}</text></g>`;
+    }
+    s += `<circle data-tok cx="0" cy="0" r="9" fill="#fff" opacity="0"/>`;
+    s += `<text class="c-title" x="${cx}" y="${cy - 4}" fill="${COL.orangeBright}" font-size="13" font-family="monospace" font-weight="700" text-anchor="middle">LA MÁQUINA</text>`;
+    s += `<text class="c-sub" x="${cx}" y="${cy + 14}" fill="${COL.muted}" font-size="10" font-family="monospace" text-anchor="middle">da vueltas para siempre</text>`;
+    svg.innerHTML = s;
+    const tok = svg.querySelector<SVGCircleElement>('[data-tok]')!;
+    function highlight(i: number) { for (let k = 0; k < n; k++) { const c = svg.querySelector<SVGCircleElement>(`[data-c="${k}"]`)!; c.setAttribute('stroke-width', k === i ? '5' : '2.5'); c.setAttribute('fill', k === i ? nodes[k].c + '33' : '#101014'); } }
+    function show(i: number) { highlight(i); info.innerHTML = `<b style="color:${nodes[i].c}">${nodes[i].t}.</b> ${nodes[i].d}`; }
+    for (let i = 0; i < n; i++) svg.querySelector<SVGGElement>(`[data-node="${i}"]`)!.onclick = () => { stop(); show(i); };
+    let raf = 0, playing = false, ph = 0, cur = -1;
+    function stop() { playing = false; if (raf) cancelAnimationFrame(raf); raf = 0; tok.setAttribute('opacity', '0'); btn.textContent = '▶ Animar el ciclo'; btn.classList.remove('on'); }
+    function frame() { ph = (ph + 0.010) % 1; const a = ang(0) + ph * 2 * Math.PI; const idx = Math.round(ph * n) % n; tok.setAttribute('cx', (cx + R * Math.cos(a)).toFixed(1)); tok.setAttribute('cy', (cy + R * Math.sin(a)).toFixed(1)); tok.setAttribute('fill', nodes[idx].c); if (idx !== cur) { cur = idx; show(idx); } raf = requestAnimationFrame(frame); }
+    btn.onclick = () => { if (playing) stop(); else { playing = true; cur = -1; tok.setAttribute('opacity', '1'); btn.textContent = '⏸ Pausar'; btn.classList.add('on'); raf = requestAnimationFrame(frame); } };
+  }
+  document.querySelectorAll<HTMLElement>('.loop').forEach(init);
+</script>
+
+<style>
+  .loop { padding: 1rem 1.2rem; margin-block: 1.5rem; }
+  .loop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; align-items: center; }
+  @media (max-width: 720px) { .loop-grid { grid-template-columns: 1fr; } }
+  .loop svg { display: block; width: 100%; max-width: 440px; margin: 0 auto; }
+  @media (min-width: 900px) {
+    .loop svg { max-width: 560px; }
+    .loop svg :global(.c-title) { font-size: 15px; }
+    .loop svg :global(.c-sub) { font-size: 11px; }
+  }
+  .loop-steps { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0.7rem; font-size: 0.82rem; color: #cfccc5; }
+  .loop-steps b { color: var(--text); }
+  .loop-steps li { counter-increment: ls; position: relative; padding-left: 1.8rem; }
+  .loop-steps { counter-reset: ls; }
+  .loop-steps li::before { content: counter(ls); position: absolute; left: 0; top: 0; color: var(--orange); font-family: var(--font-mono); font-weight: 700; }
+  .loop-btns { display: flex; gap: 0.8rem; align-items: center; flex-wrap: wrap; margin-top: 1rem; }
+  .loop-hint { font-size: 0.72rem; color: var(--muted); }
+  .loop button.prim { background: var(--orange); color: #000; font-weight: 700; border: none; padding: 0.45rem 0.9rem; font-family: var(--font-mono); letter-spacing: 0.1em; cursor: pointer; }
+  .loop button.prim.on { background: var(--yellow); }
+  .readout { font-size: 0.78rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.6rem 0.7rem; margin-top: 0.8rem; }
+  .readout :global(b) { color: var(--text); }
+</style>

@@ -1,0 +1,84 @@
+---
+/** Paso 1 · Eje de escasez (SVG estático) + demo interactiva del umbral. */
+const items: [string, number, string][] = [
+  ['Aire', 0.03, '🌬️'], ['Agua', 0.22, '💧'], ['Tierra', 0.45, '🏞️'],
+  ['Vivienda', 0.6, '🏠'], ['Oro', 0.78, '🪙'], ['Diamantes', 0.88, '💎'], ['Atención', 0.96, '👁️'],
+];
+const W = 900, thr = 0.35;
+let axis = `<line x1="60" y1="150" x2="${W - 30}" y2="150" stroke="#3a3a44" stroke-width="2"/>`;
+axis += `<text x="60" y="185" fill="#52d053" font-size="13" font-family="monospace">◀ abundante (nadie lo acapara)</text>`;
+axis += `<text x="${W - 30}" y="185" fill="#ff5555" font-size="13" font-family="monospace" text-anchor="end">escaso (se acapara) ▶</text>`;
+const tx = 60 + (W - 90) * thr;
+axis += `<line x1="${tx}" y1="40" x2="${tx}" y2="150" stroke="#ffcc33" stroke-width="1.6" stroke-dasharray="5,4"/>`;
+axis += `<text x="${tx}" y="34" fill="#ffcc33" font-size="12" font-family="monospace" text-anchor="middle">umbral: aquí se enciende la máquina</text>`;
+for (const [n, p, e] of items) {
+  const px = 60 + (W - 90) * p; const col = p < thr ? '#52d053' : '#ed8d4c';
+  axis += `<circle cx="${px}" cy="150" r="6" fill="${col}"/>`;
+  axis += `<text x="${px}" y="128" font-size="20" text-anchor="middle">${e}</text>`;
+  axis += `<text x="${px}" y="110" fill="${col}" font-size="12" font-family="monospace" text-anchor="middle">${n}</text>`;
+}
+---
+
+<figure class="panel viz-fig">
+  <div class="svg-scroll">
+    <svg viewBox="0 0 900 220" set:html={axis}></svg>
+  </div>
+  <figcaption>Cuanto más escaso es algo, más lo peleamos y acaparamos. El aire nadie lo toca; los diamantes y
+  la atención, sí. La línea es el umbral donde la máquina se enciende.</figcaption>
+</figure>
+
+<div class="thr panel">
+  <label class="thr-lab">▸ Pruébalo: mueve la abundancia de un recurso &nbsp; <b data-v></b></label>
+  <input type="range" data-s min="0" max="100" value="84" aria-label="Abundancia del recurso" />
+  <div class="thr-mode" data-mode>modo automático · mueve el slider para tomar el control</div>
+  <canvas data-c></canvas>
+  <div class="phase" data-st>···</div>
+  <p class="thr-note">Baja la abundancia y observa: cruzando el umbral, la misma gente pasa de compartir
+  tranquila a acaparar. No cambió su moral; cambió la escasez.</p>
+</div>
+
+<script>
+  import { ctxOf, COL } from '../lib/machine';
+  function init(root: HTMLElement) {
+    const sl = root.querySelector<HTMLInputElement>('[data-s]')!;
+    const lab = root.querySelector<HTMLElement>('[data-v]')!;
+    const st = root.querySelector<HTMLElement>('[data-st]')!;
+    const cv = root.querySelector<HTMLCanvasElement>('[data-c]')!;
+    const N = 24, THR = 45;
+    function draw() {
+      const ab = +sl.value, scarce = ab < THR, frac = scarce ? Math.min(1, (THR - ab) / THR) : 0;
+      lab.textContent = ab > 75 ? 'de sobra' : ab >= THR ? 'suficiente' : ab > 20 ? 'escaso' : 'muy escaso';
+      const { x, w, h } = ctxOf(cv, 160); x.clearRect(0, 0, w, h);
+      const cols = 8, rows = 3, cw = w / cols, ch = (h - 16) / rows, hoarders = Math.round(frac * N);
+      for (let i = 0; i < N; i++) {
+        const cx = (i % cols) * cw + cw / 2, cy = Math.floor(i / cols) * ch + ch / 2 + 6, hoard = i < hoarders;
+        const col = hoard ? COL.orange : COL.green;
+        x.fillStyle = col; x.beginPath(); x.arc(cx, cy - 6, 6, 0, 7); x.fill(); x.fillRect(cx - 5, cy + 1, 10, 12);
+        if (hoard) { x.fillStyle = COL.yellow; for (let k = 0; k < 3; k++) x.fillRect(cx + 8, cy + 8 - k * 4, 7, 3); }
+      }
+      st.textContent = scarce ? (ab < 20 ? '💥 MÁQUINA A FONDO: casi todos acaparan' : '⚠️ MÁQUINA ENCENDIDA: empieza el acaparamiento') : '✓ MÁQUINA APAGADA: la gente comparte tranquila';
+      const c = scarce ? (ab < 20 ? COL.red : COL.orange) : COL.green;
+      st.style.color = c; st.style.borderColor = c;
+    }
+    sl.addEventListener('input', draw); window.addEventListener('resize', draw); draw();
+  }
+  document.querySelectorAll<HTMLElement>('.thr').forEach(init);
+</script>
+
+<style>
+  .viz-fig { padding: 1rem 1.2rem 0.8rem; margin-block: 1.5rem; }
+  .viz-fig figcaption { font-size: 0.78rem; color: var(--muted); margin-top: 0.6rem; }
+  .svg-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .svg-scroll svg { display: block; width: 100%; }
+  @media (max-width: 700px) {
+    /* En mobile el eje mantiene un ancho legible y se desplaza a lo ancho. */
+    .svg-scroll svg { min-width: 640px; }
+  }
+  .thr { padding: 1rem 1.2rem; margin-block: 1.5rem; }
+  .thr-lab { display: block; font-size: 0.72rem; color: var(--muted); margin-bottom: 0.4rem; }
+  .thr-lab b { color: var(--blue); }
+  .thr input { width: 100%; accent-color: var(--orange); }
+  .thr canvas { display: block; width: 100%; height: 160px; margin-top: 0.6rem; }
+  .phase { font-size: 0.74rem; letter-spacing: 0.12em; border: 1px solid; padding: 0.5rem 0.7rem; margin-top: 0.7rem; }
+  .thr-note { font-size: 0.74rem; color: var(--muted); margin-top: 0.7rem; }
+</style>

@@ -1,0 +1,113 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { url, formatDate, pad } from '../utils';
+
+const posts = (await getCollection('blog', ({ data }) => !data.draft)).sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
+const episodeOf = (post: (typeof posts)[number], i: number) =>
+  post.data.episode ?? posts.length - i;
+---
+
+<BaseLayout title="Pablo Diaz — Blog">
+  <section class="wrap">
+    <h1 class="page-title">
+      ARCHIVOS <span class="count">{posts.length} <span class="blink">▌</span></span>
+    </h1>
+
+    <ol class="post-list" reversed>
+      {posts.map((post, i) => (
+        <li data-reveal={String(Math.min(i, 6) * 70)}>
+          <a href={url(`/blog/${post.id}/`)} class="entry">
+            <div class="entry-meta">
+              <span class="ep">LOG:{pad(episodeOf(post, i))}</span>
+              <time datetime={post.data.pubDate.toISOString()}>{formatDate(post.data.pubDate)}</time>
+              {post.data.tags.map((tag) => <span class="tag">#{tag}</span>)}
+            </div>
+            <h2 class="entry-title">{post.data.title}</h2>
+            <p class="entry-desc">{post.data.description}</p>
+          </a>
+        </li>
+      ))}
+    </ol>
+  </section>
+</BaseLayout>
+
+<style>
+  section {
+    padding-block: 2.5rem 1rem;
+  }
+
+  .page-title {
+    font-size: 1rem;
+    letter-spacing: 0.4em;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-weight: 400;
+    margin-bottom: 1.5rem;
+  }
+
+  .count {
+    color: var(--green);
+    font-size: 0.8rem;
+    margin-left: 0.6rem;
+  }
+
+  .post-list {
+    list-style: none;
+  }
+
+  .entry {
+    display: block;
+    padding-block: 1.6rem;
+    border-top: 1px solid var(--line);
+    color: var(--text);
+  }
+
+  .post-list li:last-child .entry {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .entry-meta {
+    display: flex;
+    gap: 1.2rem;
+    flex-wrap: wrap;
+    font-size: 0.68rem;
+    letter-spacing: 0.2em;
+    margin-bottom: 0.5rem;
+  }
+
+  .ep {
+    color: var(--orange-bright);
+  }
+
+  time {
+    color: var(--muted);
+  }
+
+  .tag {
+    color: var(--purple);
+  }
+
+  .entry-title {
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    color: #fff;
+    transition: color 0.15s ease;
+  }
+
+  .entry:hover .entry-title {
+    color: var(--orange-bright);
+  }
+
+  .entry:hover .ep {
+    color: var(--green);
+  }
+
+  .entry-desc {
+    margin-top: 0.4rem;
+    color: var(--muted);
+    font-size: 0.88rem;
+    max-width: none;
+  }
+</style>

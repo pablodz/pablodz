@@ -1,0 +1,157 @@
+---
+/**
+ * Secuencia de arranque estilo terminal retro que cubre la página al cargar.
+ * Primera visita de la sesión: boot completo (~2s, log de sistema + title card).
+ * Navegaciones siguientes: corte rápido (~0.5s) como cambio de escena.
+ * Click para saltar. Se desactiva con prefers-reduced-motion o sin JS.
+ */
+---
+
+<div id="boot" aria-hidden="true">
+  <pre class="boot-log" data-boot-log></pre>
+  <div class="boot-card">
+    <strong class="boot-name">PABLO DIAZ</strong>
+    <span class="boot-sub">パブロ・ディアス // BLOG</span>
+  </div>
+</div>
+
+<script is:inline>
+  (() => {
+    document.documentElement.classList.add('js');
+    const boot = document.getElementById('boot');
+    if (!boot) return;
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      boot.remove();
+      return;
+    }
+
+    const seen = sessionStorage.getItem('boot-seen');
+    const mode = seen ? 'quick' : 'full';
+    boot.classList.add(mode);
+    try { sessionStorage.setItem('boot-seen', '1'); } catch {}
+
+    let timer;
+    const done = () => {
+      clearTimeout(timer);
+      boot.remove();
+    };
+    boot.addEventListener('click', done);
+
+    if (mode === 'quick') {
+      timer = setTimeout(done, 520);
+      return;
+    }
+
+    const LINES = [
+      'TERMINAL v3.3 — BOOT SEQUENCE',
+      'NODE·A .............. OK',
+      'NODE·B .............. OK',
+      'NODE·C .............. OK',
+      'LINK ................ 41.3%',
+      'SESSION: PABLO DIAZ',
+    ];
+    const log = boot.querySelector('[data-boot-log]');
+    LINES.forEach((line, i) => {
+      setTimeout(() => {
+        if (log) log.textContent += line + '\n';
+      }, 70 + i * 95);
+    });
+
+    timer = setTimeout(done, 2350);
+  })();
+</script>
+
+<style>
+  #boot {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: #000;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+  }
+
+  /* sin JS nunca se añade .full/.quick: ocultarlo del todo */
+  #boot:not(.full):not(.quick) {
+    display: none;
+  }
+
+  .boot-log {
+    position: absolute;
+    top: 1.2rem;
+    left: 1.4rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    line-height: 1.9;
+    letter-spacing: 0.12em;
+    color: var(--green);
+    text-shadow: 0 0 8px rgba(82, 208, 83, 0.5);
+    white-space: pre;
+  }
+
+  .boot-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.9rem;
+    text-align: center;
+    opacity: 0;
+  }
+
+  .boot-name {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: clamp(3rem, 10vw, 6.5rem);
+    line-height: 1;
+    color: #fff;
+  }
+
+  .boot-sub {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.5em;
+    color: var(--orange-bright);
+  }
+
+  /* --- boot completo: log → slam de title card → corte ------ */
+  #boot.full .boot-card {
+    animation: boot-card 1.35s steps(1, end) 0.95s forwards;
+  }
+
+  #boot.full {
+    animation: boot-out 0.05s steps(1, end) 2.3s forwards;
+  }
+
+  @keyframes boot-card {
+    0% { opacity: 0; }
+    8% { opacity: 1; }          /* slam */
+    16% { opacity: 0.1; }       /* parpadeo de cuadro */
+    22% { opacity: 1; }
+    100% { opacity: 1; }
+  }
+
+  /* --- corte rápido entre páginas: negro → flash → fuera ---- */
+  #boot.quick .boot-log,
+  #boot.quick .boot-card {
+    display: none;
+  }
+
+  #boot.quick {
+    animation: boot-quick 0.5s steps(1, end) forwards;
+  }
+
+  @keyframes boot-quick {
+    0% { opacity: 1; background: #000; }
+    62% { opacity: 1; background: #000; }
+    68% { opacity: 0.9; background: #fff; }  /* flash de corte */
+    74% { opacity: 0; }
+    100% { opacity: 0; visibility: hidden; }
+  }
+
+  @keyframes boot-out {
+    to { opacity: 0; visibility: hidden; }
+  }
+</style>

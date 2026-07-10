@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "pablodz-blog",
+  "compatibility_date": "2026-07-10",
+  // Sitio 100% estático: Workers Static Assets sirve ./dist, sin worker propio.
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "404-page"
+  },
+  "routes": [
+    { "pattern": "pablodz.com", "custom_domain": true },
+    { "pattern": "www.pablodz.com", "custom_domain": true }
+  ]
+}

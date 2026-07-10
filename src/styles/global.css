@@ -1,0 +1,315 @@
+/* ============================================================
+   TERMINAL — design system minimalista
+   Paleta inspirada en anime mecha noventero (colores no
+   copyrightables): negro profundo, naranja, verde terminal,
+   púrpura, amarillo de advertencia.
+   ============================================================ */
+
+:root {
+  --bg: #0a0a0c;
+  --bg-deep: #050506;
+  --bg-panel: #101014;
+  --bg-panel-2: #16161c;
+
+  --red: #ff0000;
+  --magenta: #990066;
+  --yellow: #ffcc33;
+  --teal: #66cc99;
+  --purple: #765898;
+  --green: #52d053;
+  --orange: #ed8d4c;
+  --orange-bright: #ffa45c;
+  --blue: #33b7db;
+  --red-deep: #bd0000;
+
+  --text: #eae7e1;
+  --muted: #8f8b83;
+  --line: #2a2a32;
+
+  --font-display: 'Noto Serif JP', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --pad-x: clamp(1.25rem, 4vw, 3.5rem);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  line-height: 1.8;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: var(--orange);
+  color: var(--bg-deep);
+}
+
+/* ---- typography ------------------------------------------- */
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+}
+
+a {
+  color: var(--orange-bright);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+a:hover {
+  color: var(--green);
+}
+
+code, pre, kbd {
+  font-family: var(--font-mono);
+}
+
+/* ---- layout: full width, solo padding lateral -------------- */
+.wrap {
+  width: 100%;
+  padding-inline: var(--pad-x);
+}
+
+main {
+  flex: 1;
+}
+
+/* ---- línea de advertencia (divisor fino) ------------------- */
+.hazard {
+  height: 6px;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--yellow) 0 12px,
+    var(--bg-deep) 12px 24px
+  );
+  opacity: 0.7;
+}
+
+.hazard--red {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--red-deep) 0 12px,
+    var(--bg-deep) 12px 24px
+  );
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hazard {
+    animation: hazard-crawl 24s linear infinite;
+  }
+  @keyframes hazard-crawl {
+    to { background-position: 33.94px 0; }
+  }
+}
+
+/* ---- chips ------------------------------------------------- */
+.t-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5ch;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--teal);
+  border: 1px solid color-mix(in srgb, var(--teal) 40%, transparent);
+  padding: 0.1rem 0.55rem;
+}
+
+.t-label--orange {
+  color: var(--orange-bright);
+  border-color: color-mix(in srgb, var(--orange) 50%, transparent);
+}
+
+.t-label--purple {
+  color: var(--purple);
+  border-color: color-mix(in srgb, var(--purple) 50%, transparent);
+}
+
+/* ---- cursor ------------------------------------------------ */
+.blink {
+  animation: blink 1.1s steps(2, start) infinite;
+}
+
+@keyframes blink {
+  to { visibility: hidden; }
+}
+
+/* ---- panel simple (gráficas, demos) ------------------------ */
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--orange);
+}
+
+/* ---- animación: corte duro --------------------------------- */
+@keyframes cut-in {
+  0% { opacity: 0; }
+  49% { opacity: 0; }
+  50% { opacity: 1; }
+  64% { opacity: 0.25; }
+  65% { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html.js [data-reveal] {
+    opacity: 0;
+  }
+  html.js [data-reveal].revealed {
+    animation: cut-in 0.4s steps(1, end) forwards;
+    animation-delay: var(--reveal-delay, 0ms);
+  }
+}
+
+/* ---- prose (cuerpo del post, full width) ------------------- */
+.prose > * + * {
+  margin-top: 1.4rem;
+}
+
+.prose h2 {
+  font-size: 1.6rem;
+  color: var(--orange-bright);
+  margin-top: 3rem;
+  padding-top: 1.2rem;
+  border-top: 1px dashed var(--line);
+}
+
+.prose h2::before {
+  content: '▶ ';
+  color: var(--green);
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  vertical-align: middle;
+}
+
+.prose h3 {
+  font-size: 1.2rem;
+  color: var(--text);
+  margin-top: 2.2rem;
+}
+
+.prose p, .prose ul, .prose ol {
+  color: #cfccc5;
+}
+
+.prose strong {
+  color: var(--text);
+}
+
+.prose ul, .prose ol {
+  padding-left: 1.4rem;
+}
+
+.prose li::marker {
+  color: var(--orange);
+}
+
+.prose blockquote {
+  border-left: 3px solid var(--purple);
+  padding: 0.6rem 1.2rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.prose code:not(pre code) {
+  background: var(--bg-panel-2);
+  border: 1px solid var(--line);
+  color: var(--green);
+  padding: 0.1em 0.45em;
+  font-size: 0.88em;
+  border-radius: 2px;
+}
+
+.prose pre {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--orange);
+  padding: 1.1rem 1.3rem;
+  overflow-x: auto;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  background: var(--bg-deep) !important;
+}
+
+.prose img {
+  max-width: 100%;
+  border: 1px solid var(--line);
+}
+
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.prose th {
+  text-align: left;
+  color: var(--orange-bright);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.72rem;
+  border-bottom: 2px solid var(--orange);
+  padding: 0.5rem 0.8rem;
+}
+
+.prose td {
+  border-bottom: 1px solid var(--line);
+  padding: 0.5rem 0.8rem;
+  color: #cfccc5;
+}
+
+.prose hr {
+  border: none;
+  height: 6px;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--yellow) 0 12px,
+    var(--bg-deep) 12px 24px
+  );
+  opacity: 0.4;
+}
+
+/* ---- scrollbar --------------------------------------------- */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-deep);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border: 2px solid var(--bg-deep);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--orange);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blink { animation: none; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,107 @@
+---
+import { url } from "../utils";
+---
+
+<header>
+    <div class="wrap header-inner">
+        <a href={url("/")} class="logo">
+            <strong>PABLO DIAZ</strong>
+            <small aria-hidden="true">パブロ・ディアス // BLOG</small>
+        </a>
+        <nav aria-label="principal">
+            <a href="https://github.com/pablodz" target="_blank" rel="noopener"
+                >GITHUB</a
+            >
+            <a
+                href="https://www.linkedin.com/in/pablodzv/"
+                target="_blank"
+                rel="noopener">LINKEDIN</a
+            >
+            <a href={url("/rss.xml")}>RSS</a>
+            <span class="status"
+                >LINK <span data-sync>41.3</span>% <span class="blink">▌</span
+                ></span
+            >
+        </nav>
+    </div>
+    <div class="hazard" aria-hidden="true"></div>
+</header>
+
+<script>
+    // Indicador que deriva lentamente, puro flavor de HUD.
+    const el = document.querySelector<HTMLElement>("[data-sync]");
+    if (el) {
+        let v = 41.3;
+        setInterval(() => {
+            v = Math.min(99.9, Math.max(12, v + (Math.random() - 0.48) * 1.4));
+            el.textContent = v.toFixed(1);
+        }, 1600);
+    }
+</script>
+
+<style>
+    header {
+        background: var(--bg-deep);
+    }
+
+    .header-inner {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 1.5rem;
+        padding-block: 1rem;
+        flex-wrap: wrap;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+        .header-inner {
+            animation: cut-in 0.35s steps(1, end) both;
+        }
+    }
+
+    .logo {
+        display: flex;
+        align-items: baseline;
+        gap: 0.9rem;
+        color: var(--text);
+    }
+
+    .logo strong {
+        font-family: var(--font-display);
+        font-weight: 900;
+        font-size: 1.1rem;
+        letter-spacing: 0.14em;
+    }
+
+    .logo small {
+        font-size: 0.6rem;
+        letter-spacing: 0.28em;
+        color: var(--orange-bright);
+    }
+
+    .logo:hover strong {
+        color: var(--orange-bright);
+    }
+
+    nav {
+        display: flex;
+        align-items: baseline;
+        gap: 1.4rem;
+        font-size: 0.72rem;
+        letter-spacing: 0.18em;
+    }
+
+    nav a {
+        color: var(--muted);
+    }
+
+    nav a:hover {
+        color: var(--orange-bright);
+    }
+
+    .status {
+        color: var(--green);
+        font-size: 0.68rem;
+        letter-spacing: 0.15em;
+    }
+</style>

@@ -1,0 +1,339 @@
+---
+/**
+ * Gráfica de líneas interactiva estilo HUD retro, en canvas + vanilla JS.
+ * Se puede usar varias veces por página. Uso en MDX:
+ *
+ *   import LineChart from '../../components/LineChart.astro';
+ *   <LineChart
+ *     title="SYNC RATIO"
+ *     labels={['E01','E02','E03']}
+ *     series={[{ name: 'node-a', data: [41, 52, 38] }]}
+ *   />
+ */
+interface Series {
+  name: string;
+  data: number[];
+  color?: string;
+}
+
+interface Props {
+  title: string;
+  labels: string[];
+  series: Series[];
+  height?: number;
+  unit?: string;
+}
+
+const { title, labels, series, height = 320, unit = '' } = Astro.props;
+
+// Paleta retro-mecha del sitio
+const DEFAULT_COLORS = ['#ed8d4c', '#52d053', '#765898', '#ffcc33', '#ff0000'];
+const config = {
+  labels,
+  unit,
+  series: series.map((s, i) => ({ ...s, color: s.color ?? DEFAULT_COLORS[i % DEFAULT_COLORS.length] })),
+};
+---
+
+<figure class="t-chart panel" data-config={JSON.stringify(config)}>
+  <figcaption class="chart-head">
+    <span class="chart-title">◢ {title}</span>
+    <span class="chart-legend">
+      {config.series.map((s) => (
+        <span class="legend-item"><i style={`background:${s.color}`}></i>{s.name}</span>
+      ))}
+    </span>
+  </figcaption>
+  <div class="chart-body" style={`height:${height}px`}>
+    <canvas></canvas>
+    <div class="chart-tooltip" hidden></div>
+  </div>
+  <div class="chart-foot">VISUAL OUTPUT · HOVER PARA INSPECCIONAR</div>
+</figure>
+
+<script>
+  interface ChartSeries {
+    name: string;
+    data: number[];
+    color: string;
+  }
+
+  interface ChartConfig {
+    labels: string[];
+    unit: string;
+    series: ChartSeries[];
+  }
+
+  function initChart(root: HTMLElement) {
+    const config: ChartConfig = JSON.parse(root.dataset.config ?? '{}');
+    const body = root.querySelector<HTMLElement>('.chart-body')!;
+    const canvas = root.querySelector<HTMLCanvasElement>('canvas')!;
+    const tooltip = root.querySelector<HTMLElement>('.chart-tooltip')!;
+    const ctx = canvas.getContext('2d')!;
+
+    const PAD = { top: 24, right: 20, bottom: 34, left: 52 };
+    const allValues = config.series.flatMap((s) => s.data);
+    const maxV = Math.max(...allValues) * 1.15;
+    const minV = Math.min(0, ...allValues);
+
+    let W = 0;
+    let H = 0;
+    let progress = 0; // 0→1, animación de entrada
+    let hoverIndex: number | null = null;
+    let started = false;
+
+    function resize() {
+      const dpr = window.devicePixelRatio || 1;
+      W = body.clientWidth;
+      H = body.clientHeight;
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
+      canvas.style.width = `${W}px`;
+      canvas.style.height = `${H}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      draw();
+    }
+
+    const x = (i: number) =>
+      PAD.left + (i / Math.max(1, config.labels.length - 1)) * (W - PAD.left - PAD.right);
+    const y = (v: number) =>
+      H - PAD.bottom - ((v - minV) / (maxV - minV)) * (H - PAD.top - PAD.bottom);
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+
+      // rejilla horizontal + escala
+      ctx.font = '10px "JetBrains Mono", monospace';
+      ctx.textAlign = 'right';
+      const steps = 4;
+      for (let i = 0; i <= steps; i++) {
+        const v = minV + ((maxV - minV) * i) / steps;
+        const yy = y(v);
+        ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+        ctx.beginPath();
+        ctx.moveTo(PAD.left, yy);
+        ctx.lineTo(W - PAD.right, yy);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(143,139,131,0.9)';
+        ctx.fillText(v.toFixed(0), PAD.left - 8, yy + 3);
+      }
+
+      // etiquetas del eje X
+      ctx.textAlign = 'center';
+      config.labels.forEach((label, i) => {
+        ctx.fillStyle = i === hoverIndex ? '#ffa45c' : 'rgba(143,139,131,0.9)';
+        ctx.fillText(label, x(i), H - PAD.bottom + 18);
+      });
+
+      // crosshair
+      if (hoverIndex !== null) {
+        ctx.strokeStyle = 'rgba(237,141,76,0.5)';
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(x(hoverIndex), PAD.top);
+        ctx.lineTo(x(hoverIndex), H - PAD.bottom);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      // series (recortadas por la animación de entrada)
+      const visible = Math.max(1, Math.floor(config.labels.length * progress));
+      for (const s of config.series) {
+        // área bajo la curva
+        ctx.beginPath();
+        ctx.moveTo(x(0), y(s.data[0]!));
+        for (let i = 1; i < visible; i++) ctx.lineTo(x(i), y(s.data[i]!));
+        ctx.lineTo(x(visible - 1), H - PAD.bottom);
+        ctx.lineTo(x(0), H - PAD.bottom);
+        ctx.closePath();
+        ctx.fillStyle = s.color + '14';
+        ctx.fill();
+
+        // línea
+        ctx.beginPath();
+        ctx.moveTo(x(0), y(s.data[0]!));
+        for (let i = 1; i < visible; i++) ctx.lineTo(x(i), y(s.data[i]!));
+        ctx.strokeStyle = s.color;
+        ctx.lineWidth = 2;
+        ctx.shadowColor = s.color;
+        ctx.shadowBlur = 8;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // puntos
+        for (let i = 0; i < visible; i++) {
+          ctx.beginPath();
+          ctx.arc(x(i), y(s.data[i]!), i === hoverIndex ? 5 : 2.5, 0, Math.PI * 2);
+          ctx.fillStyle = i === hoverIndex ? '#fff' : s.color;
+          ctx.fill();
+        }
+      }
+    }
+
+    function animate() {
+      progress = Math.min(1, progress + 0.03);
+      draw();
+      if (progress < 1) requestAnimationFrame(animate);
+    }
+
+    function start() {
+      if (started) return;
+      started = true;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        progress = 1;
+        draw();
+      } else {
+        requestAnimationFrame(animate);
+      }
+    }
+
+    canvas.addEventListener('pointermove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const px = e.clientX - rect.left;
+      let best = 0;
+      let bestDist = Infinity;
+      for (let i = 0; i < config.labels.length; i++) {
+        const d = Math.abs(x(i) - px);
+        if (d < bestDist) {
+          bestDist = d;
+          best = i;
+        }
+      }
+      hoverIndex = best;
+
+      tooltip.hidden = false;
+      tooltip.innerHTML =
+        `<strong>${config.labels[best]}</strong>` +
+        config.series
+          .map(
+            (s) =>
+              `<span><i style="background:${s.color}"></i>${s.name}: ${s.data[best]}${config.unit}</span>`,
+          )
+          .join('');
+      const tx = Math.min(Math.max(x(best) + 12, 0), W - tooltip.offsetWidth - 8);
+      tooltip.style.transform = `translate(${tx}px, ${PAD.top}px)`;
+      draw();
+    });
+
+    canvas.addEventListener('pointerleave', () => {
+      hoverIndex = null;
+      tooltip.hidden = true;
+      draw();
+    });
+
+    // arranca la animación cuando entra al viewport
+    new IntersectionObserver(
+      (entries, obs) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          start();
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.3 },
+    ).observe(root);
+
+    new ResizeObserver(resize).observe(body);
+    resize();
+  }
+
+  document.querySelectorAll<HTMLElement>('.t-chart').forEach(initChart);
+</script>
+
+<style>
+  .t-chart {
+    padding: 1rem 1.2rem 0.8rem;
+    margin-block: 2rem;
+  }
+
+  .chart-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.8rem;
+  }
+
+  .chart-title {
+    color: var(--orange-bright);
+    font-size: 0.78rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+  }
+
+  .chart-legend {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+
+  .legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5ch;
+  }
+
+  .legend-item i {
+    width: 10px;
+    height: 3px;
+    display: inline-block;
+  }
+
+  .chart-body {
+    position: relative;
+  }
+
+  .chart-body canvas {
+    display: block;
+    cursor: crosshair;
+  }
+
+  .chart-tooltip {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    background: rgba(0, 0, 0, 0.92);
+    border: 1px solid var(--orange);
+    padding: 0.45rem 0.7rem;
+    font-size: 0.72rem;
+    line-height: 1.7;
+    display: flex;
+    flex-direction: column;
+    white-space: nowrap;
+    z-index: 2;
+  }
+
+  .chart-tooltip[hidden] {
+    display: none;
+  }
+
+  .chart-tooltip strong {
+    color: var(--orange-bright);
+    letter-spacing: 0.15em;
+  }
+
+  .chart-tooltip :global(span) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6ch;
+    color: var(--text);
+  }
+
+  .chart-tooltip :global(i) {
+    width: 8px;
+    height: 8px;
+    display: inline-block;
+  }
+
+  .chart-foot {
+    margin-top: 0.6rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--line);
+    font-size: 0.6rem;
+    letter-spacing: 0.3em;
+    color: var(--muted);
+  }
+</style>

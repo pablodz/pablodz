@@ -1,0 +1,33 @@
+---
+const year = new Date().getFullYear();
+---
+
+<footer>
+    <div class="hazard hazard--red" aria-hidden="true"></div>
+    <div class="wrap footer-inner">
+        <span>© {year} PABLO DIAZ — BUILT WITH ASTRO</span>
+        <span class="jp" aria-hidden="true">終わり</span>
+    </div>
+</footer>
+
+<style>
+    footer {
+        margin-top: 4rem;
+        background: var(--bg-deep);
+    }
+
+    .footer-inner {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+        padding-block: 1rem 1.4rem;
+        font-size: 0.65rem;
+        letter-spacing: 0.2em;
+        color: var(--muted);
+    }
+
+    .jp {
+        color: var(--orange);
+    }
+</style>

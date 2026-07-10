@@ -1,0 +1,81 @@
+---
+/**
+ * Demo interactivo de ejemplo: un componente con su propio <script>.
+ * Este es el patrón para meter cualquier JS enriquecido en un post MDX:
+ * creas un componente .astro con su markup + script y lo importas.
+ */
+---
+
+<div class="integrity-demo panel">
+  <p class="d-label">FIREWALL INTEGRITY</p>
+  <p class="d-value" data-d-value>100%</p>
+  <button class="d-btn" data-d-btn>ATACAR ▶</button>
+</div>
+
+<script>
+  document.querySelectorAll<HTMLElement>('.integrity-demo').forEach((root) => {
+    const value = root.querySelector<HTMLElement>('[data-d-value]')!;
+    const btn = root.querySelector<HTMLButtonElement>('[data-d-btn]')!;
+    let integrity = 100;
+
+    btn.addEventListener('click', () => {
+      integrity = Math.max(0, integrity - Math.round(Math.random() * 15 + 5));
+      value.textContent = `${integrity}%`;
+      value.style.color =
+        integrity > 50 ? 'var(--green)' : integrity > 20 ? 'var(--yellow)' : 'var(--red)';
+      value.style.textShadow = integrity > 50 ? '0 0 30px rgba(82,208,83,0.4)' : '0 0 30px rgba(255,0,0,0.5)';
+      if (integrity === 0) {
+        btn.textContent = 'FIREWALL CAÍDO';
+        btn.disabled = true;
+      }
+    });
+  });
+</script>
+
+<style>
+  .integrity-demo {
+    padding: 1.6rem;
+    text-align: center;
+    margin-block: 2rem;
+  }
+
+  .d-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.35em;
+    color: var(--muted);
+    margin-bottom: 0.8rem;
+  }
+
+  .d-value {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 3rem;
+    color: var(--green);
+    text-shadow: 0 0 30px rgba(82, 208, 83, 0.4);
+  }
+
+  .d-btn {
+    margin-top: 1.2rem;
+    padding: 0.6rem 1.6rem;
+    background: var(--orange);
+    border: none;
+    color: #000;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    cursor: pointer;
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+    transition: all 0.15s ease;
+  }
+
+  .d-btn:hover:not(:disabled) {
+    background: var(--orange-bright);
+    box-shadow: 0 0 25px rgba(237, 141, 76, 0.5);
+  }
+
+  .d-btn:disabled {
+    background: var(--red);
+    color: #fff;
+    cursor: not-allowed;
+  }
+</style>

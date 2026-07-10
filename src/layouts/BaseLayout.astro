@@ -1,0 +1,65 @@
+---
+import '../styles/global.css';
+import BootSequence from '../components/BootSequence.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { url } from '../utils';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = 'Blog de Pablo Diaz — backend, datos y sistemas.' } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="icon" type="image/svg+xml" href={url('/favicon.svg')} />
+    <link rel="alternate" type="application/rss+xml" title="Pablo Diaz — Blog" href={url('/rss.xml')} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,600;0,800;1,400&family=Noto+Serif+JP:wght@700;900&display=swap"
+    />
+  </head>
+  <body>
+    <BootSequence />
+    <Header />
+    <main>
+      <slot />
+    </main>
+    <Footer />
+
+    <script>
+      // Reveal al scroll con corte duro; delay escalonado vía data-reveal (ms).
+      const els = document.querySelectorAll<HTMLElement>('[data-reveal]');
+      const io = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('revealed');
+              io.unobserve(entry.target);
+            }
+          }
+        },
+        { threshold: 0.12 },
+      );
+      els.forEach((el) => {
+        const delay = parseInt(el.dataset.reveal ?? '0', 10) || 0;
+        el.style.setProperty('--reveal-delay', `${delay}ms`);
+        io.observe(el);
+      });
+    </script>
+  </body>
+</html>

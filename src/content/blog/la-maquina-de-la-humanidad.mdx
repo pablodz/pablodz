@@ -1,6 +1,6 @@
 ---
 title: 'La Máquina de la Humanidad'
-description: 'Por qué los imperios suben y caen, por qué crece la desigualdad y por qué existen los celos: un modelo unificado con una sola palanca (la escasez), su segunda ley (la energía) y visualizaciones que corren en vivo.'
+description: 'Por qué los imperios suben y caen, por qué crece la desigualdad y por qué existen los celos: un modelo unificado con un solo control (la escasez), su segunda ley (la energía) y visualizaciones que corren en vivo.'
 pubDate: 2026-07-10
 tags: ['modelos', 'sociedad', 'complejidad']
 episode: 2
@@ -28,16 +28,17 @@ import DeepValley from '../../components/DeepValley.astro';
 import LoopMini from '../../components/LoopMini.astro';
 import HumilityPyramid from '../../components/HumilityPyramid.astro';
 import CellZoom from '../../components/CellZoom.astro';
+import ThucydidesTrap from '../../components/ThucydidesTrap.astro';
 
 El mecanismo que hizo caer al Imperio Romano es el mismo que anoche te hizo mirar de reojo el celular de tu
 pareja. Escrito así suena absurdo. Este ensayo existe para mostrar que es literal: que hay una sola máquina
 detrás de los imperios que caen, de los precios que explotan, de tu jefe, de tus celos y de tu cansancio.
-Que esa máquina se puede simular (vas a verla correr en tu navegador), que tiene palancas conocidas, y que
+Que esa máquina se puede simular (vas a verla correr en tu navegador), que tiene controles conocidos, y que
 una vez que aprendes a verla ya no puedes dejar de verla.
 
 Casi todo lo que importa pasa una y otra vez, por las mismas razones. Quien estudia un solo caso ve un
 evento; quien estudia cientos deja de ver eventos y empieza a ver **la máquina que los produce**. Este ensayo
-describe esa máquina: sus piezas, sus palancas, y por qué produce, con regularidad de mecanismo, imperios
+describe esa máquina: sus piezas, sus controles, y por qué produce, con regularidad de mecanismo, imperios
 que caen, burbujas que estallan, desigualdad que trepa y celos que queman.
 
 > **El modelo en una frase.** La cooperación crea riqueza. La riqueza se concentra. La concentración rompe
@@ -74,7 +75,7 @@ hospital, tanques en la India durante la COVID de 2021, una montaña a gran altu
 precio, el acaparamiento y el mercado negro. Mismo gas, conducta opuesta. Lo que cambia no es la moral de la
 gente, sino de qué lado del umbral está el recurso.
 
-> **La idea central.** La escasez es la palanca principal. Por debajo de cierto umbral, la gente tiende a
+> **La idea central.** La escasez es el control principal. Por debajo de cierto umbral, la gente tiende a
 > competir, acaparar y formar pirámides; por encima (el aire en un día normal), esa presión casi no aparece.
 > "Umbral" no es una ley exacta sino una distinción entre *bien libre* (sobra para todos) y *bien
 > disputado*: uno que se le puede negar a otros, que no tiene reemplazo, o que vale por comparación (como
@@ -228,6 +229,17 @@ mayor escala paga más. Las villas feudales se agregaron en reinos y los reinos 
 de los noventa se reorganizaron alrededor de un Estado nuevo en una década. El colapso reconcentra la
 cooperación hacia abajo, y desde abajo la reagrupación empieza otra vez.
 
+Hay una sola cosa que el colapso sí borra casi por completo, y es la más valiosa: la memoria de por qué se
+colapsó. El caso más asombroso es Egipto consigo mismo. El faraón Ramsés II tuvo un hijo, Khaemuaset, al que
+se recuerda como el primer arqueólogo de la historia: dedicó su vida a excavar y restaurar monumentos que en
+su época ya eran ruinas de mil trescientos años. Para él, las pirámides eran tan antiguas y tan ajenas como
+para nosotros lo es él. Los egipcios estudiaban su propio pasado tratando de entender a los que las habían
+construido, y ya casi no sabían quiénes eran ni por qué su mundo se había venido abajo. Una civilización
+investigando su propio colapso como si fuera el de otra. Esa es la trampa profunda de la máquina: la riqueza
+se acumula de un ciclo al siguiente, pero la lección casi nunca. Cada civilización cree ser la primera, y
+por eso vuelve a cometer, con más recursos, el mismo error. Este ensayo es, en el fondo, un intento de que
+la lección también se acumule.
+
 <PersonaCases
   title="el ciclo, de cerca"
   items={[
@@ -239,7 +251,7 @@ cooperación hacia abajo, y desde abajo la reagrupación empieza otra vez.
 Detrás de las simulaciones de este ensayo hay un modelo formal, tres cantidades que evolucionan juntas
 (cuánta cooperación hay, cuánta riqueza, y qué tan concentrada está), pero no hace falta ver ninguna
 ecuación para seguir el argumento. Lo único que conviene retener del análisis es esto: al correr el modelo
-miles de veces, **la palanca que decide si la sociedad colapsa o se estabiliza no es cuánta riqueza produce,
+miles de veces, **el control que decide si la sociedad colapsa o se estabiliza no es cuánta riqueza produce,
 sino cuánto se acapara**. Ese resultado reaparecerá en cada sección que sigue.
 
 ## 04 · Por qué la pirámide es la tendencia por defecto
@@ -358,8 +370,8 @@ están arriba les conviene que siga habiéndola.** Ese es uno de los grandes fre
 
 Las palabras describen; un modelo se comprueba corriéndolo. Esta es la máquina corriendo en vivo, en el
 navegador: la cooperación dispara la prosperidad, la desigualdad trepa hasta la cima, y el colapso lo
-reinicia todo, una y otra vez. Programé el motor completo para que corra en vivo en tu navegador: mueve las
-palancas o prueba un escenario y observa cuántas vueltas aguanta la sociedad que configures.
+reinicia todo, una y otra vez. Programé el motor completo para que corra en vivo en tu navegador: mueve los
+controles o prueba un escenario y observa cuántas vueltas aguanta la sociedad que configures.
 
 <MachineSim />
 
@@ -453,7 +465,7 @@ definición*: no todos pueden estar arriba.
 
 ## 09 · El costo de la energía: por qué nos quedamos pegados
 
-Hasta aquí, una sola palanca: la escasez. Falta la **segunda ley** de la máquina, la que explica por qué
+Hasta aquí, un solo control: la escasez. Falta la **segunda ley** de la máquina, la que explica por qué
 (aun sabiendo que se está en un mal lugar) casi nadie se mueve. Todo cambio **cuesta energía**, y todo
 sistema vivo, del microbio al imperio, está hecho para gastar lo mínimo.
 
@@ -516,7 +528,7 @@ bola logra cruzar:
 <EnergyWell />
 
 Con poca energía, la bola no pasa la colina: el sistema queda pegado por más que "sepa" que hay algo mejor
-al otro lado. Baja la escasez y la misma colina se vuelve cruzable. Ese es el porqué de la primera palanca de la solución (sección 12): bajar la alarma de escasez.
+al otro lado. Baja la escasez y la misma colina se vuelve cruzable. Ese es el porqué del primer control de la solución ([sección 12](#12--entonces-tiene-solución)): bajar la alarma de escasez.
 
 Si la segunda ley es real, el mundo debería estar lleno de casos donde **todos saben cuál es el valle bueno
 desde hace décadas, y nadie cruza**. Lo está:
@@ -564,8 +576,8 @@ predecible y un poco menos incomprensible, el modelo está haciendo su trabajo.
     { t: 'El heredero que invierte con información y acceso privilegiados.', d: 'Conoce la maquinaria por dentro y por eso no necesita creer en la meritocracia. Su ventaja es la asimetría de la sección 07: saber antes, mover más capital, moldear las reglas. Juega el mismo juego que el trader novato, con las cartas boca arriba.' },
     { t: 'El magnate que extrae sin culpa y lo cuenta con orgullo.', d: 'Un sensor de adquisición funcionando sin contrapeso interno, instalado en la cima. Lo notable está menos en él que alrededor: millones lo celebran porque sus propios sensores sueñan con ocupar su lugar. Lo que la pirámide produce en masa es la admiración que lo sostiene.' },
     { t: 'La persona infiel.', d: 'Su sensor registra una escasez interna, de deseo, de novedad o de validación, y la resuelve afuera en secreto. El secreto funciona como deuda: acumula interés hasta el día del colapso. Y la confianza rota es el excedente que la pareja había construido junta, destruido de una sola vez.' },
-    { t: 'La persona bondadosa.', d: 'Es la palanca de ampliar el "nosotros" hecha carne: coopera primero, sin pedir garantías. En un entorno de sensores apagados florece y contagia; en uno de escasez extrema la explotan hasta agotarla. Por eso la bondad rinde más donde hay estructuras que la protegen, y la sección 12 trata de construirlas.' },
-    { t: 'La persona que piensa en terminar con su vida.', d: 'Está en el valle más profundo del mapa, con la barra de energía por debajo de todas las colinas, incluidas las pequeñas. La sección 10 está dedicada entera a ese valle y a las palancas que sacan de él; lo esencial cabe en una línea: la salida existe y casi nunca empieza sola.' },
+    { t: 'La persona bondadosa.', d: 'Es el control de ampliar el "nosotros" hecho carne: coopera primero, sin pedir garantías. En un entorno de sensores apagados florece y contagia; en uno de escasez extrema la explotan hasta agotarla. Por eso la bondad rinde más donde hay estructuras que la protegen, y la sección 12 trata de construirlas.' },
+    { t: 'La persona que piensa en terminar con su vida.', d: 'Está en el valle más profundo del mapa, con la barra de energía por debajo de todas las colinas, incluidas las pequeñas. La sección 10 está dedicada entera a ese valle y a los controles que sacan de él; lo esencial cabe en una línea: la salida existe y casi nunca empieza sola.' },
     { t: 'La persona que ya entendió la máquina.', d: 'Sabe que no puede apagarla, y sabe también lo que sí controla: en qué célula pone su energía, qué escasez deja de perseguir y qué "nosotros" alimenta. Con el mapa en la mano, cada una de esas elecciones se vuelve deliberada. Esa persona eres tú, al final de este ensayo.' },
   ]}
 />
@@ -604,32 +616,32 @@ medido. La **activación conductual**, desarrollada por Neil Jacobson y Christop
 sentido común: no se espera a tener ganas para actuar; se programan acciones pequeñas y concretas *antes* de
 que las ganas vuelvan, porque son las acciones las que reencienden el sensor, no al revés. Los ensayos
 clínicos sorprendieron a los propios investigadores: esa pieza simple, sola, rinde comparable a terapias
-mucho más complejas, incluso en depresión severa. Las gratificaciones pequeñas no son un consuelo: son la
-palanca con mejor evidencia.
+mucho más complejas, incluso en depresión severa. Las gratificaciones pequeñas no son un consuelo: son el
+control con mejor evidencia.
 
 Y falta la pieza que explica por qué la bola dejó de empujar. Martin Seligman la llamó **indefensión
-aprendida**: tras suficientes intentos fallidos, el sistema concluye que ninguna palanca funciona y deja de
-intentar, aunque las palancas hayan vuelto a servir. Es exactamente la bola que ya no empuja la colina: no
+aprendida**: tras suficientes intentos fallidos, el sistema concluye que ningún control funciona y deja de
+intentar, aunque los controles hayan vuelto a servir. Es exactamente la bola que ya no empuja la colina: no
 porque la colina sea infinita, sino porque su historial dice que empujar no sirve.
 
-De estos hallazgos salen las palancas generales, y conviene listarlas porque no son consejos de póster:
+De estos hallazgos salen los controles generales, y conviene listarlas porque no son consejos de póster:
 
 1. **Reentrenar la recompensa** con acciones chicas, programadas y registradas, antes de que vuelvan las ganas. Cada pequeña victoria anotada sube un milímetro la barra.
 2. **Reconectar la pertenencia.** El sensor de "no pertenezco" solo baja con vínculos reales, y el aislamiento es lo primero que la depresión construye y lo primero que hay que desarmar, en dosis pequeñas.
 3. **Poner distancia a lo que drena.** El entorno es parte de la enfermedad: la psiquiatría midió hace décadas que los pacientes que vuelven a hogares de alta crítica y hostilidad recaen mucho más (la literatura lo llama "emoción expresada"). Los límites, la distancia o la mudanza son intervenciones legítimas, no rendiciones. Hay colinas que no se pueden subir dentro del paisaje que las creó.
-4. **Pagar el duelo de las verdades dolorosas.** La verdad cara se paga una vez; la negación cobra interés todos los días. Es la sección 09 aplicada al caso más íntimo: cruzar esa colina libera la energía que la negación consumía.
+4. **Pagar el duelo de las verdades dolorosas.** La verdad cara se paga una vez; la negación cobra interés todos los días. Es la [sección 09](#09--el-costo-de-la-energía-por-qué-nos-quedamos-pegados) aplicada al caso más íntimo: cruzar esa colina libera la energía que la negación consumía.
 5. **Elegir un rumbo.** Viktor Frankl, que atravesó los campos de concentración, construyó una terapia entera sobre este punto: un sentido convierte el futuro de amenaza en proyecto, y un sensor que mira hacia un plan grita menos que uno que mira hacia el vacío.
-6. **Ayuda profesional.** Es la palanca que ayuda a mover todas las demás, porque quien está en el fondo no tiene energía ni para ver el mapa. Pedirla no es el último recurso; es el primero.
+6. **Ayuda profesional.** Es el control que ayuda a mover todos los demás, porque quien está en el fondo no tiene energía ni para ver el mapa. Pedirla no es el último recurso; es el primero.
 
 Lo he visto funcionar de cerca. Acompañé durante años a una persona que llegó a acumular quince intentos de
-suicidio, y su salida no fue una cosa grande sino varias de estas palancas movidas a la vez, con constancia:
+suicidio, y su salida no fue una cosa grande sino varios de estos controles movidos a la vez, con constancia:
 gratificaciones pequeñas, distancia de vínculos que drenaban, el duelo de una verdad familiar muy dolorosa,
 un rumbo propio. Hoy su vida es otra. Un caso no prueba nada por sí solo; lo cuento porque coincide, punto
 por punto, con lo que la evidencia dice que funciona.
 
 En la siguiente interacción dibujé ese valle. La bola empieza en el fondo, con la energía casi en cero, y
-cada palanca que enciendas baja un poco la pared y recarga un poco la barra. Fíjate en el detalle que más
-importa: ninguna palanca alcanza sola.
+cada control que enciendas baja un poco la pared y recarga un poco la barra. Fíjate en el detalle que más
+importa: ningún control alcanza solo.
 
 <DeepValley />
 
@@ -661,21 +673,22 @@ medir un siglo después. Los casos están documentados, y también sus salidas:
   items={[
     { t: 'Una persona convencida de que su familia estaría mejor sin ella.', d: 'Es el sensor de valía atascado en el máximo, y es la alarma falsa más peligrosa que existe: las familias que perdieron a alguien dicen, casi siempre, exactamente lo contrario. Es una lectura del tablero, no una verdad, y las lecturas se revisan con ayuda.' },
     { t: 'Una persona que ya no disfruta nada de lo que antes amaba.', d: 'Su sensor de recompensa se apagó junto con el resto. La evidencia dice que no se espera a que vuelvan las ganas: se programan acciones pequeñas antes, porque son las acciones las que reencienden el sensor, no al revés.' },
-    { t: 'Una persona que dejó de pedir ayuda porque "ya lo intentó todo".', d: 'Su sistema aprendió, de intentos que fallaron, que ninguna palanca funciona. Pero esa conclusión viene del historial, no del presente: las palancas de hoy no son las de entonces, y la indefensión también se desaprende.' },
+    { t: 'Una persona que dejó de pedir ayuda porque "ya lo intentó todo".', d: 'Su sistema aprendió, de intentos que fallaron, que ningún control funciona. Pero esa conclusión viene del historial, no del presente: los controles de hoy no son los de entonces, y la indefensión también se desaprende.' },
     { t: 'Una persona que mejora en cualquier parte menos en su propia casa.', d: 'El entorno es parte de la enfermedad. Donde hay crítica y hostilidad constantes, la barra de energía no sube por más esfuerzo que ponga. La distancia y los límites son tratamiento, no traición.' },
-    { t: 'Una persona que canceló planes hasta que dejaron de invitarla.', d: 'El aislamiento se construye solo y alimenta la creencia de "no pertenezco". Romperlo no exige grandes gestos: una invitación sostenida, en dosis pequeñas, es de las palancas que más energía devuelven.' },
+    { t: 'Una persona que canceló planes hasta que dejaron de invitarla.', d: 'El aislamiento se construye solo y alimenta la creencia de "no pertenezco". Romperlo no exige grandes gestos: una invitación sostenida, en dosis pequeñas, es de los controles que más energía devuelven.' },
   ]}
 />
 
-## 11 · El mapa cambió: por qué fracasaron los ismos
+## 11 · El mapa de una sola escala: por qué chocan las grandes ideologías
 
-Capitalismo, comunismo, nacionalismo… todos prometieron ser *la* solución universal, y todos chocaron con la
-realidad. No porque fueran ideas de gente malvada, sino porque fueron **mapas de baja resolución** de la
-humanidad, dibujados cuando no se podía ver el panorama completo.
+Capitalismo, comunismo, nacionalismo: las grandes **ideologías políticas** prometieron cada una ser *la*
+solución universal, y todas chocaron con la realidad. No porque fueran ideas de gente malvada, sino porque
+cada una fue un **mapa de baja resolución** de la humanidad, dibujado cuando no se podía ver el panorama
+completo. En este ensayo las ideologías son un ejemplo, no el tema: el tema es el error que comparten.
 
-La sección 08 mostró que la humanidad son **células dentro de células** (familia, tribu, clase, empresa, nación,
+La [sección 08](#08--pasa-a-muchas-escalas-como-un-parecido-de-familia) mostró que la humanidad son **células dentro de células** (familia, tribu, clase, empresa, nación,
 civilización) que se fusionan y se parten sin parar. El "nosotros" no es un número. Es un **mapa de muchas
-escalas a la vez**. Y cada ismo cometió el mismo error: **fijó el mapa en UNA sola escala**.
+escalas a la vez**. Y cada una cometió el mismo error: **fijó el mapa en UNA sola escala**.
 
 - **Comunismo** → la célula es la *clase*. Lo demás desaparece del mapa.
 - **Nacionalismo** → la célula es la *nación*. La clase y la humanidad desaparecen.
@@ -683,36 +696,36 @@ escalas a la vez**. Y cada ismo cometió el mismo error: **fijó el mapa en UNA 
 
 Cada uno acierta en *su* escala y es ciego a las demás. Por eso ninguno funciona del todo: la realidad tiene
 todas las escalas al mismo tiempo. El error se ve mejor dibujado que argumentado: cada botón muestra qué ve
-el mapa de cada ismo y qué borra. Dibujé los mapas; con cada botón vas a ver qué ilumina cada ismo y qué
+el mapa de cada ideología y qué borra. Dibujé los mapas; con cada botón vas a ver qué ilumina cada una y qué
 deja fuera:
 
 <IsmsMap />
 
-Dos concesiones antes del veredicto, porque el debate honesto las exige. Los ismos también acertaron en
+Dos concesiones antes del veredicto, porque el debate honesto las exige. Esas ideologías también acertaron en
 grande: el capitalismo acompañó la mayor caída de pobreza extrema de la historia (de ~36% de la humanidad en
-1990 a ~9% en 2020), y la socialdemocracia (que es un ismo, con partido y doctrina) construyó los países
-más estables del planeta. El punto no es que los ismos fracasen siempre. Lo que pasa es que **aciertan mientras su escala
-coincide con el problema, y fallan en cuanto el problema cambia de escala y ellos no**.
+1990 a ~9% en 2020), y la socialdemocracia (otra ideología, con partido y doctrina) construyó los países
+más estables del planeta. El punto no es que fracasen siempre. Lo que pasa es que **aciertan mientras su escala
+coincide con el problema, y fallan en cuanto el problema cambia de escala y ellas no**.
 
-Esto no es una preferencia ideológica: cada ismo fue un **experimento gigante ya corrido**, con cientos de
+Esto no es tomar partido: cada ideología fue un **experimento gigante ya corrido**, con cientos de
 millones de personas dentro, y los resultados están documentados. Vistos con el modelo en la mano, el modo
 de fallo es el mismo en todos (*fijar una escala e ignorar la máquina*):
 
 <RealCases
-  title="por qué falló cada ismo (los experimentos ya corrieron)"
+  title="por qué chocó cada ideología (los experimentos ya corrieron)"
   items={[
     { y: '1917-1991', t: 'La URSS', d: 'Fijó la célula en la clase y abolió el mercado, pero no la escasez: colas, racionamiento y mercado negro crónicos. Y la pirámide volvió con otro nombre: la nomenklatura, con sus dachas y tiendas exclusivas. No bajó cuánto se acapara; solo cambió quién acapara.' },
     { y: '1958-1962', t: 'El Gran Salto Adelante', d: 'China forzó la escala "comuna" borrando la escala familiar del mapa: la cosecha colapsó y murieron decenas de millones. Cuando Deng devolvió la parcela familiar (1978), la producción explotó. La escala borrada del mapa seguía existiendo en la realidad.' },
     { y: '1920-1929', t: 'El laissez-faire', d: 'EE.UU. fijó la célula en el individuo y dejó el acaparamiento sin freno: el 1% llegó a ~48% de la riqueza y el sistema entero colapsó en 1929. La versión desregulada de 1980-2008 repitió la curva casi punto por punto: pico de desigualdad, crisis de 2008.' },
     { y: '1914/1939', t: 'El nacionalismo', d: 'Logró cooperación interna récord, y la usó como arma para la competencia externa total: dos guerras mundiales. Amplió el "nosotros" exactamente hasta la frontera y ahí lo clavó. La máquina no se apagó: subió un piso, con tanques.' },
-    { y: '1945-hoy', t: 'Los híbridos que sí duran', d: 'Los países que mejor sostienen prosperidad (los nórdicos, la posguerra occidental) no aplican ningún ismo puro: mezclan mercado (escala individual), redistribución (escala nacional), sindicatos (escala gremial) y tratados (escala supranacional), y recalibran cada década. No encontraron el ismo correcto; lo que hicieron fue renunciar a fijar la escala.' },
+    { y: '1945-hoy', t: 'Los híbridos que sí duran', d: 'Los países que mejor sostienen prosperidad (los nórdicos, la posguerra occidental) no aplican ninguna ideología pura: mezclan mercado (escala individual), redistribución (escala nacional), sindicatos (escala gremial) y tratados (escala supranacional), y recalibran cada década. No encontraron la ideología correcta; lo que hicieron fue renunciar a fijar la escala.' },
   ]}
 />
 
 <PersonaCases
   title="los mapas de una escala, de cerca"
   items={[
-    { t: 'Una persona que explica todo con una sola causa.', d: '"Todo es culpa de los políticos", "todo es el sistema", "a la gente le falta esfuerzo". En su escala favorita suele tener parte de razón, y las demás escalas simplemente no existen en su mapa. Un ismo de bolsillo.' },
+    { t: 'Una persona que explica todo con una sola causa.', d: '"Todo es culpa de los políticos", "todo es el sistema", "a la gente le falta esfuerzo". En su escala favorita suele tener parte de razón, y las demás escalas simplemente no existen en su mapa. Un mapa de una sola escala, de bolsillo.' },
     { t: 'Una persona que cambió de ideología como de dieta,', d: 'y en cada etapa sintió que por fin había encontrado LA respuesta. El entusiasmo era real. El mapa seguía siendo de una sola escala.' },
   ]}
 />
@@ -721,22 +734,22 @@ El patrón fino de los fracasos merece verse de cerca, porque ninguno falló por
 suerte. Fallaron por mecánica del modelo, y siempre por las mismas tres vías:
 
 - **Ninguno apagó la escasez.** La URSS abolió el mercado, no las colas. Prohibir el termómetro no baja la fiebre: mientras hubo escasez, hubo acaparamiento, solo que en la sombra.
-- **Ninguno frenó el acaparamiento.** Cambiaron *quién* está arriba (burgueses → nomenklatura, nobles → accionistas), no *cuánto* captura el de arriba. Y esa (cuánto se acapara) es la palanca que manda.
+- **Ninguno frenó el acaparamiento.** Cambiaron *quién* está arriba (burgueses → nomenklatura, nobles → accionistas), no *cuánto* captura el de arriba. Y ese (cuánto se acapara) es el control que manda.
 - **Todos necesitaban un "hombre nuevo".** Sus planes solo cerraban si la gente dejaba de tener sensores de escasez. Pero no hay gente pura: hay sensores encendidos en distinto grado. Un sistema que exige santos para funcionar ya falló.
 
 > **▸ El dato: la tecnología fija el tamaño del "nosotros".** Benedict Anderson mostró que la **imprenta**
 > creó la nación: antes de los periódicos en lengua común, un "francés" no se imaginaba parte de millones de
-> desconocidos. El alcance de la información **fija el radio de la solidaridad**. Por eso los ismos clásicos
+> desconocidos. El alcance de la información **fija el radio de la solidaridad**. Por eso esas ideologías clásicas
 > nacieron entre los siglos XVIII y XX. Hoy internet revienta ese límite: vemos células *globales* (clima,
 > mercados, pandemias) y *ultra-tribales* (tribus online) al mismo tiempo.
 
-Más que equivocados, los ismos estaban **incompletos**. Eran la mejor solución posible con un mapa
-borroso. Hoy el mapa está en alta resolución, y la conclusión no es un *ismo nuevo*, sino lo que la
+Más que equivocadas, esas ideologías estaban **incompletas**. Eran la mejor solución posible con un mapa
+borroso. Hoy el mapa está en alta resolución, y la conclusión no es una *ideología nueva*, sino lo que la
 Nobel Elinor Ostrom llamó gobernanza **policéntrica**, muchos centros de decisión a la vez:
 que el barrio decida lo del barrio, el país lo del país y el planeta lo del planeta, y que cada regla se
 reajuste cuando la realidad se mueva. Solución multiescala y adaptativa, no un molde único.
 
-Para sentir por qué los ismos parecían tan convincentes en su momento, grafiqué el mapa a distintas
+Para sentir por qué esas ideologías parecían tan convincentes en su momento, grafiqué el mapa a distintas
 resoluciones: mueve el deslizador y mira cómo el mundo pasa de "un solo bloque" a células dentro de células.
 
 <MapResolution />
@@ -753,9 +766,9 @@ salen unos pocos principios claros.
 Los cuatro principios, de menos a más poderoso:
 
 1. **Bájale el volumen a la alarma de escasez.** Gran parte del egoísmo es miedo al mañana. Seguridad básica, salud, educación, un piso del que no caer: todo eso apaga sensores de escasez en su raíz. Barato comparado con lo que ahorra.
-2. **Vigila la escasez fabricada.** Buena parte del poder de arriba viene de inventar escasez (tierra retenida, monopolios, patentes eternas). Destrabar eso libera abundancia real sin inventar nada. La palanca más ignorada.
-3. **Redistribuir es estructural, no solo un parche.** En dosis suficiente estabiliza el sistema igual que las demás palancas; floja, es solo una venda. La prueba histórica: 1945-1980, la parte del 1% cayó a la mitad.
-4. **Amplía el "nosotros".** Si el de enfrente entra en tu "nosotros", extraerle deja de convenirte, y eso baja *cuánto se acapara*, la palanca real. No es un interruptor que se deja encendido, sino un fuego que hay que alimentar, porque bajo estrés el círculo tiende a encogerse.
+2. **Vigila la escasez fabricada.** Buena parte del poder de arriba viene de inventar escasez (tierra retenida, monopolios, patentes eternas). Destrabar eso libera abundancia real sin inventar nada. El control más ignorado.
+3. **Redistribuir es estructural, no solo un parche.** En dosis suficiente estabiliza el sistema igual que los demás controles; floja, es solo una venda. La prueba histórica: 1945-1980, la parte del 1% cayó a la mitad.
+4. **Amplía el "nosotros".** Si el de enfrente entra en tu "nosotros", extraerle deja de convenirte, y eso baja *cuánto se acapara*, el control real. No es un interruptor que se deja encendido, sino un fuego que hay que alimentar, porque bajo estrés el círculo tiende a encogerse.
 
 Conecté los cuatro principios al motor real del ensayo: enciende y apaga cada uno y mira si la sociedad se
 estabiliza o sigue colapsando.
@@ -763,16 +776,16 @@ estabiliza o sigue colapsando.
 <Levers />
 
 <PersonaCases
-  title="las palancas, de cerca"
+  title="los controles, de cerca"
   items={[
     { t: 'Un equipo donde nadie teme ser despedido.', d: 'La gente comparte lo que sabe, admite errores y cubre al que está enfermo. Nadie se volvió más noble: les bajaron el volumen a la alarma de escasez y la cooperación apareció sola.' },
     { t: 'Una familia que dejó de pelear por la herencia', d: 'cuando un acuerdo claro y por escrito le quitó a cada uno el miedo a quedarse sin nada. Las reglas explícitas apagaron sensores que el cariño solo no alcanzaba a apagar.' },
   ]}
 />
 
-### La palanca más antigua: lo que las religiones descubrieron primero
+### El control más antiguo: lo que las religiones descubrieron primero
 
-Las cuatro palancas de arriba suenan a hallazgo reciente, a simulación y a dato. Conviene decir algo
+Los cuatro controles de arriba suenan a hallazgo reciente, a simulación y a dato. Conviene decir algo
 incómodo para el orgullo moderno: las grandes religiones las encontraron hace milenios. No tenían el
 vocabulario del modelo, pero tenían miles de años de colapsos observados de cerca, y de esa experiencia
 destilaron instrucciones. Las empaquetaron en el único formato que sobrevive siglos sin universidades ni
@@ -781,21 +794,21 @@ imprenta: el mandamiento, la parábola, el ritual que se repite hasta volverse r
 Míralo en el cristianismo con las piezas del ensayo en la mano. Jesús enseña humildad, y "los últimos serán
 los primeros" es un freno directo al acaparamiento del bien posicional por excelencia, el estatus: si abajo
 vale tanto como arriba, trepar deja de pagar. Enseña amor al prójimo, y el prójimo de la parábola es un
-samaritano, un extranjero despreciado: la ampliación del "nosotros", la palanca cuatro, dos mil años antes
+samaritano, un extranjero despreciado: la ampliación del "nosotros", el control cuatro, dos mil años antes
 de que la filosofía moderna la nombrara. Y enseña el perdón, que en este lenguaje es la interrupción del
 bucle: el ojo por ojo es el ciclo girando (cada agravio financia el siguiente, con interés), y perdonar
 corta la vuelta antes de que el rencor acumule el colapso. Las bienaventuranzas rematan el diseño:
 bienaventurados los pobres, los mansos, los que lloran. Leído como ingeniería, eso es una inversión
 explícita de la pirámide, escrita para que la recitara gente que no sabía leer.
 
-Preparé una simulación para ver esta idea en acción: la misma sociedad de tratos repetidos de la sección 04,
+Preparé una simulación para ver esta idea en acción: la misma sociedad de tratos repetidos de la [sección 04](#04--por-qué-la-pirámide-es-la-tendencia-por-defecto),
 con tres perillas nuevas que son instrucciones antiguas: humildad (el que tiene más cede la ganancia al que
 tiene menos), compartir (dar del excedente cada ronda) y perdón (condonar las deudas de los atrapados
 abajo). Súbelas y mira qué le pasa a la pirámide:
 
 <HumilityPyramid />
 
-Y el patrón se repite en cada tradición, cada una apuntando a una palanca distinta. El judaísmo escribió el
+Y el patrón se repite en cada tradición, cada una apuntando a un control distinto. El judaísmo escribió el
 reset en la ley: el año del Jubileo (Levítico 25) ordenaba que cada 50 años se perdonaran las deudas y la
 tierra volviera a las familias originales. Un reinicio institucional de la concentración, redactado hace
 unos 2.500 años, cuando faltaban milenios para que Piketty midiera por qué hace falta. Y el shabat le puso
@@ -803,13 +816,13 @@ freno a la carrera misma: un día de cada siete en que acumular está prohibido 
 
 El islam convirtió la redistribución en pilar obligatorio. El zakat toma alrededor del 2,5% de la riqueza
 acumulada (no del ingreso: del patrimonio que pasó un año guardado) y lo entrega cada año a los que están
-abajo. La palanca tres, como acto de fe y no como debate electoral. Y la prohibición de la usura (riba) va
+abajo. El control tres, como acto de fe y no como debate electoral. Y la prohibición de la usura (riba) va
 contra la bola de nieve directamente: sin interés compuesto, la ventaja de tener más deja de fabricarse
 ventaja sola mientras duermes.
 
 El budismo atacó por el otro extremo: el sensor. Su diagnóstico central dice que el deseo insaciable
-(tanha) es la raíz del sufrimiento, y su práctica entrena a bajarle el volumen desde adentro. Es la palanca
-uno aplicada al individuo, 2.500 años antes de que la psicología le pusiera instrumentos.
+(tanha) es la raíz del sufrimiento, y su práctica entrena a bajarle el volumen desde adentro. Es el control
+uno aplicado al individuo, 2.500 años antes de que la psicología le pusiera instrumentos.
 
 Y el sijismo la volvió teatro: en el langar, el comedor de cada templo, todos comen sentados en el suelo,
 al mismo nivel, la misma comida, rey o mendigo, y todos sirven por turnos. Una demolición de la pirámide
@@ -820,37 +833,76 @@ células de la máquina, con sensores encendidos y tratos repetidos, y varias te
 exactamente las pirámides que predicaban desmontar. La Iglesia medieval llegó a poseer entre un cuarto y un
 tercio de la tierra cultivada de Europa occidental, con jerarquías doradas administrando el mensaje de los
 mansos. El Jubileo, hasta donde sabemos, casi nunca se aplicó del todo. Nada de eso refuta el modelo; lo
-confirma dos veces. El mensaje descubrió las palancas, y la institución que lo cargaba siguió siendo presa
-de la máquina, porque las palancas hay que moverlas y ninguna célula queda exenta por predicarlas.
+confirma dos veces. El mensaje descubrió los controles, y la institución que lo cargaba siguió siendo presa
+de la máquina, porque los controles hay que moverlos y ninguna célula queda exenta por predicarlas.
 
 <RealCases
-  title="las palancas, escritas hace milenios"
+  title="los controles, escritos hace milenios"
   items={[
-    { y: '~s. VI a.C.', t: 'El Jubileo (Levítico 25)', d: 'Cada 50 años, las deudas se perdonaban y la tierra volvía a sus familias originales. Un reset institucional de la concentración, escrito hace unos 2.500 años. Que apenas haya registros de su aplicación plena también enseña: la palanca era correcta y la colina de moverla, altísima.' },
+    { y: '~s. VI a.C.', t: 'El Jubileo (Levítico 25)', d: 'Cada 50 años, las deudas se perdonaban y la tierra volvía a sus familias originales. Un reset institucional de la concentración, escrito hace unos 2.500 años. Que apenas haya registros de su aplicación plena también enseña: el control era correcto y la colina de moverlo, altísima.' },
     { y: 's. VII', t: 'El zakat', d: 'Pilar obligatorio del islam: alrededor del 2,5% de la riqueza acumulada (del patrimonio, no del ingreso) se redistribuye cada año a los de abajo. Redistribución estructural como acto de fe, operando de forma continua desde hace catorce siglos.' },
     { y: 's. XVI-hoy', t: 'El langar sij', d: 'En cada templo, un comedor gratuito donde todos comen lo mismo, sentados al mismo nivel, y todos sirven por turnos. El Templo Dorado de Amritsar alimenta decenas de miles de personas al día. Anti-pirámide ensayada en cada comida, durante cinco siglos.' },
     { y: '1996', t: 'El perdón como política (Sudáfrica)', d: 'La Comisión de la Verdad y Reconciliación, presidida por el arzobispo Tutu, cambió venganza por verdad confesada en público. Perdón institucionalizado tras décadas de apartheid, en un país donde casi todos esperaban la guerra civil. El ciclo del ojo por ojo, cortado por diseño.' },
-    { y: 's. XI-XVI', t: 'La contracara: la Iglesia medieval', d: 'La institución que predicaba que los últimos serían los primeros llegó a poseer entre un cuarto y un tercio de la tierra cultivada de Europa occidental. El mensaje descubrió las palancas; la célula que lo cargaba siguió presa de la máquina. La tensión confirma el modelo, no lo refuta.' },
+    { y: 's. XI-XVI', t: 'La contracara: la Iglesia medieval', d: 'La institución que predicaba que los últimos serían los primeros llegó a poseer entre un cuarto y un tercio de la tierra cultivada de Europa occidental. El mensaje descubrió los controles; la célula que lo cargaba siguió presa de la máquina. La tensión confirma el modelo, no lo refuta.' },
   ]}
 />
 
 <PersonaCases
-  title="las palancas más antiguas, de cerca"
+  title="los controles más antiguos, de cerca"
   items={[
     { t: 'Una persona que perdonó una deuda familiar imposible de cobrar.', d: 'El dinero ya estaba perdido; lo que seguía cobrando intereses era el rencor, en cada Navidad y en cada silencio. Perdonar no le devolvió la plata: le apagó un ciclo que llevaba años extrayendo energía de toda la familia. El Jubileo, en tamaño sobremesa.' },
     { t: 'Una persona humilde en un puesto alto,', d: 'que reparte el crédito, admite lo que no sabe y almuerza con los practicantes. A su alrededor la gente comparte información en vez de acapararla, porque trepar dejó de ser la única moneda. La pirámide no se forma donde la cima se niega a comportarse como cima.' },
-    { t: 'Una persona que da un porcentaje fijo de lo que tiene, todos los años, sin anunciarlo.', d: 'No espera sentirse generosa ni que la causa la conmueva: es una regla, como el zakat. Las palancas que dependen del estado de ánimo se mueven poco; las que son hábito se mueven solas.' },
+    { t: 'Una persona que da un porcentaje fijo de lo que tiene, todos los años, sin anunciarlo.', d: 'No espera sentirse generosa ni que la causa la conmueva: es una regla, como el zakat. Los controles que dependen del estado de ánimo se mueven poco; las que son hábito se mueven solas.' },
   ]}
 />
 
-Leídas así, las religiones son tecnología social: paquetes de palancas con milenios de pruebas de campo, en
+Leídas así, las religiones son tecnología social: paquetes de controles con milenios de pruebas de campo, en
 todos los climas y a todas las escalas. No hace falta fe para reconocer la ingeniería. Hace falta, apenas,
 dejar de suponer que los que vinieron antes no habían visto la máquina.
 
 **El verdadero obstáculo no es el destino, es el camino.** Sabemos a dónde ir. El problema es que en medio
 hay un **valle**: a mitad de camino, ser egoísta todavía paga más que cooperar. Cruzar ese valle (que es,
-literalmente, una barrera de energía de activación) es todo el desafío político. Por eso fracasan los "ismos"
-que asumen que la gente ya es buena. No hay gente pura; hay sensores de escasez encendidos en distinto grado.
+literalmente, una barrera de energía de activación) es todo el desafío político. Por eso fracasan las
+ideologías que asumen que la gente ya es buena. No hay gente pura; hay sensores de escasez encendidos en
+distinto grado.
+
+### La solución final: por qué eliminar al egoísta nunca funciona
+
+Hay una tentación que reaparece en cada crisis, y conviene desarmarla porque es la más peligrosa de todas.
+Si el problema es que algunos acaparan, rompen la cooperación y hunden al resto, ¿por qué no simplemente
+eliminarlos? Identificar a los codiciosos, a los parásitos, a los enemigos del pueblo, y quitarlos del mapa.
+Suena a solución definitiva. La historia la ha probado muchas veces, siempre con el mismo final, y el modelo
+explica por qué.
+
+El error está en [la primera pieza del ensayo](#01--todo-empieza-con-la-escasez). El "egoísta" no es un tipo
+de persona defectuosa que se pueda extirpar como un tumor. Es un estado del sensor de escasez, y ese sensor
+lo tenemos todos. Bajo suficiente escasez y miedo, casi cualquiera lo enciende. Por eso, cuando una sociedad
+se propone eliminar a los que acaparan, pasan dos cosas a la vez. Primero, el acto de cazar y matar a una
+categoría entera de gente dispara la escasez y el miedo al máximo, que es justo el combustible de la máquina.
+Y segundo, entre los que quedan, los sensores se encienden más que nunca, porque ahora sobrevivir depende de
+denunciar antes de ser denunciado. La purga no apaga la máquina. La pone a fondo.
+
+<RealCases
+  title="cada intento de extirpar al culpable, y en qué terminó"
+  items={[
+    { y: '1793-94', t: 'El Terror (Revolución Francesa)', d: 'En nombre de la "república de la virtud" se guillotinó a los "enemigos del pueblo" por miles. El terror no distingue entre revolucionario puro y enemigo: bajo esa lógica todos son sospechosos, y terminó guillotinando a su propio arquitecto, Robespierre.' },
+    { y: '1929-33', t: 'Los kulaks (URSS)', d: 'Stalin declaró clase enemiga a los campesinos que tenían un poco más y los deportó o dejó morir de hambre (el Holodomor mató a millones). El resultado no fue igualdad: fue una nueva élite, la nomenklatura, sobre un campo arrasado.' },
+    { y: '1941-45', t: 'La "solución final" nazi', d: 'El nombre es literal. El régimen definió a una categoría de personas como la causa de todos los males y montó una maquinaria industrial para exterminarla. El genocidio más documentado de la historia, y el ejemplo extremo de a dónde lleva la idea de borrar a "los culpables".' },
+    { y: '1966-76', t: 'La Revolución Cultural (China)', d: 'Se cazó a los "elementos burgueses" con vecinos, alumnos e hijos denunciándose entre sí. El sensor a fondo: sobrevivía quien acusaba primero. No nació una sociedad nueva; nació el miedo como forma de vida.' },
+    { y: '1975-79', t: 'El Año Cero (Camboya)', d: 'Los Jemeres Rojos quisieron reiniciar la sociedad desde cero eliminando a intelectuales, comerciantes y hasta a quien usara lentes. Murió cerca de un cuarto del país. La utopía sin escasez, buscada matando a todos los que "sobraban".' },
+  ]}
+/>
+
+Fíjate en lo que comparten. Ninguno empezó con villanos de caricatura: empezaron con un diagnóstico correcto
+(había desigualdad, había abuso, había una élite que extraía) y una conclusión falsa, que la cura era quitar
+del medio a una categoría de personas. Y todos terminaron levantando la pirámide que decían combatir, ahora
+con un aparato de terror en la cima. Quien dirige la purga se convierte en el nuevo acaparador de lo único
+que quedó escaso: la seguridad de no ser el próximo.
+
+Por eso el modelo empuja hacia el lado contrario. La salida no es encontrar y borrar a los malos, sino bajar
+la escasez que enciende los sensores, para que menos gente los tenga a tope. Es más lento, es menos épico y
+no da la satisfacción de un enemigo derrotado. Pero es lo único que, medido a lo largo de la historia, ha
+dejado una sociedad más habitable en vez de un cementerio.
 
 > **▸ La imagen final.** La pregunta madura no es "¿cómo eliminamos a los egoístas?" (eso es imposible y,
 > cuando se ha intentado, termina en catástrofe). Es: **"¿cómo mantenemos la escasez lo bastante baja, el
@@ -867,14 +919,27 @@ millones de sensores de escasez adentro, compitiendo por todo a la vez.
 
 Compiten por escaseces **reales**: chips, tierras raras, energía, talento, mercados. Y compiten por la
 escasez **posicional** perfecta: el puesto de potencia número uno. Ese bien es escaso *por definición*: solo
-uno puede ser el primero. La sección 08 avisaba que, resuelta una escasez, la pelea sube un piso; esta es el
+uno puede ser el primero. La [sección 08](#08--pasa-a-muchas-escalas-como-un-parecido-de-familia) avisaba que, resuelta una escasez, la pelea sube un piso; esta es el
 último piso. Y las piezas del ensayo aparecen todas, sin forzar ninguna:
 
-- **Escasez fabricada, a escala de Estado.** Los controles de exportación de chips son la sección 05 con bandera: no falta la cosa, falta el *permiso*. Cada control provoca la respuesta espejo (restricciones a tierras raras), y la escasez fabricada de uno enciende el sensor del otro.
-- **El ciclo de Dalio, en vivo.** Un imperio establecido en la parte tardía de su curva frente a uno ascendente en la temprana. Graham Allison contó los casos: de 16 veces en la historia en que una potencia ascendente alcanzó a la establecida, **12 terminaron en guerra**. Esa es la estadística de partida. No es destino; es lo que pasa cuando nadie toca las palancas.
-- **Las pirámides internas empujan hacia afuera.** Los dos países llegan a este choque con desigualdad interna alta, y la sección 04 explica lo que sigue: cuando la pirámide aprieta adentro, el nacionalismo es la válvula más barata. Señalar al rival externo cuesta menos energía que redistribuir adentro. La presión externa no llega a pesar de los problemas internos; en realidad se *alimenta* de ellos, en ambos lados.
-- **La trampa sin salida individual.** En armas y en IA, los dos ven el buen equilibrio (frenar la carrera) y ninguno puede moverse primero sin sentir que pierde. No hace falta un villano; bastan dos actores racionales con el sensor encendido. Es la trampa de Moloch de la sección 14, en su versión más peligrosa.
+- **Escasez fabricada, a escala de Estado.** Los controles de exportación de chips son la [sección 05](#05--cuando-no-hay-escasez-se-fabrica) con bandera: no falta la cosa, falta el *permiso*. Cada control provoca la respuesta espejo (restricciones a tierras raras), y la escasez fabricada de uno enciende el sensor del otro.
+- **El ciclo de Dalio, en vivo.** Un imperio establecido en la parte tardía de su curva frente a uno ascendente en la temprana. Graham Allison contó los casos: de 16 veces en la historia en que una potencia ascendente alcanzó a la establecida, **12 terminaron en guerra**. Esa es la estadística de partida. No es destino; es lo que pasa cuando nadie toca los controles.
+- **Las pirámides internas empujan hacia afuera.** Los dos países llegan a este choque con desigualdad interna alta, y la [sección 04](#04--por-qué-la-pirámide-es-la-tendencia-por-defecto) explica lo que sigue: cuando la pirámide aprieta adentro, el nacionalismo es la válvula más barata. Señalar al rival externo cuesta menos energía que redistribuir adentro. La presión externa no llega a pesar de los problemas internos; en realidad se *alimenta* de ellos, en ambos lados.
+- **La trampa sin salida individual.** En armas y en IA, los dos ven el buen equilibrio (frenar la carrera) y ninguno puede moverse primero sin sentir que pierde. No hace falta un villano; bastan dos actores racionales con el sensor encendido. Es la trampa de Moloch de la [sección 14](#14--el-modelo-se-conecta-con-las-grandes-ideas), en su versión más peligrosa.
 - **La energía de activación.** Cambiar de rumbo cuesta hoy (industrias, votos, prestigio) y paga mañana. Los dos gobiernos están en un valle malo que ambos conocen, separados del bueno por una colina que ninguno quiere subir primero.
+
+Ese segundo punto tiene nombre desde hace 2.400 años y conviene detenerse en él, porque es la parte más
+peligrosa de todo el ensayo. El historiador griego **Tucídides** observó que la Guerra del Peloponeso no la
+causó ni la maldad de Atenas ni la de Esparta, sino un mecanismo: "fue el ascenso de Atenas y el miedo que
+provocó en Esparta lo que hizo la guerra inevitable". Cuando una potencia que sube alcanza a la que está
+arriba, el miedo mutuo hace el resto. El politólogo Graham Allison revisó los últimos cinco siglos y contó 16
+veces que esto pasó: en 12 terminó en guerra. Esto no es historia lejana. En su cumbre con Trump en Beijing,
+hace unas semanas, [Xi Jinping le advirtió directamente sobre "la llamada trampa de Tucídides"](https://theconversation.com/xi-warned-trump-against-the-thucydides-trap-heres-what-ancient-greece-can-tell-us-about-us-china-relations-283106),
+justo antes de hablar de Taiwán. Que el líder de una de las dos potencias nombre la trampa en voz alta es, a
+la vez, la mejor señal (la ven venir) y la más inquietante (verla no basta para salir). Dibujé el mecanismo,
+con cinco sobrepasos históricos que puedes recorrer:
+
+<ThucydidesTrap />
 
 **Lo que el modelo predice si nadie hace nada** no es misterioso, porque ya se corrió cientos de veces:
 escalada por espejo, el mundo partido en bloques que fabrican escasez mutua, el "nosotros" de cada lado
@@ -883,12 +948,12 @@ cambia todo: las vueltas anteriores del ciclo colapsaban un imperio y la escaler
 con armas nucleares e inteligencia artificial. **El colapso ya no sería local.** No hay "vuelta a empezar"
 garantizada un piso más arriba.
 
-Entonces, ¿qué se hace? No amistad, porque eso sería pedir un "hombre nuevo" a escala de superpotencia, y la sección 11 ya mostró cómo termina. La propuesta realista es otra: **gestionar la rivalidad**, con medidas que ya
+Entonces, ¿qué se hace? No amistad, porque eso sería pedir un "hombre nuevo" a escala de superpotencia, y la [sección 11](#11--el-mapa-de-una-sola-escala-por-qué-chocan-las-grandes-ideologías) ya mostró cómo termina. La propuesta realista es otra: **gestionar la rivalidad**, con medidas que ya
 funcionaron entre rivales que se apuntaban con misiles.
 
 1. **Reglas del juego explícitas, no confianza.** Con la URSS funcionó: línea directa en 1963, tratados de armas, protocolos para incidentes en el mar en 1972. Nada de eso exigió afecto; exigió reconocer que a ninguno le convenía la guerra por accidente. Hoy: canales militares permanentes que no se cuelguen en cada crisis, y un acuerdo verificable de **no usar IA en decisiones de lanzamiento nuclear**. La declaración conjunta de 2024 sobre control humano es la semilla; falta convertirla en tratado.
 2. **Zonas de "nosotros" obligado.** Donde la escasez es compartida, la cooperación deja de ser idealismo y se vuelve interés puro. Clima, pandemias, seguridad de la IA: nadie gana esos solos. El precedente es demoledor: la viruela fue erradicada por un proyecto **conjunto de EE.UU. y la URSS en plena Guerra Fría**, y el Protocolo de Montreal funcionó con rivales adentro. Cada proyecto así mantiene abierto un canal cuando todo lo demás se cierra.
-3. **Bajar la pirámide interna para bajar la presión externa.** Si la desigualdad interna alimenta el nacionalismo, entonces redistribuir y garantizar seguridad básica son también **política de paz**, no solo política doméstica. Cada sensor de escasez que se apaga adentro es un votante menos pidiendo enemigos afuera. Esta palanca la controla cada país por su cuenta: no necesita permiso del rival, no tiene trampa.
+3. **Bajar la pirámide interna para bajar la presión externa.** Si la desigualdad interna alimenta el nacionalismo, entonces redistribuir y garantizar seguridad básica son también **política de paz**, no solo política doméstica. Cada sensor de escasez que se apaga adentro es un votante menos pidiendo enemigos afuera. Este control lo maneja cada país por su cuenta: no necesita permiso del rival, no tiene trampa.
 4. **No fabricar escasez del conocimiento donde no hace falta.** Restringir tecnología militar directa es rivalidad normal. Cerrar la *ciencia básica* (clima, salud, matemáticas) es escasez fabricada pura: empobrece a los dos sin proteger a ninguno. Apollo-Soyuz, la Estación Espacial Internacional y el CERN prueban que los rivales pueden dejar esa puerta abierta mientras compiten en todo lo demás.
 5. **El individuo no mira desde afuera.** Los "nosotros" gigantes están hechos de "nosotros" chicos: la máquina grande está hecha de máquinas chicas. A quién deshumanizas en redes, qué narrativa de "ellos" compras y repites: ese es, literalmente, el material del que los gobiernos fabrican el permiso para escalar. Ningún tratado sobrevive a dos poblaciones convencidas de que el otro no es humano.
 
@@ -906,9 +971,9 @@ con miles de misiles y aun así gestionaron la máquina:
   ]}
 />
 
-**El cierre honesto:** nada de esto elimina el ciclo. La sección 12 ya dio el veredicto: no hay solución
+**El cierre honesto:** nada de esto elimina el ciclo. La [sección 12](#12--entonces-tiene-solución) ya dio el veredicto: no hay solución
 final, estable y gratis. Lo que estas medidas hacen es más modesto y más valioso: mantener la rivalidad **por
-debajo del umbral de guerra** mientras las palancas internas hacen su trabajo lento. La Guerra Fría no tuvo
+debajo del umbral de guerra** mientras los controles internos hacen su trabajo lento. La Guerra Fría no tuvo
 final feliz; tuvo *gestión* (reglas, canales, proyectos compartidos) que evitó lo peor durante 45 años. Y
 eso bastó. Con esta máquina, a esta escala, ganar no significa apagar el fuego del rival, sino lograr que ninguno de los dos
 incendios queme la casa donde viven los dos.
@@ -925,7 +990,7 @@ desigualdad y cooperación. Seis piezas que encajan como un guante, y cada una e
 - **Moloch · la trampa multipolar.** Es el nombre del *valle*: aunque todos veamos el buen equilibrio, cada actor racional se ve forzado al malo, y desviarse primero te hace perder. Formaliza por qué "ya sabemos a dónde ir" no basta.
 - **Prigogine · el fuego, en serio.** Una sociedad viva es una *estructura disipativa*: se mantiene ordenada solo mientras disipa energía. El colapso no es un evento puntual; es lo que pasa por defecto cuando dejas de alimentar el fuego.
 - **Soros · reflexividad.** Lo que la gente cree *altera* aquello que supuestamente solo mide. El precio no solo refleja el valor: lo causa. Profecías autocumplidas, burbujas que se inflan porque todos creen que se inflarán.
-- **Preferencia temporal · el micro-motor.** "Cuánto se acapara" depende de cuánto vale el mañana comparado con el hoy para cada persona: si el futuro se siente incierto, lo racional es agarrar hoy todo lo que se pueda. Escasez e inseguridad vuelven el futuro incierto, y las emociones de la sección 02 son esto mismo, sentido desde adentro.
+- **Preferencia temporal · el micro-motor.** "Cuánto se acapara" depende de cuánto vale el mañana comparado con el hoy para cada persona: si el futuro se siente incierto, lo racional es agarrar hoy todo lo que se pueda. Escasez e inseguridad vuelven el futuro incierto, y las emociones de la [sección 02](#02--las-emociones-son-alarmas-de-escasez) son esto mismo, sentido desde adentro.
 
 ---
 
@@ -962,7 +1027,7 @@ lleva a un lugar donde empezar.
 - [Émile Durkheim, *El suicidio* (1897)](https://en.wikipedia.org/wiki/Suicide_%28Durkheim_book%29) : el primer estudio que conectó el suicidio con la estructura social.
 - [Thomas Joiner, teoría interpersonal del suicidio](https://en.wikipedia.org/wiki/Interpersonal_theory_of_suicide) : pertenencia frustrada y percepción de ser una carga.
 - [Martin Seligman e indefensión aprendida](https://es.wikipedia.org/wiki/Indefensi%C3%B3n_aprendida) : el sistema que deja de intentar.
-- [Viktor Frankl, *El hombre en busca de sentido*](https://es.wikipedia.org/wiki/El_hombre_en_busca_de_sentido) : el rumbo como palanca de supervivencia.
+- [Viktor Frankl, *El hombre en busca de sentido*](https://es.wikipedia.org/wiki/El_hombre_en_busca_de_sentido) : el rumbo como control de supervivencia.
 - [Benedict Anderson, *Comunidades imaginadas*](https://es.wikipedia.org/wiki/Comunidades_imaginadas) : la imprenta que fijó el tamaño del "nosotros".
 - [Elinor Ostrom y la gobernanza policéntrica](https://es.wikipedia.org/wiki/Elinor_Ostrom) : muchas escalas de decisión a la vez.
 - [Edward Glaeser y Joseph Gyourko, "The Impact of Zoning" (NBER)](https://www.nber.org/papers/w8835) : el precio de la vivienda como precio del permiso.
@@ -972,5 +1037,5 @@ lleva a un lugar donde empezar.
 - [Maynard Smith y Szathmáry, *Las grandes transiciones evolutivas*](https://en.wikipedia.org/wiki/The_Major_Transitions_in_Evolution) : células dentro de células, desde el origen de la vida.
 - [Ludwig Wittgenstein y el parecido de familia](https://en.wikipedia.org/wiki/Family_resemblance) : la misma forma sin una única causa.
 
-Todo el modelo corre localmente en tu navegador: una máquina, muchas escalas, dos palancas fundamentales, la
+Todo el modelo corre localmente en tu navegador: una máquina, muchas escalas, dos controles fundamentales, la
 escasez (dónde están los valles) y la energía (si puedes salir).

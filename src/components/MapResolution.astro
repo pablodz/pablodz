@@ -2,9 +2,11 @@
 /**
  * Paso 10 · Resolución del mapa de células: de un bloque a muchas escalas.
  * La resolución funciona como el foco de una lente: cada nivel entra con
- * fundido y desenfoque simulado (trazos con jitter que convergen a un trazo
- * nítido), y al cruzar cada umbral un anillo de pulso recorre el nivel
- * recién revelado. Si nadie toca el slider, la lente respira sola.
+ * fundido y desenfoque simulado (trazos con jitter y halo óptico que
+ * convergen a un trazo nítido), y al cruzar cada umbral un anillo de pulso
+ * recorre el nivel recién revelado. Un visor con esquinas y viñeta de
+ * profundidad de campo encuadra la escena y se cierra al enfocar fino.
+ * Si nadie toca el slider, la lente respira sola.
  */
 ---
 
@@ -84,6 +86,7 @@
         x.globalAlpha = a; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.stroke();
       } else {
         const j = (1 - f) * 7 + 1;
+        x.shadowColor = col; x.shadowBlur = (1 - f) * 10; // halo óptico que se resuelve al enfocar
         for (let i = 0; i < 3; i++) {
           const ph = now * 0.0011 + i * 2.09 + r * 0.13;
           x.globalAlpha = a * (0.16 + 0.5 * f);
@@ -91,6 +94,7 @@
           x.arc(cx + Math.cos(ph) * j, cy + Math.sin(ph * 1.37) * j, Math.max(1, r + Math.sin(ph * 0.7) * j * 0.5), 0, 7);
           x.stroke();
         }
+        x.shadowBlur = 0;
       }
       x.globalAlpha = 1;
     }
@@ -135,6 +139,13 @@
         x.globalAlpha = 1;
       });
 
+      // Viñeta de profundidad de campo: al enfocar fino, el borde del campo se oscurece.
+      const vig = 0.1 + 0.34 * fD;
+      const grd = x.createRadialGradient(X(0.5), Y(0.5), S * 0.22, X(0.5), Y(0.5), S * 0.66);
+      grd.addColorStop(0, 'rgba(0,0,0,0)');
+      grd.addColorStop(1, `rgba(4,7,9,${vig})`);
+      x.fillStyle = grd; x.fillRect(0, 0, w, h);
+
       // Anillos de pulso: ping de radar sobre el nivel recién revelado.
       for (let i = pulses.length - 1; i >= 0; i--) {
         const p = pulses[i], age = (now - p.t0) / 950;
@@ -158,14 +169,25 @@
       });
       x.textAlign = 'left'; x.globalAlpha = 1;
 
+      // Visor de lente: las esquinas se cierran y afinan a medida que la resolución enfoca.
+      const focv = ss(15, 95, res), inset = 24 - 9 * focv, bl = 11 + 7 * focv;
+      x.strokeStyle = COL.orange; x.lineWidth = 1.2; x.globalAlpha = 0.22 + 0.5 * focv;
+      ([[1, 1], [-1, 1], [1, -1], [-1, -1]] as const).forEach(([sx, sy]) => {
+        const bx = sx > 0 ? inset : w - inset, by = sy > 0 ? inset : h - inset;
+        x.beginPath(); x.moveTo(bx, by + sy * bl); x.lineTo(bx, by); x.lineTo(bx + sx * bl, by); x.stroke();
+      });
+      x.globalAlpha = 0.75; x.font = '9px "JetBrains Mono", monospace'; x.fillStyle = COL.orange;
+      x.fillText('FOCO ' + Math.round(res) + '%', inset, h - inset + 13);
+      x.globalAlpha = 1;
+
       // Lecturas: mismas 4 fases y mensajes de siempre, guiadas por el valor mostrado.
       const nl = res < 33 ? 'baja' : res < 66 ? 'media' : 'alta';
       if (nl !== lastLv) { lastLv = nl; lv.textContent = nl; }
       let lab: string, c: string, msg: string;
-      if (res < 30) { lab = 'Mapa borroso'; c = COL.yellow; msg = 'El mundo parece <b>un solo bloque</b> → parece que un solo ismo basta.'; }
-      else if (res < 60) { lab = 'Aparecen naciones y clases'; c = COL.blue; msg = 'Se ven <b>grandes grupos</b> → aquí nacieron los ismos clásicos (nación, clase, mercado).'; }
-      else if (res < 85) { lab = 'Aparecen tribus y redes'; c = COL.purple; msg = 'El mundo son <b>células dentro de células</b> → ningún ismo de escala única alcanza.'; }
-      else { lab = 'Alta resolución'; c = COL.green; msg = 'Se ven <b>todas las escalas a la vez</b> → la salida es <b>una palanca por escala</b> (policéntrico).'; }
+      if (res < 30) { lab = 'Mapa borroso'; c = COL.yellow; msg = 'El mundo parece <b>un solo bloque</b> → parece que una sola idea basta.'; }
+      else if (res < 60) { lab = 'Aparecen naciones y clases'; c = COL.blue; msg = 'Se ven <b>grandes grupos</b> → aquí nacieron las ideologías clásicas (nación, clase, mercado).'; }
+      else if (res < 85) { lab = 'Aparecen tribus y redes'; c = COL.purple; msg = 'El mundo son <b>células dentro de células</b> → ninguna ideología de escala única alcanza.'; }
+      else { lab = 'Alta resolución'; c = COL.green; msg = 'Se ven <b>todas las escalas a la vez</b> → la salida es <b>un control por escala</b> (policéntrico).'; }
       if (lab !== lastLab) { lastLab = lab; st.textContent = lab; st.style.color = c; st.style.borderColor = c; ro.innerHTML = msg; }
     }
 

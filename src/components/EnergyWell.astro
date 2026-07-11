@@ -143,6 +143,15 @@
       const dt = Math.min(0.05, (now - lastT) / 1000 || 0); lastT = now;
       if (mode === 'idle') {
         charge = Math.min(1, charge + dt * 0.22);
+        /* Respira sola: leve vaivén mientras recupera fuerzas, y un temblor
+           creciente en los instantes previos al intento (toma aire). */
+        if (!reduced) {
+          const br = now / 1000;
+          yOff = Math.sin(br * 1.7) * 1.3;
+          squash = 0.05 + 0.035 * Math.sin(br * 1.7 + Math.PI);
+          const toGo = attemptAt - now;
+          if (toGo > 0 && toGo < 640) squash += (1 - toGo / 640) * 0.11 * Math.abs(Math.sin(now / 46));
+        }
         if (now >= attemptAt) startAttempt(now);
       } else if (mode === 'squat') {
         /* Anticipación: pequeña sentadilla antes de lanzarse. */
@@ -180,6 +189,9 @@
         ballU = RIGHT * e;
         trail.push({ u: ballU, a: 0.9 });
         if (k >= 1) { ballU = RIGHT; mode = 'rest'; status(); syncBtn(); }
+      } else if (mode === 'rest') {
+        /* Descansa en el valle bueno, respirando tranquila. */
+        if (!reduced) { const br = now / 1000; yOff = Math.sin(br * 1.5) * 1.6; squash = 0.05 + 0.03 * Math.sin(br * 1.5 + Math.PI); }
       }
       for (const t of trail) t.a -= dt * 1.4;
       while (trail.length && trail[0].a <= 0) trail.shift();

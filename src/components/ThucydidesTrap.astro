@@ -1,0 +1,183 @@
+---
+/**
+ * La trampa de Tucídides: cuando una potencia ascendente alcanza a una
+ * establecida, el miedo mutuo empuja a la guerra. Dos curvas de poder que
+ * se cruzan, una zona de peligro en el cruce, y casos históricos clicables.
+ */
+---
+
+<figure class="thuc panel">
+  <figcaption class="thuc-head">
+    <span class="thuc-title">◢ LA TRAMPA DE TUCÍDIDES</span>
+    <span class="thuc-phase" data-phase>el momento del sobrepaso</span>
+  </figcaption>
+
+  <div class="thuc-chart">
+    <svg data-svg viewBox="0 0 900 340" role="img"
+      aria-label="Dos curvas de poder que se cruzan: una potencia establecida que declina y una ascendente que sube"></svg>
+  </div>
+
+  <div class="thuc-cases" data-cases></div>
+  <div class="readout" data-ro></div>
+
+  <div class="thuc-stat">
+    <span class="thuc-stat-lab">16 veces en 500 años una potencia ascendente alcanzó a la de arriba:</span>
+    <span class="thuc-dots" data-dots></span>
+    <span class="thuc-stat-val"><b>12</b> terminaron en guerra</span>
+  </div>
+
+  <div class="thuc-foot">EL MODELO NO DICE QUE LA GUERRA SEA SEGURA. DICE QUE ES EL CAMINO POR DEFECTO SI NADIE LO EVITA</div>
+</figure>
+
+<script>
+  import { COL } from '../lib/machine';
+
+  interface Caso {
+    tab: string;
+    zona: string; // color de la zona de cruce
+    ro: string;
+  }
+
+  const CASOS: Caso[] = [
+    {
+      tab: 'Atenas vs Esparta', zona: COL.red,
+      ro: 'El caso que le dio nombre. El historiador <b>Tucídides</b> escribió en el siglo V a.C. que "fue el ascenso de Atenas y el miedo que provocó en Esparta lo que hizo la guerra inevitable". La Guerra del Peloponeso arruinó a las dos.',
+    },
+    {
+      tab: 'Alemania vs R. Unido', zona: COL.red,
+      ro: 'Hacia 1900, una Alemania industrial ascendente alcanzó al Imperio británico. El miedo mutuo, las alianzas y una carrera naval terminaron en la <b>Primera Guerra Mundial</b>. La máquina subió un piso, con trincheras.',
+    },
+    {
+      tab: 'EE.UU. vs R. Unido', zona: COL.green,
+      ro: 'A inicios del siglo XX, EE.UU. superó a Gran Bretaña <b>sin guerra</b>. Uno de los pocos sobrepasos pacíficos: un "nosotros" compartido (idioma, cultura, y un enemigo común más tarde) permitió el relevo sin sangre. Se puede, pero es raro.',
+    },
+    {
+      tab: 'EE.UU. vs URSS', zona: COL.yellow,
+      ro: 'La Guerra Fría fue un sobrepaso <b>gestionado</b>: 45 años sin guerra directa entre las dos potencias, con reglas explícitas, canales y proyectos compartidos (sección 13). No hubo final feliz, hubo administración que evitó lo peor.',
+    },
+    {
+      tab: 'China vs EE.UU. (hoy)', zona: COL.orange,
+      ro: 'El sobrepaso que estamos viviendo. Es el <b>único caso cuyo final nadie ha visto</b>. Xi Jinping ha citado la trampa de Tucídides más de una vez para advertir que no es un destino: los errores de cálculo son los que la fabrican. Cuál de los caminos de arriba tomará, se decide ahora.',
+    },
+  ];
+
+  const NS = 'http://www.w3.org/2000/svg';
+  function el(tag: string, attrs: Record<string, string | number>, parent: Element) {
+    const n = document.createElementNS(NS, tag);
+    for (const k in attrs) n.setAttribute(k, String(attrs[k]));
+    parent.appendChild(n);
+    return n;
+  }
+
+  function init(root: HTMLElement) {
+    const svg = root.querySelector<SVGSVGElement>('[data-svg]')!;
+    const casesEl = root.querySelector<HTMLElement>('[data-cases]')!;
+    const ro = root.querySelector<HTMLElement>('[data-ro]')!;
+    const dotsEl = root.querySelector<HTMLElement>('[data-dots]')!;
+
+    // 16 puntos: 12 rojos (guerra), 4 verdes (paz).
+    for (let i = 0; i < 16; i++) {
+      const d = document.createElement('i');
+      d.style.background = i < 12 ? COL.red : COL.green;
+      dotsEl.appendChild(d);
+    }
+
+    const P = 30, W = 900, H = 340;
+    const x0 = P + 20, x1 = W - P, yb = H - 44, yt = 28;
+    const X = (t: number) => x0 + (x1 - x0) * t;
+    const Y = (v: number) => yb - (yb - yt) * v;
+    // Potencia establecida: alta y declina suave. Ascendente: sube empinada.
+    const est = (t: number) => 0.86 - 0.42 * t;
+    const asc = (t: number) => 0.12 + 0.95 * t * t;
+    // cruce aproximado (asc = est)
+    let tc = 0.5;
+    for (let i = 0; i <= 200; i++) { const t = i / 200; if (asc(t) >= est(t)) { tc = t; break; } }
+
+    let cur = 4;
+
+    function draw() {
+      svg.innerHTML = '';
+      const zona = CASOS[cur].zona;
+      // ejes
+      el('line', { x1: x0, y1: yb, x2: x1, y2: yb, stroke: '#3a3a44', 'stroke-width': 1.5 }, svg);
+      // banda de peligro alrededor del cruce
+      const bw = 70;
+      el('rect', { x: X(tc) - bw / 2, y: yt - 6, width: bw, height: yb - yt + 6,
+        fill: zona, opacity: 0.14 }, svg);
+      el('line', { x1: X(tc), y1: yt - 6, x2: X(tc), y2: yb, stroke: zona,
+        'stroke-width': 1.4, 'stroke-dasharray': '4 4', opacity: 0.8 }, svg);
+      // curvas
+      function path(f: (t: number) => number, color: string, wdt: number) {
+        let d = '';
+        for (let i = 0; i <= 120; i++) { const t = i / 120; d += (i ? 'L' : 'M') + X(t).toFixed(1) + ' ' + Y(f(t)).toFixed(1) + ' '; }
+        el('path', { d, fill: 'none', stroke: color, 'stroke-width': wdt }, svg);
+      }
+      path(est, COL.blue, 3);
+      path(asc, COL.orange, 3);
+      // punto de cruce
+      el('circle', { cx: X(tc), cy: Y(est(tc)), r: 6, fill: zona, stroke: '#0a0a0c', 'stroke-width': 2 }, svg);
+      // etiquetas
+      const t = (x: number, y: number, s: string, c: string, anchor = 'start', size = 13) => {
+        const n = el('text', { x, y, fill: c, 'font-family': "'JetBrains Mono', monospace",
+          'font-size': size, 'text-anchor': anchor }, svg);
+        n.textContent = s;
+      };
+      t(X(0.02), Y(est(0.02)) - 12, 'potencia establecida', COL.blue, 'start');
+      t(X(0.62), Y(asc(0.62)) + 4, 'potencia ascendente', COL.orange, 'start');
+      t(X(tc), yb + 26, 'el sobrepaso', zona, 'middle', 12);
+      t(x0, yb + 26, 'tiempo →', COL.muted, 'start', 11);
+      t(x0 - 6, yt, 'poder', COL.muted, 'start', 11);
+      // eje de miedo
+      const fear = el('text', { x: X(tc), y: yt - 12, fill: zona, 'font-family': "'JetBrains Mono', monospace",
+        'font-size': 12, 'text-anchor': 'middle', 'font-weight': 700 }, svg);
+      fear.textContent = 'zona de miedo mutuo';
+    }
+
+    CASOS.forEach((c, i) => {
+      const b = document.createElement('button');
+      b.textContent = c.tab;
+      b.onclick = () => { cur = i; show(); };
+      casesEl.appendChild(b);
+    });
+
+    function show() {
+      casesEl.querySelectorAll('button').forEach((b, i) => b.classList.toggle('on', i === cur));
+      ro.innerHTML = CASOS[cur].ro;
+      draw();
+    }
+
+    window.addEventListener('resize', draw);
+    show();
+  }
+  document.querySelectorAll<HTMLElement>('.thuc').forEach(init);
+</script>
+
+<style>
+  .thuc { padding: 1rem 1.2rem 0.8rem; margin-block: 2.5rem; }
+  .thuc-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
+  .thuc-title { color: var(--orange-bright); font-size: 0.78rem; letter-spacing: 0.3em; text-transform: uppercase; }
+  .thuc-phase { font-size: 0.68rem; letter-spacing: 0.15em; color: var(--muted); }
+  .thuc-chart { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .thuc-chart svg { display: block; width: 100%; }
+  @media (max-width: 700px) { .thuc-chart svg { min-width: 640px; } }
+  .thuc-cases { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.9rem; }
+  .thuc-cases :global(button) {
+    background: var(--bg-panel-2); color: var(--text); border: 1px solid var(--line);
+    padding: 0.4rem 0.7rem; font-family: var(--font-mono); font-size: 0.68rem;
+    letter-spacing: 0.06em; cursor: pointer;
+  }
+  .thuc-cases :global(button:hover) { border-color: var(--orange); color: var(--orange-bright); }
+  .thuc-cases :global(button.on) { background: var(--orange); color: #000; font-weight: 700; border-color: var(--orange); }
+  .readout { font-size: 0.8rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.65rem 0.8rem; margin-top: 0.8rem; line-height: 1.7; min-height: 4.6em; }
+  .readout :global(b) { color: var(--text); }
+  .thuc-stat { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; margin-top: 0.9rem; font-size: 0.72rem; color: var(--muted); }
+  .thuc-stat-val b { color: var(--red); }
+  .thuc-dots { display: inline-flex; gap: 3px; }
+  .thuc-dots :global(i) { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .thuc-foot { margin-top: 0.8rem; padding-top: 0.5rem; border-top: 1px dashed var(--line); font-size: 0.58rem; letter-spacing: 0.22em; color: var(--muted); }
+  @media (min-width: 900px) {
+    .thuc-chart svg { max-width: 1000px; margin: 0 auto; }
+    .readout { font-size: 0.88rem; }
+    .thuc-cases :global(button) { font-size: 0.75rem; padding: 0.45rem 0.85rem; }
+  }
+</style>

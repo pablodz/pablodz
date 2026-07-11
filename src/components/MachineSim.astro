@@ -1,7 +1,7 @@
 ---
 /**
  * El motor de la máquina, corriendo en vivo: cooperación → excedente →
- * concentración → colapso → reinicio. Sliders para las 4 palancas + presets.
+ * concentración → colapso → reinicio. Sliders para los 4 controles + presets.
  * Gráfico de líneas con Chart.js (actualización en vivo); pirámide en canvas.
  */
 ---
@@ -38,7 +38,7 @@
       <div class="msim-readout" data-ro></div>
     </div>
   </div>
-  <div class="msim-foot">SIMULACIÓN EN VIVO · MUEVE LAS PALANCAS</div>
+  <div class="msim-foot">SIMULACIÓN EN VIVO · MUEVE LOS CONTROLES</div>
 </figure>
 
 <script>
@@ -110,7 +110,8 @@
           },
           yL: {
             position: 'left',
-            beginAtZero: true,
+            min: 0,
+            max: 10,
             title: { display: true, text: 'Prosperidad', color: '#ffcc33', font: FONT },
             ticks: { color: TICK, font: FONT },
             grid: { color: GRID },

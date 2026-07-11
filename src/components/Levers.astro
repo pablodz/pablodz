@@ -1,19 +1,19 @@
 ---
 /**
- * Las 4 palancas de la solución, aplicadas al modelo real. Enciende cada una
+ * Los 4 controles de la solución, aplicados al modelo real. Enciende cada una
  * y mira si la sociedad se estabiliza o sigue colapsando.
  *
  * Parámetros calibrados numéricamente (script en scratchpad) para que:
- *   0 palancas  -> ciclos violentos sostenidos (4 auges y colapsos visibles)
- *   1 palanca   -> mejora parcial (menos vaivén, aún sin prosperar)
- *   3-4 palancas -> próspera y estable
- * y añadir palancas nunca empeora el veredicto.
+ *   0 controles -> ciclos violentos sostenidos (4 auges y colapsos visibles)
+ *   1 control    -> mejora parcial (menos vaivén, aún sin prosperar)
+ *   3-4 controles -> próspera y estable
+ * y añadir controles nunca empeora el veredicto.
  */
 ---
 
 <figure class="lev panel">
   <figcaption class="lev-head">
-    <span class="lev-title">◢ PRUEBA LAS PALANCAS</span>
+    <span class="lev-title">◢ PRUEBA LOS CONTROLES</span>
     <span class="lev-phase" data-phase>···</span>
   </figcaption>
   <div class="lev-grid">
@@ -169,7 +169,7 @@
       let hint = '';
       if (stable) hint = '<br>El ciclo desapareció: la línea amarilla ya no se derrumba.';
       else if (amp > 4) hint = '<br>Cada pico termina en colapso.';
-      ro.innerHTML = `Palancas activas: <b>${count}/4</b> · prosperidad media: <b>${mean.toFixed(2)}</b> · vaivén del ciclo: <b style="color:${amp < 0.8 ? COL.green : COL.red}">${amp.toFixed(1)}</b>${hint}`;
+      ro.innerHTML = `Controles activos: <b>${count}/4</b> · prosperidad media: <b>${mean.toFixed(2)}</b> · vaivén del ciclo: <b style="color:${amp < 0.8 ? COL.green : COL.red}">${amp.toFixed(1)}</b>${hint}`;
     }
 
     root.querySelectorAll<HTMLButtonElement>('[data-l]').forEach((b) => {

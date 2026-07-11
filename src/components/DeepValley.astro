@@ -1,8 +1,8 @@
 ---
 /**
  * El valle profundo: la depresión como un valle de energía muy hondo.
- * La bola está al fondo con la barra casi en cero. Cada palanca de
- * recuperación baja la pared o recarga energía. Con suficientes palancas
+ * La bola está al fondo con la barra casi en cero. Cada control de
+ * recuperación baja la pared o recarga energía. Con suficientes controles
  * encendidas, la bola sube la pared y baja al valle amplio de la derecha.
  */
 ---
@@ -24,7 +24,7 @@
       <button class="dv-reset" data-reset>Reiniciar</button>
     </div>
   </div>
-  <div class="dv-foot">LA SALIDA CASI NUNCA ES UNA SOLA COSA. SON VARIAS PALANCAS A LA VEZ</div>
+  <div class="dv-foot">LA SALIDA CASI NUNCA ES UNA SOLA COSA. SON VARIOS CONTROLES A LA VEZ</div>
 </figure>
 
 <script>
@@ -54,7 +54,7 @@
   ];
 
   const MSG_START =
-    'Cinco palancas. Cada una recarga un poco la barra y baja un poco la pared. El orden no importa; la suma sí.';
+    'Cinco controles. Cada uno recarga un poco la barra y baja un poco la pared. El orden no importa; la suma sí.';
 
   const GRAY = '#6f7d90';
 
@@ -163,7 +163,7 @@
         phase.textContent = 'EN EL FONDO · ENERGÍA CASI EN CERO';
         phase.style.color = COL.muted;
       } else {
-        phase.textContent = `${n}/5 PALANCAS · LA PARED ESTÁ BAJANDO`;
+        phase.textContent = `${n}/5 CONTROLES · LA PARED ESTÁ BAJANDO`;
         phase.style.color = COL.yellow;
       }
     }

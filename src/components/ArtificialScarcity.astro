@@ -224,6 +224,20 @@ s += `<text x="680" y="235" fill="#8f8b83" font-size="12" font-family="monospace
       if (hoarder) {
         const bob = build ? Math.sin(t * 16) * 1.4 : hMoving ? 0 : Math.sin(t * 4) * 0.8;
         const sw = hMoving ? Math.sin(hWalk * 0.45) * 3 : build ? Math.sin(t * 14) * 1.5 : 0;
+        // Brazos de agarre: mientras cierra la cerca, clava las manos en las
+        // esquinas del lote y tiembla del esfuerzo. Cercar es un acto físico.
+        if (build) {
+          const bi = build.idx;
+          const lpx = G.p + (bi % COLS) * G.cw, lpy = G.gy + Math.floor(bi / COLS) * G.ch;
+          const lcw = G.cw - 3, lch = G.ch - 3;
+          const q = Math.sin(t * 20) * 1.2 * (0.4 + 0.6 * build.f); // temblor de agarre
+          x.strokeStyle = COL.orangeBright; x.lineWidth = 1.6; x.lineCap = 'round';
+          x.beginPath();
+          x.moveTo(hx - 4, hy - 3 + bob); x.lineTo(lpx + 3 + q, lpy + lch - 3);
+          x.moveTo(hx + 4, hy - 3 + bob); x.lineTo(lpx + lcw - 3 - q, lpy + lch - 3);
+          x.stroke();
+          x.lineCap = 'butt';
+        }
         x.strokeStyle = COL.orange; x.lineWidth = 1.6;
         x.beginPath();
         x.moveTo(hx - 2, hy + 1); x.lineTo(hx - 2 + sw, hy + 7);

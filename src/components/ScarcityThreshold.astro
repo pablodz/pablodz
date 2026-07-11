@@ -28,39 +28,259 @@ for (const [n, p, e] of items) {
 </figure>
 
 <div class="thr panel">
-  <label class="thr-lab">▸ Pruébalo: mueve la abundancia de un recurso &nbsp; <b data-v></b></label>
-  <input type="range" data-s min="0" max="100" value="84" aria-label="Abundancia del recurso" />
-  <div class="thr-mode" data-mode>modo automático · mueve el slider para tomar el control</div>
+  <label class="thr-lab">▸ Pruébalo: mueve la abundancia de recursos &nbsp; <b data-v></b></label>
+  <input type="range" data-s min="0" max="100" value="70" aria-label="Abundancia de recursos" />
+  <div class="thr-mode" data-mode>modo automático · mueve el control para tomar el mando</div>
   <canvas data-c></canvas>
   <div class="phase" data-st>···</div>
   <p class="thr-note">Baja la abundancia y observa: cruzando el umbral, la misma gente pasa de compartir
-  tranquila a acaparar. No cambió su moral; cambió la escasez.</p>
+  tranquila a competir y acaparar. No cambió su moral; cambió la escasez.</p>
 </div>
 
 <script>
   import { ctxOf, COL } from '../lib/machine';
+
+  const N = 28;          // personas
+  const M = 40;          // recursos
+  const THR = 45;        // umbral de escasez (coincide con el eje de arriba)
+  const PICK = 9;        // radio para tomar un recurso al cruzarlo
+  const BASE = 17;       // velocidad de deambular tranquilo (px/s)
+  const H_MIN = 260;     // altura mínima del lienzo
+
   function init(root: HTMLElement) {
     const sl = root.querySelector<HTMLInputElement>('[data-s]')!;
     const lab = root.querySelector<HTMLElement>('[data-v]')!;
+    const mode = root.querySelector<HTMLElement>('[data-mode]')!;
     const st = root.querySelector<HTMLElement>('[data-st]')!;
     const cv = root.querySelector<HTMLCanvasElement>('[data-c]')!;
-    const N = 24, THR = 45;
-    function draw() {
-      const ab = +sl.value, scarce = ab < THR, frac = scarce ? Math.min(1, (THR - ab) / THR) : 0;
-      lab.textContent = ab > 75 ? 'de sobra' : ab >= THR ? 'suficiente' : ab > 20 ? 'escaso' : 'muy escaso';
-      const { x, w, h } = ctxOf(cv, 160); x.clearRect(0, 0, w, h);
-      const cols = 8, rows = 3, cw = w / cols, ch = (h - 16) / rows, hoarders = Math.round(frac * N);
-      for (let i = 0; i < N; i++) {
-        const cx = (i % cols) * cw + cw / 2, cy = Math.floor(i / cols) * ch + ch / 2 + 6, hoard = i < hoarders;
-        const col = hoard ? COL.orange : COL.green;
-        x.fillStyle = col; x.beginPath(); x.arc(cx, cy - 6, 6, 0, 7); x.fill(); x.fillRect(cx - 5, cy + 1, 10, 12);
-        if (hoard) { x.fillStyle = COL.yellow; for (let k = 0; k < 3; k++) x.fillRect(cx + 8, cy + 8 - k * 4, 7, 3); }
-      }
-      st.textContent = scarce ? (ab < 20 ? '💥 MÁQUINA A FONDO: casi todos acaparan' : '⚠️ MÁQUINA ENCENDIDA: empieza el acaparamiento') : '✓ MÁQUINA APAGADA: la gente comparte tranquila';
-      const c = scarce ? (ab < 20 ? COL.red : COL.orange) : COL.green;
-      st.style.color = c; st.style.borderColor = c;
+    const measure = () =>
+      ctxOf(cv, Math.max(H_MIN, Math.round(cv.getBoundingClientRect().height) || H_MIN));
+    let g = measure();
+
+    // PRNG determinista con semilla fija (LCG): NADA de Math.random por frame.
+    let seed = 20260710 >>> 0;
+    const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+
+    // Estado de personas (arrays preasignados, sin objetos por frame).
+    const px = new Float32Array(N), py = new Float32Array(N);
+    const vx = new Float32Array(N), vy = new Float32Array(N);
+    const hd = new Float32Array(N);              // rumbo de deambular
+    const wf = new Float32Array(N), wp = new Float32Array(N); // frecuencia/fase de vagabundeo
+    const hunger = new Float32Array(N);          // tiempo sin recurso
+    const stock = new Float32Array(N);           // recursos acumulados
+    // Estado de recursos.
+    const rx = new Float32Array(M), ry = new Float32Array(M);
+    const alive = new Uint8Array(M);
+
+    let lastW = 0, lastH = 0, laid = false, spawnAcc = 0;
+
+    function targetActive(ab: number) {
+      const f = Math.pow(Math.max(0, ab) / 100, 1.3);
+      return Math.round(M * f);
     }
-    sl.addEventListener('input', draw); window.addEventListener('resize', draw); draw();
+
+    function layout() {
+      const { w, h } = g;
+      for (let i = 0; i < N; i++) {
+        px[i] = 0.06 * w + rnd() * 0.88 * w;
+        py[i] = 0.08 * h + rnd() * 0.84 * h;
+        hd[i] = rnd() * 6.283; vx[i] = 0; vy[i] = 0;
+        wf[i] = 0.25 + rnd() * 0.7; wp[i] = rnd() * 6.283;
+        hunger[i] = rnd() * 2; stock[i] = 0;
+      }
+      for (let j = 0; j < M; j++) { rx[j] = rnd() * w; ry[j] = rnd() * h; alive[j] = 0; }
+      // Sembrar recursos iniciales según la abundancia de arranque.
+      const want = targetActive(+sl.value);
+      for (let j = 0; j < want && j < M; j++) { rx[j] = rnd() * w; ry[j] = rnd() * h; alive[j] = 1; }
+      lastW = w; lastH = h; laid = true;
+    }
+
+    function spawn() {
+      const { w, h } = g;
+      for (let j = 0; j < M; j++) if (!alive[j]) { rx[j] = rnd() * w; ry[j] = rnd() * h; alive[j] = 1; return; }
+    }
+
+    // Modo ambiente: la abundancia oscila sola hasta que el usuario toma el control.
+    let userTook = false;
+    const t0 = performance.now();
+    function ambientAb(now: number) {
+      const s = 50 + 35 * Math.sin((now - t0) / 1000 * (Math.PI * 2 / 24)); // 24s, entre 15 y 85
+      sl.value = String(Math.round(s));
+      return s;
+    }
+
+    let lastPhase = '';
+    function setPhase(ab: number, scarce: boolean) {
+      const w = ab > 78 ? 'de sobra' : ab >= THR ? 'suficiente' : ab >= 20 ? 'escaso' : 'muy escaso';
+      if (lab.textContent !== w) lab.textContent = w;
+      const txt = !scarce
+        ? '✓ MÁQUINA APAGADA: hay de sobra, la gente comparte y hasta se detiene a conversar'
+        : ab >= 20
+          ? '⚠️ MÁQUINA ENCENDIDA: los recursos escasean, empieza la carrera por tomarlos'
+          : '💥 MÁQUINA A FONDO: frenesí, unos pocos amasan pilas y muchos parpadean en rojo';
+      if (txt !== lastPhase) {
+        lastPhase = txt; st.textContent = txt;
+        const c = !scarce ? COL.green : ab >= 20 ? COL.orange : COL.red;
+        st.style.color = c; st.style.borderColor = c;
+      }
+    }
+
+    function drawPerson(i: number, scarce: boolean, t: number) {
+      const { x } = g;
+      const hoarder = stock[i] > 3;
+      let col = COL.green, a = 1;
+      if (hoarder) col = COL.orange;
+      else if (scarce && hunger[i] > 4.5) { col = COL.red; a = 0.5 + 0.5 * Math.abs(Math.sin(t * 9)); }
+      x.globalAlpha = a; x.fillStyle = col;
+      x.beginPath(); x.arc(px[i], py[i] - 5, 4.4, 0, 7); x.fill();
+      x.fillRect(px[i] - 3.4, py[i] - 1, 6.8, 9);
+      x.globalAlpha = 1;
+      if (hoarder) {
+        x.fillStyle = COL.yellow;
+        const blocks = Math.min(6, Math.floor(stock[i]) - 2);
+        for (let k = 0; k < blocks; k++) x.fillRect(px[i] + 6, py[i] + 6 - k * 3.4, 6, 2.6);
+      }
+    }
+
+    function frame(t: number, dt: number, ab: number) {
+      if (!laid) layout();
+      const { x, w, h } = g;
+      const scarce = ab < THR;
+      const s = scarce ? Math.min(1, (THR - ab) / THR) : 0; // intensidad de escasez 0..1
+      const seek = 32 + s * 62;                              // aceleran hacia el recurso
+      const resp = scarce ? 3 + s * 7 : 2.4;                 // qué tan brusco es el viraje
+
+      // Reaparición de recursos a un ritmo controlado por la abundancia.
+      let active = 0; for (let j = 0; j < M; j++) active += alive[j];
+      spawnAcc += dt * (1 + (ab / 100) * 10);
+      while (spawnAcc >= 1) { spawnAcc -= 1; if (active < targetActive(ab)) { spawn(); active++; } }
+
+      x.clearRect(0, 0, w, h);
+
+      // Recursos (puntitos verdes con leve halo).
+      for (let j = 0; j < M; j++) if (alive[j]) {
+        x.globalAlpha = 0.22; x.fillStyle = COL.green;
+        x.beginPath(); x.arc(rx[j], ry[j], 5, 0, 7); x.fill();
+        x.globalAlpha = 1;
+        x.beginPath(); x.arc(rx[j], ry[j], 2.4, 0, 7); x.fill();
+      }
+
+      // Personas: buscar recurso, competir, deambular o conversar.
+      for (let i = 0; i < N; i++) {
+        hunger[i] += dt;
+        stock[i] = Math.max(0, stock[i] - dt * 0.15); // las pilas se derriten al volver la abundancia
+
+        // Recurso vivo más cercano.
+        let bi = -1, bd = 1e9;
+        for (let j = 0; j < M; j++) if (alive[j]) {
+          const dx = rx[j] - px[i], dy = ry[j] - py[i], d2 = dx * dx + dy * dy;
+          if (d2 < bd) { bd = d2; bi = j; }
+        }
+        const bdist = bi >= 0 ? Math.sqrt(bd) : 1e9;
+        // El primero que llega lo toma (competencia): consumo inmediato.
+        if (bi >= 0 && bdist < PICK) {
+          alive[bi] = 0; hunger[i] = 0;
+          if (scarce) stock[i] += 1; // bajo escasez lo acaparan; con abundancia lo consumen
+          bi = -1;
+        }
+
+        let dvx: number, dvy: number;
+        if (scarce && bi >= 0) {
+          const dx = rx[bi] - px[i], dy = ry[bi] - py[i], d = Math.max(0.001, Math.sqrt(dx * dx + dy * dy));
+          dvx = dx / d * seek; dvy = dy / d * seek;
+        } else {
+          // Abundancia: algunos pares se detienen a conversar; el resto deambula.
+          const partner = i ^ 1;
+          const chatting = Math.sin(t * 0.33 + (i >> 1) * 2.0) > 0.35;
+          if (chatting) {
+            const mx = (px[i] + px[partner]) / 2, my = (py[i] + py[partner]) / 2;
+            const dx = mx - px[i], dy = my - py[i], d = Math.sqrt(dx * dx + dy * dy);
+            const gap = Math.hypot(px[partner] - px[i], py[partner] - py[i]);
+            const sp = gap < 16 ? 1.5 : BASE * 0.6;
+            dvx = d > 0.001 ? dx / d * sp : 0; dvy = d > 0.001 ? dy / d * sp : 0;
+          } else {
+            hd[i] += Math.sin(t * wf[i] + wp[i]) * dt * 1.6;
+            dvx = Math.cos(hd[i]) * BASE; dvy = Math.sin(hd[i]) * BASE;
+          }
+        }
+
+        const k = Math.min(1, resp * dt);
+        vx[i] += (dvx - vx[i]) * k; vy[i] += (dvy - vy[i]) * k;
+        px[i] += vx[i] * dt; py[i] += vy[i] * dt;
+
+        // Rebote en los bordes.
+        const m = 8;
+        if (px[i] < m) { px[i] = m; vx[i] = Math.abs(vx[i]); }
+        else if (px[i] > w - m) { px[i] = w - m; vx[i] = -Math.abs(vx[i]); }
+        if (py[i] < m) { py[i] = m; vy[i] = Math.abs(vy[i]); }
+        else if (py[i] > h - m) { py[i] = h - m; vy[i] = -Math.abs(vy[i]); }
+        if (vx[i] || vy[i]) hd[i] = Math.atan2(vy[i], vx[i]);
+      }
+
+      // Líneas de conversación (por encima, sutiles) solo en abundancia.
+      if (!scarce) {
+        x.strokeStyle = COL.blue; x.lineWidth = 1; x.globalAlpha = 0.25;
+        for (let i = 0; i < N; i += 2) {
+          if (Math.sin(t * 0.33 + (i >> 1) * 2.0) > 0.35) {
+            const j = i ^ 1;
+            if (Math.hypot(px[j] - px[i], py[j] - py[i]) < 26) {
+              x.beginPath(); x.moveTo(px[i], py[i]); x.lineTo(px[j], py[j]); x.stroke();
+            }
+          }
+        }
+        x.globalAlpha = 1;
+      }
+
+      // Personas al frente.
+      for (let i = 0; i < N; i++) drawPerson(i, scarce, t);
+
+      setPhase(ab, scarce);
+    }
+
+    // Render estático (prefers-reduced-motion): rejilla coloreada según el control.
+    function staticGrid() {
+      if (!laid) { g = measure(); }
+      const { x, w, h } = g; x.clearRect(0, 0, w, h);
+      const ab = +sl.value, scarce = ab < THR, frac = scarce ? Math.min(1, (THR - ab) / THR) : 0;
+      const cols = 7, rows = 4, cw = w / cols, ch = (h - 12) / rows, hoarders = Math.round(frac * N);
+      for (let i = 0; i < N; i++) {
+        const cx = (i % cols) * cw + cw / 2, cy = Math.floor(i / cols) * ch + ch / 2 + 8;
+        const hoard = i < hoarders, red = scarce && i >= hoarders && i < hoarders + Math.round(frac * 6);
+        x.fillStyle = hoard ? COL.orange : red ? COL.red : COL.green;
+        x.beginPath(); x.arc(cx, cy - 5, 4.4, 0, 7); x.fill(); x.fillRect(cx - 3.4, cy - 1, 6.8, 9);
+        if (hoard) { x.fillStyle = COL.yellow; for (let k = 0; k < 3; k++) x.fillRect(cx + 6, cy + 6 - k * 3.4, 6, 2.6); }
+      }
+      setPhase(ab, scarce);
+    }
+
+    sl.addEventListener('input', () => { userTook = true; mode.style.display = 'none'; });
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      mode.style.display = 'none';
+      layout(); staticGrid();
+      sl.addEventListener('input', staticGrid);
+      window.addEventListener('resize', () => { g = measure(); staticGrid(); });
+      return;
+    }
+
+    let last = performance.now();
+    function tick(now: number) {
+      const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      const t = now / 1000;
+      const ab = userTook ? +sl.value : ambientAb(now);
+      frame(t, dt, ab);
+      requestAnimationFrame(tick);
+    }
+    window.addEventListener('resize', () => {
+      const ng = measure();
+      if (laid && lastW > 0 && lastH > 0) {
+        const sxw = ng.w / lastW, syh = ng.h / lastH;
+        for (let i = 0; i < N; i++) { px[i] *= sxw; py[i] *= syh; }
+        for (let j = 0; j < M; j++) { rx[j] *= sxw; ry[j] *= syh; }
+      }
+      lastW = ng.w; lastH = ng.h; g = ng;
+    });
+    requestAnimationFrame(tick);
   }
   document.querySelectorAll<HTMLElement>('.thr').forEach(init);
 </script>
@@ -78,7 +298,11 @@ for (const [n, p, e] of items) {
   .thr-lab { display: block; font-size: 0.72rem; color: var(--muted); margin-bottom: 0.4rem; }
   .thr-lab b { color: var(--blue); }
   .thr input { width: 100%; accent-color: var(--orange); }
-  .thr canvas { display: block; width: 100%; height: 160px; margin-top: 0.6rem; }
+  .thr-mode { font-size: 0.62rem; letter-spacing: 0.06em; color: var(--muted); opacity: 0.75; margin-top: 0.35rem; }
+  .thr canvas { display: block; width: 100%; height: 260px; margin-top: 0.6rem; background: rgba(0,0,0,0.18); }
   .phase { font-size: 0.74rem; letter-spacing: 0.12em; border: 1px solid; padding: 0.5rem 0.7rem; margin-top: 0.7rem; }
   .thr-note { font-size: 0.74rem; color: var(--muted); margin-top: 0.7rem; }
+  @media (min-width: 900px) {
+    .thr canvas { height: clamp(260px, 40vh, 420px); }
+  }
 </style>

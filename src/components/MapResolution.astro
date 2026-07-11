@@ -1,45 +1,90 @@
 ---
 /**
- * Paso 10 · Resolución del mapa de células: de un bloque a muchas escalas.
- * La resolución funciona como el foco de una lente: cada nivel entra con
- * fundido y desenfoque simulado (trazos con jitter y halo óptico que
- * convergen a un trazo nítido), y al cruzar cada umbral un anillo de pulso
- * recorre el nivel recién revelado. Un visor con esquinas y viñeta de
- * profundidad de campo encuadra la escena y se cierra al enfocar fino.
- * Si nadie toca el slider, la lente respira sola.
+ * Paso 10 · Resolución del mapa + control multiescala (gobernanza policéntrica).
+ *
+ * Dos ejes accionables:
+ *   1) RESOLUCIÓN (slider): cuántas escalas alcanza a "ver" el mapa. A baja
+ *      resolución el mundo cabe en un bloque (solo el planeta es legible); al
+ *      subir aparecen los países (≥34) y luego los barrios (≥67).
+ *   2) CONTROL POR ESCALA (toggles: barrio / país / planeta): enciende el freno
+ *      de cada escala. Pero un control SOLO surte efecto si esa escala es
+ *      legible con la resolución actual — no se puede gobernar lo que no se ve.
+ *
+ * Para cada escala se corre el motor real (simulate) y se muestra su
+ * CONCENTRACIÓN G. Una escala con control efectivo estabiliza en G baja; sin
+ * freno (apagada o fuera de foco) deriva a G alta, y además "fuga"
+ * concentración hacia las demás. Moraleja: fijar el mapa/control en UNA escala
+ * deja las otras sin freno; solo el control multiescala las estabiliza todas.
+ *
+ * Constantes de G calibradas numéricamente (script en scratchpad):
+ *   todo apagado          -> ~82% en las tres (nadie frena)
+ *   una sola escala        -> ~52% en esa, ~82% en el resto (fuga)
+ *   las tres controladas   -> ~31-36% y estable (policéntrico)
  */
 ---
 
 <div class="mapr panel">
+  <div class="mapr-head">
+    <span class="mapr-title">◢ RESOLUCIÓN DEL MAPA · CONTROL MULTIESCALA</span>
+    <span class="mapr-phase" data-st>···</span>
+  </div>
   <div class="mapr-grid">
     <div><canvas data-c></canvas></div>
     <div class="mapr-ctrl">
-      <div class="phase" data-st>···</div>
-      <label class="mapr-lab">Resolución del mapa (información / globalización) <b data-v>baja</b></label>
-      <input type="range" data-s min="0" max="100" value="15" />
+      <label class="mapr-lab">Resolución del mapa (qué escalas se ven) <b data-v>baja</b></label>
+      <input type="range" data-s min="0" max="100" value="18" />
       <div class="mapr-auto" data-auto>modo automático · mueve el slider para tomar el control</div>
+
+      <div class="mapr-sub">Control por escala (enciéndelo por nivel)</div>
+      <div class="mapr-toggles">
+        <button data-t="barrio">Barrio</button>
+        <button data-t="pais">País</button>
+        <button data-t="planeta">Planeta</button>
+      </div>
+
       <div class="readout" data-ro></div>
-      <p class="mapr-note">A baja resolución, el mundo parece caber en una idea simple. A alta resolución
-      aparecen las escalas ocultas, y la única salida que encaja es una por cada nivel.</p>
+      <p class="mapr-note">Fijar el mapa en <b>una sola escala</b> deja las demás sin freno: se concentran.
+      La salida es <b>un control por cada escala</b> (policéntrico), y para gobernar una escala
+      primero hay que <b>poder verla</b>.</p>
     </div>
   </div>
 </div>
 
 <script>
-  import { ctxOf, COL } from '../lib/machine';
+  import { ctxOf, simulate, BASE, COL, type Params } from '../lib/machine';
 
-  /** Umbrales de nivel: al cruzarlos, ping de radar + etiqueta al costado. */
-  const PL = [
-    { t: 30, col: COL.blue, label: 'naciones y clases' },
-    { t: 60, col: COL.purple, label: 'tribus y redes' },
-    { t: 85, col: COL.green, label: 'todas las escalas' },
-  ];
-  const UP = 18000, HOLD = 3000; // respiración del modo ambiente
+  // barrio ⊂ país ⊂ planeta. th = resolución mínima para "ver" (y gobernar) la escala.
+  const SCALES = [
+    { key: 'barrio',  name: 'Barrio',  z: 0.62, th: 67 },
+    { key: 'pais',    name: 'País',    z: 0.70, th: 34 },
+    { key: 'planeta', name: 'Planeta', z: 0.78, th: 0  },
+  ] as const;
+
+  const UP = 16000, HOLD = 2600; // respiración del modo ambiente
   const ease = (t: number) => 0.5 - 0.5 * Math.cos(Math.PI * t);
   const ss = (a: number, b: number, v: number) => {
     const t = Math.min(1, Math.max(0, (v - a) / (b - a)));
     return t * t * (3 - 2 * t);
   };
+
+  // Color por concentración G: verde (bajo) → amarillo → naranja → rojo (alto).
+  const STOPS: [number, number[]][] = [
+    [0.20, [82, 208, 83]], [0.42, [255, 204, 51]],
+    [0.58, [237, 141, 76]], [0.82, [255, 52, 44]],
+  ];
+  function gColor(G: number, a = 1): string {
+    let c = STOPS[0][1];
+    if (G >= STOPS[STOPS.length - 1][0]) c = STOPS[STOPS.length - 1][1];
+    else for (let i = 0; i < STOPS.length - 1; i++) {
+      const [g0, c0] = STOPS[i], [g1, c1] = STOPS[i + 1];
+      if (G >= g0 && G < g1) {
+        const t = (G - g0) / (g1 - g0);
+        c = c0.map((v, k) => Math.round(v + (c1[k] - v) * t));
+        break;
+      }
+    }
+    return `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+  }
 
   function init(root: HTMLElement) {
     const cv = root.querySelector<HTMLCanvasElement>('[data-c]')!;
@@ -48,48 +93,110 @@
     const st = root.querySelector<HTMLElement>('[data-st]')!;
     const ro = root.querySelector<HTMLElement>('[data-ro]')!;
     const auto = root.querySelector<HTMLElement>('[data-auto]')!;
+    const btns = SCALES.map((s) => root.querySelector<HTMLButtonElement>(`[data-t="${s.key}"]`)!);
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    // Geometría fija: 3 grupos, 3 subgrupos por grupo, 7 puntos por subgrupo.
-    const groups = 3, subs = 3, per = 7;
-    const gC: { x: number; y: number }[] = [];
-    const sC: { x: number; y: number }[] = [];
-    const dots: { x: number; y: number }[] = [];
-    for (let g = 0; g < groups; g++) {
-      const ga = g / groups * 2 * Math.PI, gx = 0.5 + 0.28 * Math.cos(ga), gy = 0.5 + 0.28 * Math.sin(ga);
-      gC.push({ x: gx, y: gy });
-      for (let sN = 0; sN < subs; sN++) {
-        const sa = sN / subs * 2 * Math.PI + g, sx = gx + 0.12 * Math.cos(sa), sy = gy + 0.12 * Math.sin(sa);
-        sC.push({ x: sx, y: sy });
-        for (let k = 0; k < per; k++) {
-          const ka = k / per * 2 * Math.PI + sN;
-          dots.push({ x: sx + 0.045 * Math.cos(ka), y: sy + 0.045 * Math.sin(ka) });
-        }
-      }
-    }
+    // Geometría normalizada: 3 países alrededor del centro, 4 barrios por país.
+    const paisPos = [0, 1, 2].map((i) => {
+      const a = -Math.PI / 2 + i * 2 * Math.PI / 3;
+      return { x: 0.5 + 0.2 * Math.cos(a), y: 0.5 + 0.2 * Math.sin(a) };
+    });
+    const barrioPos = paisPos.flatMap((p) =>
+      [0, 1, 2, 3].map((k) => {
+        const a = k / 4 * 2 * Math.PI + 0.6;
+        return { x: p.x + 0.055 * Math.cos(a), y: p.y + 0.055 * Math.sin(a) };
+      }));
 
-    // Altura dictada por CSS: 260px móvil, clamp(260px, 36vh, 420px) en escritorio.
     const measure = () => ctxOf(cv, Math.max(260, Math.round(cv.getBoundingClientRect().height) || 260));
     let g = measure();
 
-    let res = +sl.value, target = res;
-    let ambient = !reduced, ambT = 2800; // arranca cerca del valor inicial del slider
-    const pulses: { lv: number; t0: number }[] = [];
-    let lastLab = '', lastLv = '';
+    const toggle: Record<string, boolean> = { barrio: false, pais: false, planeta: false };
+    let res = +sl.value, resT = res;
+    const G = [0.82, 0.82, 0.82];  // valor mostrado (persigue objetivo)
+    const GT = [0.82, 0.82, 0.82]; // objetivo calculado por el motor
+    const pulses: { i: number; t0: number }[] = [];
+    let ambient = !reduced, ambT = 3000;
+    let lastLeg = '', lastLab = '';
 
-    /** Círculo con desenfoque simulado: 3 trazos con jitter que convergen a uno nítido. */
-    function blurRing(cx: number, cy: number, r: number, col: string, lw: number, a: number, f: number, now: number) {
-      const { x } = g;
-      if (f <= 0.01 || a <= 0.01) return;
-      x.strokeStyle = col; x.lineWidth = lw;
-      if (f > 0.97) {
-        x.globalAlpha = a; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.stroke();
+    /** Control efectivo = encendido Y legible con la resolución actual. */
+    const effective = (i: number) => toggle[SCALES[i].key] && res >= SCALES[i].th;
+
+    /** Corre el motor por escala; devuelve G de equilibrio (cola de la simulación). */
+    function computeG(): number[] {
+      const eff = SCALES.map((_, i) => effective(i));
+      const unc = eff.filter((x) => !x).length;
+      return SCALES.map((s, i) => {
+        const other = unc - (eff[i] ? 0 : 1); // otras escalas sin freno → fuga hacia aquí
+        const P: Params = {
+          ...BASE, r0: 0.5, b: 2.4, gamma: 0.45, lam: 1.4,
+          psi: 2.0, omega: 1.6, kc: 1.5, eta: 0.03, zeta: s.z, tau: 0.02,
+        };
+        if (eff[i]) { P.tau += 0.55; P.zeta *= 0.45; } // freno de la escala
+        P.zeta += 0.16 * other;
+        P.tau = Math.max(0.004, P.tau - 0.02 * other);
+        const d = simulate(P, 2600, 0.03);
+        const tail = d.slice(Math.floor(d.length * 0.75));
+        return tail.reduce((a, z) => a + z[2], 0) / tail.length;
+      });
+    }
+
+    /** Recalcula objetivos de G; opcionalmente lanza ping en escalas que cambiaron. */
+    function recompute(pulseIdx: number[] = []) {
+      const next = computeG();
+      for (let i = 0; i < 3; i++) GT[i] = next[i];
+      if (!reduced) pulseIdx.forEach((i) => pulses.push({ i, t0: performance.now() }));
+      updateUI();
+    }
+
+    /** Estado textual de los botones + lectura numérica computada por nivel. */
+    function updateUI() {
+      SCALES.forEach((s, i) => {
+        const b = btns[i], legible = res >= s.th, on = toggle[s.key];
+        b.classList.toggle('on', on && legible);
+        b.classList.toggle('pending', on && !legible);
+        b.textContent = s.name + (on ? (legible ? ' ·on' : ' ·fuera de foco') : '');
+      });
+
+      const effCount = SCALES.filter((_, i) => effective(i)).length;
+      const uncCount = 3 - effCount;
+      const lines = SCALES.map((s, i) => {
+        const eff = effective(i), legible = res >= s.th, pct = Math.round(GT[i] * 100);
+        const tag = !legible ? 'fuera de foco' : eff ? 'con freno' : 'sin freno';
+        return `<span class="rl"><i style="background:${gColor(GT[i])}"></i>`
+          + `<b>${s.name}</b> concentración <b style="color:${gColor(GT[i])}">${pct}%</b> · ${tag}</span>`;
+      }).join('');
+
+      let lab: string, c: string, msg: string;
+      if (effCount === 3) {
+        lab = 'GOBERNANZA MULTIESCALA'; c = COL.green;
+        msg = 'Cada escala tiene su propio freno y se ve en el mapa → <b>las tres estables</b>. Esto es policéntrico.';
+      } else if (effCount === 0) {
+        lab = 'MAPA SIN CONTROL'; c = COL.red;
+        msg = 'Ninguna escala tiene freno → <b>todo se concentra</b>. Una idea de escala única no alcanza.';
       } else {
-        const j = (1 - f) * 7 + 1;
-        x.shadowColor = col; x.shadowBlur = (1 - f) * 10; // halo óptico que se resuelve al enfocar
+        lab = 'CONTROL EN UNA ESCALA'; c = COL.orange;
+        msg = `Frenas <b>${effCount}</b> de 3, pero <b>${uncCount}</b> quedan sin freno y fugan concentración `
+          + 'hacia el resto → ni la escala frenada logra estabilizarse del todo.';
+      }
+      if (lab !== lastLab) { lastLab = lab; st.textContent = lab; st.style.color = c; }
+      ro.innerHTML = `<div class="rlist">${lines}</div><div class="rmsg" style="border-color:${c}">${msg}</div>`;
+    }
+
+    /** Anillo con desenfoque simulado: fuera de foco jitterea; enfocado, nítido. */
+    function ring(cx: number, cy: number, r: number, col: string, lw: number, a: number, f: number, now: number, fill = false) {
+      const { x } = g;
+      if (a <= 0.01 || r <= 0.5) return;
+      if (reduced || f > 0.96) {
+        x.globalAlpha = a; x.strokeStyle = col; x.lineWidth = lw;
+        x.beginPath(); x.arc(cx, cy, r, 0, 7); x.stroke();
+        if (fill) { x.globalAlpha = a * 0.18; x.fillStyle = col; x.fill(); }
+      } else {
+        const j = (1 - f) * 6 + 1;
+        x.shadowColor = col; x.shadowBlur = (1 - f) * 9;
+        x.strokeStyle = col; x.lineWidth = lw;
         for (let i = 0; i < 3; i++) {
           const ph = now * 0.0011 + i * 2.09 + r * 0.13;
-          x.globalAlpha = a * (0.16 + 0.5 * f);
+          x.globalAlpha = a * (0.14 + 0.5 * f);
           x.beginPath();
           x.arc(cx + Math.cos(ph) * j, cy + Math.sin(ph * 1.37) * j, Math.max(1, r + Math.sin(ph * 0.7) * j * 0.5), 0, 7);
           x.stroke();
@@ -102,75 +209,66 @@
     function draw(now: number) {
       const { x, w, h } = g;
       x.clearRect(0, 0, w, h);
-      const X = (u: number) => 20 + (w - 40) * u, Y = (v: number) => 20 + (h - 40) * v, S = Math.min(w, h);
+      const cx = w / 2, cy = h / 2, S = Math.min(w, h);
+      const X = (u: number) => cx + (u - 0.5) * S, Y = (v: number) => cy + (v - 0.5) * S;
 
-      // Foco de cada nivel de la lente (en reduced: cortes limpios, como antes).
-      const fG = reduced ? (res > 30 ? 1 : 0) : ss(24, 46, res);
-      const fS = reduced ? (res > 60 ? 1 : 0) : ss(54, 74, res);
-      const fD = reduced ? (res > 60 ? 1 : 0) : ss(56, 82, res);
+      // Foco por escala: rampa suave alrededor del umbral (planeta siempre nítido).
+      const foc = SCALES.map((s) => (s.th <= 0 ? 1 : (reduced ? (res >= s.th ? 1 : 0) : ss(s.th - 9, s.th + 4, res))));
 
-      // Contorno global: siempre en foco; se atenúa cuando la lente baja a lo fino.
-      x.strokeStyle = COL.yellow; x.lineWidth = 2;
-      x.globalAlpha = reduced ? (res < 40 ? 0.9 : 0.3) : 0.9 - 0.6 * ss(35, 55, res);
-      x.beginPath(); x.arc(X(0.5), Y(0.5), S * 0.46, 0, 7); x.stroke(); x.globalAlpha = 1;
-
-      // Grupos (naciones y clases): entran en foco y ceden protagonismo a los subgrupos.
-      gC.forEach((c) => blurRing(X(c.x), Y(c.y), S * 0.2, COL.blue, 1.6, 0.85 - 0.5 * fS, fG, now));
-      // Subgrupos (tribus y redes).
-      sC.forEach((c) => blurRing(X(c.x), Y(c.y), S * 0.075, COL.purple, 1.2, 0.7, fS, now));
-
-      // Puntos: de manchas difusas a puntos nítidos que se encienden en naranja.
-      dots.forEach((d, i) => {
-        const cx = X(d.x), cy = Y(d.y), blur = 1 - fD;
-        if (!reduced && blur > 0.02) {
-          x.fillStyle = COL.muted;
-          for (let k = 0; k < 2; k++) {
-            const ph = now * 0.0009 + i * 1.7 + k * 2.3;
-            x.globalAlpha = 0.14 + 0.12 * fD;
-            x.beginPath();
-            x.arc(cx + Math.cos(ph) * blur * 4, cy + Math.sin(ph * 1.3) * blur * 4, 2.2 + blur * 4, 0, 7);
-            x.fill();
-          }
+      // Planeta (contorno del todo).
+      ring(cx, cy, S * 0.44, gColor(G[2]), 2.2, 0.85, foc[2], now, true);
+      // Países.
+      paisPos.forEach((p) => ring(X(p.x), Y(p.y), S * 0.11, gColor(G[1]), 1.6, 0.85 * (0.35 + 0.65 * foc[1]), foc[1], now, true));
+      // Barrios (puntos).
+      barrioPos.forEach((p, i) => {
+        const f = foc[0];
+        if (f <= 0.02) return;
+        const bx = X(p.x), by = Y(p.y);
+        if (!reduced && f < 0.9) {
+          const j = (1 - f) * 5;
+          const ph = now * 0.0012 + i * 1.6;
+          x.globalAlpha = 0.5 * f; x.fillStyle = gColor(G[0]);
+          x.beginPath(); x.arc(bx + Math.cos(ph) * j, by + Math.sin(ph * 1.3) * j, S * 0.02, 0, 7); x.fill();
+        } else {
+          x.globalAlpha = 0.9; x.fillStyle = gColor(G[0]);
+          x.beginPath(); x.arc(bx, by, S * 0.02, 0, 7); x.fill();
         }
-        x.fillStyle = COL.muted; x.globalAlpha = (1 - fD) * (0.4 + 0.3 * fD);
-        x.beginPath(); x.arc(cx, cy, 2.6, 0, 7); x.fill();
-        x.fillStyle = COL.orange; x.globalAlpha = fD;
-        x.beginPath(); x.arc(cx, cy, 2.6, 0, 7); x.fill();
-        x.globalAlpha = 1;
       });
+      x.globalAlpha = 1;
 
-      // Viñeta de profundidad de campo: al enfocar fino, el borde del campo se oscurece.
-      const vig = 0.1 + 0.34 * fD;
-      const grd = x.createRadialGradient(X(0.5), Y(0.5), S * 0.22, X(0.5), Y(0.5), S * 0.66);
-      grd.addColorStop(0, 'rgba(0,0,0,0)');
-      grd.addColorStop(1, `rgba(4,7,9,${vig})`);
-      x.fillStyle = grd; x.fillRect(0, 0, w, h);
-
-      // Anillos de pulso: ping de radar sobre el nivel recién revelado.
-      for (let i = pulses.length - 1; i >= 0; i--) {
-        const p = pulses[i], age = (now - p.t0) / 950;
-        if (age >= 1) { pulses.splice(i, 1); continue; }
+      // Pings de radar sobre la escala que acaba de cambiar.
+      for (let k = pulses.length - 1; k >= 0; k--) {
+        const p = pulses[k], age = (now - p.t0) / 950;
+        if (age >= 1) { pulses.splice(k, 1); continue; }
         const e = 1 - Math.pow(1 - age, 3);
-        x.strokeStyle = PL[p.lv].col; x.lineWidth = 1.6; x.globalAlpha = (1 - age) * 0.9;
-        if (p.lv === 0) gC.forEach((c) => { x.beginPath(); x.arc(X(c.x), Y(c.y), S * 0.2 * (0.25 + 1.1 * e), 0, 7); x.stroke(); });
-        else if (p.lv === 1) sC.forEach((c) => { x.beginPath(); x.arc(X(c.x), Y(c.y), S * 0.075 * (0.3 + 1.9 * e), 0, 7); x.stroke(); });
-        else { x.beginPath(); x.arc(X(0.5), Y(0.5), Math.max(1, S * 0.5 * e), 0, 7); x.stroke(); }
+        x.strokeStyle = gColor(GT[p.i]); x.lineWidth = 1.6; x.globalAlpha = (1 - age) * 0.9;
+        if (p.i === 2) { x.beginPath(); x.arc(cx, cy, Math.max(1, S * 0.44 * e), 0, 7); x.stroke(); }
+        else if (p.i === 1) paisPos.forEach((q) => { x.beginPath(); x.arc(X(q.x), Y(q.y), S * 0.11 * (0.25 + 1.3 * e), 0, 7); x.stroke(); });
+        else barrioPos.forEach((q) => { x.beginPath(); x.arc(X(q.x), Y(q.y), S * 0.02 * (0.3 + 3 * e), 0, 7); x.stroke(); });
         x.globalAlpha = 1;
       }
 
-      // Etiquetas de nivel al costado, con refuerzo mientras dura su pulso.
-      x.font = '10px "JetBrains Mono", monospace'; x.textAlign = 'right';
-      PL.forEach((p, i) => {
-        const fl = reduced ? (res > p.t ? 1 : 0) : ss(p.t, p.t + 6, res);
-        if (fl <= 0.02) return;
-        const boost = pulses.some((q) => q.lv === i) ? 0.4 : 0;
-        x.fillStyle = p.col; x.globalAlpha = Math.min(1, 0.3 + 0.6 * fl + boost);
-        x.fillText(p.label, w - 14, 20 + i * 15);
-      });
-      x.textAlign = 'left'; x.globalAlpha = 1;
+      // Viñeta de profundidad de campo.
+      const grd = x.createRadialGradient(cx, cy, S * 0.22, cx, cy, S * 0.62);
+      grd.addColorStop(0, 'rgba(0,0,0,0)');
+      grd.addColorStop(1, 'rgba(4,7,9,0.34)');
+      x.fillStyle = grd; x.fillRect(0, 0, w, h);
 
-      // Visor de lente: las esquinas se cierran y afinan a medida que la resolución enfoca.
-      const focv = ss(15, 95, res), inset = 24 - 9 * focv, bl = 11 + 7 * focv;
+      // Etiquetas por escala: % de concentración cuando está en foco; "??" cuando no.
+      x.font = '10px "JetBrains Mono", monospace';
+      const label = (px: number, py: number, i: number, al: CanvasTextAlign) => {
+        x.textAlign = al; const f = foc[i];
+        x.globalAlpha = 0.55 + 0.45 * f; x.fillStyle = f > 0.25 ? gColor(GT[i]) : COL.muted;
+        x.fillText(`${SCALES[i].name} ${f > 0.25 ? Math.round(GT[i] * 100) + '%' : '·· ??'}`, px, py);
+        x.globalAlpha = 1;
+      };
+      label(cx, 16, 2, 'center');
+      label(X(paisPos[0].x), Y(paisPos[0].y) - S * 0.13, 1, 'center');
+      label(cx, h - 12, 0, 'center');
+      x.textAlign = 'left';
+
+      // Visor de lente: esquinas + lectura de foco.
+      const focv = ss(0, 100, res), inset = 22 - 8 * focv, bl = 10 + 6 * focv;
       x.strokeStyle = COL.orange; x.lineWidth = 1.2; x.globalAlpha = 0.22 + 0.5 * focv;
       ([[1, 1], [-1, 1], [1, -1], [-1, -1]] as const).forEach(([sx, sy]) => {
         const bx = sx > 0 ? inset : w - inset, by = sy > 0 ? inset : h - inset;
@@ -179,76 +277,111 @@
       x.globalAlpha = 0.75; x.font = '9px "JetBrains Mono", monospace'; x.fillStyle = COL.orange;
       x.fillText('FOCO ' + Math.round(res) + '%', inset, h - inset + 13);
       x.globalAlpha = 1;
-
-      // Lecturas: mismas 4 fases y mensajes de siempre, guiadas por el valor mostrado.
-      const nl = res < 33 ? 'baja' : res < 66 ? 'media' : 'alta';
-      if (nl !== lastLv) { lastLv = nl; lv.textContent = nl; }
-      let lab: string, c: string, msg: string;
-      if (res < 30) { lab = 'Mapa borroso'; c = COL.yellow; msg = 'El mundo parece <b>un solo bloque</b> → parece que una sola idea basta.'; }
-      else if (res < 60) { lab = 'Aparecen naciones y clases'; c = COL.blue; msg = 'Se ven <b>grandes grupos</b> → aquí nacieron las ideologías clásicas (nación, clase, mercado).'; }
-      else if (res < 85) { lab = 'Aparecen tribus y redes'; c = COL.purple; msg = 'El mundo son <b>células dentro de células</b> → ninguna ideología de escala única alcanza.'; }
-      else { lab = 'Alta resolución'; c = COL.green; msg = 'Se ven <b>todas las escalas a la vez</b> → la salida es <b>un control por escala</b> (policéntrico).'; }
-      if (lab !== lastLab) { lastLab = lab; st.textContent = lab; st.style.color = c; st.style.borderColor = c; ro.innerHTML = msg; }
     }
 
-    // prefers-reduced-motion: sin respiración ni pulsos, cortes limpios al mover el slider.
+    // Nivel textual de la resolución.
+    function setLevelWord() {
+      const nl = res < 34 ? 'baja · solo el planeta' : res < 67 ? 'media · aparecen países' : 'alta · aparecen barrios';
+      lv.textContent = nl;
+    }
+
+    // Detecta cambios en el conjunto de escalas legibles (crucen de umbrales).
+    const legKey = () => SCALES.map((s) => (res >= s.th ? 1 : 0)).join('');
+
+    function syncLegibility() {
+      const k = legKey();
+      if (k !== lastLeg) {
+        const prev = lastLeg;
+        lastLeg = k;
+        const changed = SCALES.map((_, i) => i).filter((i) =>
+          prev !== '' && k[i] !== prev[i] && toggle[SCALES[i].key]);
+        recompute(changed);
+      }
+    }
+
+    // ── prefers-reduced-motion: sin rAF, se dibuja en cada cambio ──
     if (reduced) {
       auto.style.display = 'none';
-      const redraw = () => { res = target = +sl.value; draw(performance.now()); };
+      const redraw = () => { res = resT = +sl.value; setLevelWord(); lastLeg = legKey(); recompute(); draw(performance.now()); };
       sl.addEventListener('input', redraw);
-      window.addEventListener('resize', () => { g = measure(); redraw(); });
+      btns.forEach((b, i) => (b.onclick = () => { const k = SCALES[i].key; toggle[k] = !toggle[k]; redraw(); }));
       redraw();
+      window.addEventListener('resize', () => { g = measure(); draw(performance.now()); });
       return;
     }
 
-    // rAF único: el valor mostrado persigue al objetivo; se apaga solo al quedar quieto.
+    // ── rAF único: res y G persiguen sus objetivos; se apaga al quedar quieto ──
     let raf = 0, last = 0;
+    const animating = () => Math.abs(res - resT) > 0.05 || G.some((v, i) => Math.abs(v - GT[i]) > 0.002);
+
     function frame(now: number) {
       const dt = Math.min(now - last, 100); last = now;
       if (ambient) {
         ambT += dt;
         const c = ambT % (2 * (UP + HOLD));
-        target = c < UP ? 10 + 85 * ease(c / UP)
-          : c < UP + HOLD ? 95
-          : c < UP + HOLD + UP ? 95 - 85 * ease((c - UP - HOLD) / UP)
-          : 10;
-        sl.value = String(Math.round(target));
+        resT = c < UP ? 6 + 90 * ease(c / UP)
+          : c < UP + HOLD ? 96
+          : c < UP + HOLD + UP ? 96 - 90 * ease((c - UP - HOLD) / UP)
+          : 6;
+        sl.value = String(Math.round(resT));
       }
-      const prev = res;
-      res += (target - res) * Math.min(1, dt * 0.005);
-      if (Math.abs(target - res) < 0.05) res = target;
-      PL.forEach((p, i) => { if (prev < p.t && res >= p.t) pulses.push({ lv: i, t0: now }); });
+      res += (resT - res) * Math.min(1, dt * 0.005);
+      if (Math.abs(resT - res) < 0.05) res = resT;
+      setLevelWord();
+      syncLegibility();
+      for (let i = 0; i < 3; i++) G[i] += (GT[i] - G[i]) * Math.min(1, dt * 0.004);
       draw(now);
-      if (ambient || pulses.length || res !== target) raf = requestAnimationFrame(frame);
+      if (ambient || pulses.length || animating()) raf = requestAnimationFrame(frame);
       else raf = 0;
     }
     const kick = () => { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } };
-    const takeControl = () => {
-      if (ambient) { ambient = false; auto.classList.add('off'); }
-      target = +sl.value; kick();
-    };
+    const takeControl = () => { if (ambient) { ambient = false; auto.classList.add('off'); } resT = +sl.value; kick(); };
+
     sl.addEventListener('pointerdown', takeControl);
     sl.addEventListener('input', takeControl);
+    btns.forEach((b, i) => (b.onclick = () => {
+      if (ambient) { ambient = false; auto.classList.add('off'); }
+      const k = SCALES[i].key; toggle[k] = !toggle[k];
+      recompute(res >= SCALES[i].th ? [i] : []);
+      kick();
+    }));
     window.addEventListener('resize', () => { g = measure(); kick(); });
+
+    lastLeg = legKey();
+    recompute();
     kick();
   }
   document.querySelectorAll<HTMLElement>('.mapr').forEach(init);
 </script>
 
 <style>
-  .mapr { padding: 1rem 1.2rem; margin-block: 1.5rem; }
+  .mapr { padding: 1rem 1.2rem; margin-block: 2.5rem; }
+  .mapr-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
+  .mapr-title { color: var(--orange-bright); font-size: 0.72rem; letter-spacing: 0.24em; text-transform: uppercase; }
+  .mapr-phase { font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase; }
   .mapr-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 1.4rem; align-items: start; }
   @media (max-width: 720px) { .mapr-grid { grid-template-columns: 1fr; } }
   .mapr-grid canvas { display: block; width: 100%; height: 260px; }
-  @media (min-width: 900px) { .mapr-grid canvas { height: clamp(260px, 36vh, 420px); } }
-  .mapr-ctrl { display: flex; flex-direction: column; gap: 0.7rem; }
+  @media (min-width: 900px) { .mapr-grid canvas { height: clamp(260px, 38vh, 440px); } }
+  .mapr-ctrl { display: flex; flex-direction: column; gap: 0.6rem; }
   .mapr-lab { font-size: 0.72rem; color: var(--muted); }
   .mapr-lab b { color: var(--blue); }
   .mapr input { width: 100%; accent-color: var(--orange); }
   .mapr-auto { font-size: 0.62rem; letter-spacing: 0.08em; color: var(--muted); opacity: 0.8; transition: opacity 0.5s; }
   .mapr-auto.off { opacity: 0; }
-  .phase { font-size: 0.74rem; letter-spacing: 0.12em; border: 1px solid; padding: 0.45rem 0.7rem; transition: color 0.4s, border-color 0.4s; }
-  .readout { font-size: 0.76rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.55rem 0.7rem; }
-  .readout :global(b) { color: var(--text); }
-  .mapr-note { font-size: 0.74rem; color: var(--muted); }
+  .mapr-sub { font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-top: 0.3rem; }
+  .mapr-toggles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem; }
+  .mapr-toggles button { background: var(--bg-panel-2); color: var(--text); border: 1px solid var(--line); padding: 0.5rem 0.4rem; font-family: var(--font-mono); font-size: 0.66rem; cursor: pointer; transition: background 0.2s, border-color 0.2s, color 0.2s; }
+  .mapr-toggles button:hover { border-color: var(--orange); }
+  .mapr-toggles button.on { background: var(--orange); color: #000; font-weight: 700; border-color: var(--orange); }
+  .mapr-toggles button.pending { border-color: var(--yellow); color: var(--yellow); border-style: dashed; }
+  .readout { font-size: 0.74rem; color: var(--muted); }
+  .readout :global(.rlist) { display: flex; flex-direction: column; gap: 0.25rem; background: var(--bg-deep); border: 1px solid var(--line); padding: 0.55rem 0.7rem; }
+  .readout :global(.rl) { display: flex; align-items: center; gap: 0.45rem; font-size: 0.72rem; }
+  .readout :global(.rl i) { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .readout :global(.rl b) { color: var(--text); font-weight: 600; }
+  .readout :global(.rmsg) { margin-top: 0.4rem; font-size: 0.73rem; background: var(--bg-deep); border-left: 2px solid var(--orange); padding: 0.5rem 0.7rem; }
+  .readout :global(.rmsg b) { color: var(--text); }
+  .mapr-note { font-size: 0.72rem; color: var(--muted); }
+  .mapr-note b { color: var(--text); }
 </style>

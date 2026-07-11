@@ -1,0 +1,249 @@
+---
+/**
+ * "La solución final nunca funciona": una sociedad de tratos repetidos donde
+ * el usuario puede PURGAR a los de arriba. Cada purga no aplana la pirámide:
+ * dispara el miedo (la escasez de "seguridad"), que acelera el acaparamiento y
+ * hace que la pirámide se reconstruya más alta, con un nuevo acaparador arriba.
+ * El sensor de escasez lo tienen todos; extirpar personas lo enciende a tope.
+ */
+---
+
+<figure class="purge panel">
+  <figcaption class="purge-head">
+    <span class="purge-title">◢ ELIMINAR AL QUE ACAPARA</span>
+    <span class="purge-phase" data-phase>Pirámide inicial</span>
+  </figcaption>
+  <div class="purge-grid">
+    <div class="purge-canvases">
+      <canvas data-bars></canvas>
+      <div class="purge-fear">
+        <span>miedo / escasez de seguridad</span>
+        <div class="fear-track"><div class="fear-fill" data-fear></div></div>
+      </div>
+      <canvas data-line></canvas>
+    </div>
+    <div class="purge-ctrl">
+      <label>Purgar al <b data-pl>10%</b> de arriba
+        <input type="range" data-p min="2" max="25" step="1" value="10" /></label>
+      <div class="purge-btns">
+        <button data-play class="prim">▶ Correr</button>
+        <button data-purge class="warn">⚑ Purgar arriba</button>
+        <button data-reset>Reiniciar</button>
+      </div>
+      <div class="purge-readout" data-ro></div>
+    </div>
+  </div>
+  <div class="purge-foot">CADA PURGA SUBE EL MIEDO · Y EL MIEDO RECONSTRUYE LA PIRÁMIDE, MÁS ALTA</div>
+</figure>
+
+<script>
+  import { ctxOf, COL } from '../lib/machine';
+
+  function init(root: HTMLElement) {
+    const barsCv = root.querySelector<HTMLCanvasElement>('[data-bars]')!;
+    const lineCv = root.querySelector<HTMLCanvasElement>('[data-line]')!;
+    const fearEl = root.querySelector<HTMLElement>('[data-fear]')!;
+    const play = root.querySelector<HTMLButtonElement>('[data-play]')!;
+    const purgeBtn = root.querySelector<HTMLButtonElement>('[data-purge]')!;
+    const reset = root.querySelector<HTMLButtonElement>('[data-reset]')!;
+    const ps = root.querySelector<HTMLInputElement>('[data-p]')!;
+    const pl = root.querySelector<HTMLElement>('[data-pl]')!;
+    const phase = root.querySelector<HTMLElement>('[data-phase]')!;
+    const ro = root.querySelector<HTMLElement>('[data-ro]')!;
+
+    const N = 40;
+    let wealth: number[] = [];
+    let alive: boolean[] = [];
+    let fear = 0;           // 0..1 — escasez de seguridad
+    let round = 0, purges = 0, dead = 0;
+    let baselineTop = 0;    // top-10% antes de la primera purga
+    let hist: number[] = [];
+    let running = false, raf = 0;
+
+    function stopA() {
+      running = false; if (raf) cancelAnimationFrame(raf); raf = 0;
+      play.textContent = '▶ Correr'; play.classList.remove('on');
+    }
+    function resetAll() {
+      wealth = new Array(N).fill(1);
+      alive = new Array(N).fill(true);
+      fear = 0; round = 0; purges = 0; dead = 0; baselineTop = 0; hist = [];
+      stopA(); draw(); stats();
+    }
+    function livingIdx() { const a: number[] = []; for (let i = 0; i < N; i++) if (alive[i]) a.push(i); return a; }
+
+    function step() {
+      const live = livingIdx();
+      if (live.length < 2) return;
+      // El miedo es la ventaja del que ya tiene más: bajo miedo, tratos casi justos;
+      // alto miedo, el fuerte gana casi siempre (agarra hoy lo que pueda).
+      const bias = 0.02 + fear * 0.45;
+      for (let k = 0; k < live.length; k++) {
+        const i = live[Math.floor(Math.random() * live.length)];
+        const j = live[Math.floor(Math.random() * live.length)];
+        if (i === j) continue;
+        const stake = 0.12 * Math.min(wealth[i], wealth[j]);
+        if (stake <= 1e-6) continue;
+        const richer = wealth[i] >= wealth[j] ? i : j;
+        const poorer = richer === i ? j : i;
+        const winner = Math.random() < 0.5 + bias ? richer : poorer;
+        if (winner === i) { wealth[i] += stake; wealth[j] -= stake; }
+        else { wealth[j] += stake; wealth[i] -= stake; }
+      }
+      // Bajo miedo alto: "denunciar antes de ser denunciado" — cada ronda alguien
+      // cae y su parte la captura otro. Sobrevivir depende de acusar primero.
+      if (fear > 0.35 && live.length > 4 && Math.random() < fear) {
+        const victim = live[Math.floor(Math.random() * live.length)];
+        const denouncer = live[Math.floor(Math.random() * live.length)];
+        if (denouncer !== victim) {
+          wealth[denouncer] += wealth[victim] * 0.6;
+          alive[victim] = false; dead++;
+        }
+      }
+      // El miedo baja lentamente solo si nadie lo aviva.
+      fear = Math.max(0, fear - 0.006);
+      round++;
+    }
+
+    function top10() {
+      const live = livingIdx().map((i) => wealth[i]).sort((a, b) => b - a);
+      if (!live.length) return 0;
+      const tot = live.reduce((a, b) => a + b, 0);
+      const k = Math.max(1, Math.round(live.length * 0.1));
+      let t = 0; for (let q = 0; q < k; q++) t += live[q];
+      return tot > 0 ? t / tot * 100 : 0;
+    }
+
+    function purge() {
+      const live = livingIdx().sort((a, b) => wealth[b] - wealth[a]);
+      if (live.length < 3) return;
+      if (purges === 0) baselineTop = top10();
+      const frac = +ps.value / 100;
+      const k = Math.max(1, Math.round(live.length * frac));
+      // Se elimina a los de arriba; su riqueza no desaparece: la captura
+      // quien dirige la purga (un nuevo acaparador nace del acto mismo).
+      let seized = 0;
+      for (let q = 0; q < k; q++) { seized += wealth[live[q]]; alive[live[q]] = false; dead++; }
+      const survivors = livingIdx();
+      if (survivors.length) {
+        // El que dirige la purga se queda con el botín.
+        const boss = survivors[Math.floor(Math.random() * survivors.length)];
+        wealth[boss] += seized * 0.85;
+      }
+      // Cazar y matar a una categoría entera dispara la escasez y el miedo al máximo.
+      fear = Math.min(1, fear + 0.55);
+      purges++;
+      draw(); stats();
+    }
+
+    function stats() {
+      const t10 = top10();
+      const live = livingIdx().length;
+      fearEl.style.width = (fear * 100).toFixed(0) + '%';
+      fearEl.style.background = fear < 0.33 ? COL.green : fear < 0.66 ? COL.yellow : COL.red;
+      let msg = `Ronda <b>${round}</b> · vivos <b>${live}/${N}</b> · el <b>10%</b> de arriba tiene <b>${t10.toFixed(0)}%</b>`;
+      if (purges > 0) {
+        msg += `<br>Purgas <b>${purges}</b> · muertos <b>${dead}</b> · antes de purgar el 10% tenía <b>${baselineTop.toFixed(0)}%</b>`;
+      }
+      ro.innerHTML = msg;
+      let lab: string, c: string;
+      if (purges === 0) { lab = t10 < 30 ? 'Pirámide inicial' : 'Pirámide formándose'; c = COL.blue; }
+      else if (t10 >= baselineTop - 3) { lab = 'La pirámide volvió, más alta'; c = COL.red; }
+      else { lab = 'Se reconstruye…'; c = COL.orange; }
+      phase.textContent = lab; phase.style.color = c;
+    }
+
+    function draw() {
+      // barras de riqueza (muertos en gris oscuro)
+      const { x, w, h } = ctxOf(barsCv, 150);
+      x.clearRect(0, 0, w, h); const p = 10;
+      const order = [...Array(N).keys()].sort((a, b) => wealth[a] - wealth[b]);
+      const mx = Math.max(...wealth, 0.01), bw = (w - 2 * p) / N;
+      for (let idx = 0; idx < N; idx++) {
+        const i = order[idx];
+        const bh = (h - 24) * wealth[i] / mx;
+        let col: string;
+        if (!alive[i]) col = 'rgba(255,255,255,0.09)';
+        else col = idx >= N * 0.9 ? COL.red : idx >= N * 0.7 ? COL.orange : COL.blue;
+        x.fillStyle = col;
+        x.fillRect(p + idx * bw, h - p - bh, bw - 1.5, Math.max(bh, alive[i] ? 1 : 0.5));
+      }
+      x.fillStyle = COL.muted; x.font = '11px "JetBrains Mono", monospace';
+      x.fillText('cada barra = una persona · gris = eliminado →', p, 14);
+
+      // línea histórica del top-10%
+      const l = ctxOf(lineCv, 90);
+      l.x.clearRect(0, 0, l.w, l.h);
+      const pad = 10, gh = l.h - 2 * pad, gw = l.w - 2 * pad;
+      l.x.strokeStyle = COL.grid; l.x.lineWidth = 1;
+      l.x.strokeRect(pad, pad, gw, gh);
+      if (baselineTop > 0) {
+        const yb = pad + gh * (1 - baselineTop / 100);
+        l.x.strokeStyle = 'rgba(255,255,255,0.25)'; l.x.setLineDash([4, 4]);
+        l.x.beginPath(); l.x.moveTo(pad, yb); l.x.lineTo(pad + gw, yb); l.x.stroke();
+        l.x.setLineDash([]);
+        l.x.fillStyle = COL.muted; l.x.font = '9px "JetBrains Mono", monospace';
+        l.x.fillText('nivel antes de purgar', pad + 4, yb - 4);
+      }
+      if (hist.length > 1) {
+        l.x.strokeStyle = COL.orangeBright; l.x.lineWidth = 1.5; l.x.beginPath();
+        const n = hist.length;
+        for (let q = 0; q < n; q++) {
+          const px = pad + gw * (q / (n - 1));
+          const py = pad + gh * (1 - hist[q] / 100);
+          q === 0 ? l.x.moveTo(px, py) : l.x.lineTo(px, py);
+        }
+        l.x.stroke();
+      }
+      l.x.fillStyle = COL.muted; l.x.font = '9px "JetBrains Mono", monospace';
+      l.x.fillText('% del 10% de arriba, en el tiempo', pad + 4, pad + 10);
+    }
+
+    ps.addEventListener('input', () => { pl.textContent = ps.value + '%'; });
+    function anim() {
+      if (!running) return;
+      for (let r = 0; r < 2; r++) step();
+      hist.push(top10()); if (hist.length > 240) hist.shift();
+      draw(); stats();
+      raf = requestAnimationFrame(anim);
+    }
+    play.onclick = () => {
+      if (running) stopA();
+      else { running = true; play.textContent = '⏸ Pausar'; play.classList.add('on'); raf = requestAnimationFrame(anim); }
+    };
+    purgeBtn.onclick = () => { purge(); hist.push(top10()); };
+    reset.onclick = resetAll;
+    window.addEventListener('resize', draw);
+    resetAll();
+  }
+  document.querySelectorAll<HTMLElement>('.purge').forEach(init);
+</script>
+
+<style>
+  .purge { padding: 1rem 1.2rem 0.8rem; margin-block: 2.5rem; border-left-color: var(--red); }
+  .purge-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
+  .purge-title { color: var(--red); font-size: 0.78rem; letter-spacing: 0.3em; text-transform: uppercase; }
+  .purge-phase { font-size: 0.72rem; letter-spacing: 0.15em; }
+  .purge-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 1.4rem; align-items: start; }
+  @media (max-width: 720px) { .purge-grid { grid-template-columns: 1fr; } }
+  .purge-canvases { display: flex; flex-direction: column; gap: 0.7rem; }
+  .purge-canvases canvas[data-bars] { display: block; width: 100%; height: 150px; }
+  .purge-canvases canvas[data-line] { display: block; width: 100%; height: 90px; }
+  .purge-fear { font-size: 0.62rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+  .fear-track { margin-top: 0.25rem; height: 8px; background: var(--bg-deep); border: 1px solid var(--line); }
+  .fear-fill { height: 100%; width: 0%; background: var(--green); transition: width 0.25s ease, background 0.25s ease; }
+  .purge-ctrl { display: flex; flex-direction: column; gap: 0.9rem; }
+  .purge-ctrl label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.7rem; color: var(--muted); }
+  .purge-ctrl label b { color: var(--blue); }
+  .purge-ctrl input[type='range'] { width: 100%; accent-color: var(--red); }
+  .purge-btns { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+  .purge button { background: var(--bg-panel-2); color: var(--text); border: 1px solid var(--line); padding: 0.45rem 0.7rem; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.08em; cursor: pointer; }
+  .purge button:hover { border-color: var(--orange); color: var(--orange-bright); }
+  .purge button.prim { background: var(--orange); color: #000; font-weight: 700; border-color: var(--orange); }
+  .purge button.warn { background: var(--bg-panel-2); color: var(--red); border-color: color-mix(in srgb, var(--red) 55%, transparent); }
+  .purge button.warn:hover { background: var(--red); color: #fff; }
+  .purge button.on { background: var(--yellow); color: #000; border-color: var(--yellow); }
+  .purge-readout { font-size: 0.72rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.6rem 0.7rem; line-height: 1.7; }
+  .purge-readout :global(b) { color: var(--text); }
+  .purge-foot { margin-top: 0.7rem; padding-top: 0.5rem; border-top: 1px dashed var(--line); font-size: 0.6rem; letter-spacing: 0.28em; color: var(--muted); }
+</style>

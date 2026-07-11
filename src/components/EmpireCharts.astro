@@ -1,24 +1,48 @@
 ---
-/** Paso 7 · Curva imperial de Dalio (modelo vs arquetipo) + riqueza del 1% (Turchin). */
+/** Paso 7 · Curva imperial de Dalio (modelo vs arquetipo) + riqueza del 1% (Turchin).
+ *  Interactivo: 3 controles del motor reesculpen la curva viva del modelo en ambos gráficos. */
 ---
 
-<figure class="panel viz-fig">
-  <div class="chart-box"><canvas data-dalio></canvas></div>
-  <figcaption>La prosperidad de la máquina (dorado) contra el arquetipo imperial de Dalio (punteado).
-  Holanda → Reino Unido → EE.UU. → …: cada relevo es la máquina reiniciándose a mayor escala.
-  <span class="cap-mut">(Misma forma, mismo mecanismo: el modelo y los datos de Dalio coinciden en el patrón de auge y declive.)</span></figcaption>
-</figure>
+<div class="empire">
+  <div class="empire-ctrl panel">
+    <div class="empire-head">
+      <span class="empire-title">◢ REESCULPE LA MÁQUINA</span>
+      <span class="empire-phase" data-phase>en la cima</span>
+    </div>
+    <div class="empire-sliders">
+      <label>Cooperación base <span class="sym">b</span> <b data-lb>2.20</b>
+        <input type="range" data-b min="1.4" max="3.2" step="0.05" value="2.2" /></label>
+      <label>Peso de la concentración <span class="sym">λ</span> <b data-llam>2.40</b>
+        <input type="range" data-lam min="1.0" max="4.0" step="0.05" value="2.4" /></label>
+      <label>Daño de la desigualdad <span class="sym">ψ</span> <b data-lpsi>3.2</b>
+        <input type="range" data-psi min="1.0" max="5.0" step="0.1" value="3.2" /></label>
+    </div>
+    <div class="empire-btns">
+      <button data-recalc class="prim">▶ recalcular</button>
+      <button data-reset>Reiniciar</button>
+    </div>
+    <div class="empire-readout" data-ro></div>
+  </div>
 
-<figure class="panel viz-fig">
-  <div class="chart-box"><canvas data-turchin></canvas></div>
-  <figcaption>Riqueza del 1% más rico en EE.UU. (naranja, datos reales) y la desigualdad de la máquina
-  (dorado punteado). Dos picos, dos crisis. <span class="cap-mut">(La curva del modelo es ilustrativa, alineada al eje
-  temporal para comparar la forma.)</span></figcaption>
-</figure>
+  <figure class="panel viz-fig">
+    <div class="chart-box"><canvas data-dalio></canvas></div>
+    <figcaption>La prosperidad de la máquina (dorado) contra el arquetipo imperial de Dalio (punteado).
+    Holanda → Reino Unido → EE.UU. → …: cada relevo es la máquina reiniciándose a mayor escala.
+    <span class="cap-mut">(La curva dorada es viva: muévela con los controles. El arquetipo de Dalio queda fijo de fondo.)</span></figcaption>
+  </figure>
+
+  <figure class="panel viz-fig">
+    <div class="chart-box"><canvas data-turchin></canvas></div>
+    <figcaption>Riqueza del 1% más rico en EE.UU. (naranja, datos reales) y la desigualdad de la máquina
+    (dorado punteado). Dos picos, dos crisis. <span class="cap-mut">(Datos reales y crisis quedan fijos;
+    la curva del modelo responde a los controles para comparar la forma.)</span></figcaption>
+  </figure>
+</div>
 
 <script>
   import Chart from 'chart.js/auto';
   import { BASE, simulate, COL } from '../lib/machine';
+  import type { Params } from '../lib/machine';
 
   const FONT = { family: "'JetBrains Mono', monospace", size: 11 };
   const TICK = '#8f8b83';
@@ -38,13 +62,44 @@
     return Array.from({ length: n + 1 }, (_, i) => arr[Math.round((i * (arr.length - 1)) / n)]);
   }
 
-  function initDalio(cv: HTMLCanvasElement) {
-    const win = simulate(BASE, 6000, 0.02).map((d) => d[3]).slice(1490, 3492);
-    const mx = Math.max(...win);
-    const N = 200;
-    const model = resample(win, N).map((v, i) => ({ x: i / N, y: v / mx }));
+  // --- Ventanas del modelo (mismas que la versión estática) --------------------
+  const DALIO_N = 200;
+  const TUR_M = 230, Y0 = 1910, Y1 = 2025;
+
+  /** Prosperidad C·W remuestreada y normalizada a su propio pico. */
+  function dalioModel(full: number[][]): { x: number; y: number }[] {
+    const win = full.map((d) => d[3]).slice(1490, 3492);
+    const mx = Math.max(...win) || 1;
+    return resample(win, DALIO_N).map((v, i) => ({ x: i / DALIO_N, y: v / mx }));
+  }
+
+  /** Concentración G estirada sobre 1910-2025 y llevada al eje 15-50%. */
+  function turchinModel(full: number[][]): { x: number; y: number }[] {
+    const gwin = full.map((d) => d[2]).slice(1490, 5490);
+    return resample(gwin, TUR_M).map((v, i) => ({
+      x: Y0 + ((Y1 - Y0) * i) / TUR_M,
+      y: 15 + 35 * Math.min(1, v / 0.75),
+    }));
+  }
+
+  /** Cuenta cuántos picos (auges imperiales) sostiene la simulación completa. */
+  function countCycles(full: number[][]): number {
+    const s = full.map((d) => d[3]);
+    const mx = Math.max(...s) || 1;
+    const th = 0.18 * mx;
+    let n = 0, last = -1e9;
+    for (let i = 2; i < s.length - 2; i++) {
+      if (s[i] > th && s[i] >= s[i - 1] && s[i] >= s[i - 2] && s[i] > s[i + 1] && s[i] > s[i + 2] && i - last > 120) {
+        n++; last = i;
+      }
+    }
+    return Math.max(1, n);
+  }
+
+  // --- Gráfico 1: Dalio ---------------------------------------------------------
+  function buildDalio(cv: HTMLCanvasElement, model: { x: number; y: number }[]): Chart {
     const arch = (u: number) => (1 / (1 + Math.exp(-10 * (u - 0.26)))) * (1 / (1 + Math.exp(10 * (u - 0.64))));
-    const archPts = Array.from({ length: N + 1 }, (_, i) => ({ x: i / N, y: arch(i / N) * 0.92 }));
+    const archPts = Array.from({ length: DALIO_N + 1 }, (_, i) => ({ x: i / DALIO_N, y: arch(i / DALIO_N) * 0.92 }));
 
     const phaseLabels = {
       id: 'phaseLabels',
@@ -61,7 +116,7 @@
       },
     };
 
-    new Chart(cv, {
+    return new Chart(cv, {
       type: 'line',
       data: {
         datasets: [
@@ -127,16 +182,9 @@
     });
   }
 
-  function initTurchin(cv: HTMLCanvasElement) {
+  // --- Gráfico 2: Turchin -------------------------------------------------------
+  function buildTurchin(cv: HTMLCanvasElement, model: { x: number; y: number }[]): Chart {
     const real: [number, number][] = [[1913, 45], [1922, 47], [1929, 48], [1936, 42], [1949, 32], [1965, 28], [1976, 22], [1985, 26], [1995, 30], [2005, 34], [2012, 40], [2018, 39], [2023, 37]];
-    const gwin = simulate(BASE, 6000, 0.02).map((d) => d[2]).slice(1490, 5490);
-    const Y0 = 1910, Y1 = 2025, M = 230;
-    // Misma alineación que antes: la ventana del modelo se estira sobre 1910-2025
-    // y su altura relativa (v/0.75) se lleva al eje de 15-50%.
-    const model = resample(gwin, M).map((v, i) => ({
-      x: Y0 + ((Y1 - Y0) * i) / M,
-      y: 15 + 35 * Math.min(1, v / 0.75),
-    }));
     const crisisData = [
       { x: 1929, y: 15 }, { x: 1929, y: 50 },
       { x: 1975, y: NaN },
@@ -157,7 +205,7 @@
       },
     };
 
-    new Chart(cv, {
+    return new Chart(cv, {
       type: 'line',
       data: {
         datasets: [
@@ -236,11 +284,94 @@
     });
   }
 
-  document.querySelectorAll<HTMLCanvasElement>('[data-dalio]').forEach(initDalio);
-  document.querySelectorAll<HTMLCanvasElement>('[data-turchin]').forEach(initTurchin);
+  // --- Controles y recálculo en vivo -------------------------------------------
+  function init(root: HTMLElement) {
+    const dalioCv = root.querySelector<HTMLCanvasElement>('[data-dalio]')!;
+    const turchinCv = root.querySelector<HTMLCanvasElement>('[data-turchin]')!;
+    const bs = root.querySelector<HTMLInputElement>('[data-b]')!;
+    const lams = root.querySelector<HTMLInputElement>('[data-lam]')!;
+    const psis = root.querySelector<HTMLInputElement>('[data-psi]')!;
+    const lb = root.querySelector<HTMLElement>('[data-lb]')!;
+    const llam = root.querySelector<HTMLElement>('[data-llam]')!;
+    const lpsi = root.querySelector<HTMLElement>('[data-lpsi]')!;
+    const phase = root.querySelector<HTMLElement>('[data-phase]')!;
+    const ro = root.querySelector<HTMLElement>('[data-ro]')!;
+    const recalc = root.querySelector<HTMLButtonElement>('[data-recalc]')!;
+    const reset = root.querySelector<HTMLButtonElement>('[data-reset]')!;
+
+    let dalioChart: Chart | null = null;
+    let turchinChart: Chart | null = null;
+
+    function params(): Params {
+      return { ...BASE, b: +bs.value, lam: +lams.value, psi: +psis.value };
+    }
+
+    function readPhase(model: { x: number; y: number }[], full: number[][]) {
+      // sigue el pico vivo: dónde cae el máximo dentro de la ventana mostrada
+      let pk = 0, u = 0;
+      for (const p of model) if (p.y > pk) { pk = p.y; u = p.x; }
+      const cycles = countCycles(full);
+      let word: string, c: string;
+      if (u < 0.4) { word = 'declive'; c = COL.orange; }
+      else if (u < 0.58) { word = 'en la cima'; c = COL.yellow; }
+      else { word = 'ascenso'; c = COL.green; }
+      phase.textContent = word;
+      phase.style.color = c;
+      ro.innerHTML =
+        `Pico del auge al <b>${(u * 100).toFixed(0)}%</b> del ciclo mostrado · fase dominante: <b>${word}</b>` +
+        ` · la máquina sostiene <b>${cycles}</b> vuelta${cycles === 1 ? '' : 's'} imperial${cycles === 1 ? '' : 'es'} antes de repetirse.`;
+    }
+
+    function labels() {
+      lb.textContent = (+bs.value).toFixed(2);
+      llam.textContent = (+lams.value).toFixed(2);
+      lpsi.textContent = (+psis.value).toFixed(1);
+    }
+
+    function recompute() {
+      labels();
+      const full = simulate(params(), 6000, 0.02);
+      const dm = dalioModel(full);
+      const tm = turchinModel(full);
+      if (!dalioChart) dalioChart = buildDalio(dalioCv, dm);
+      else { dalioChart.data.datasets[0].data = dm; dalioChart.update('none'); }
+      if (!turchinChart) turchinChart = buildTurchin(turchinCv, tm);
+      else { turchinChart.data.datasets[1].data = tm; turchinChart.update('none'); }
+      readPhase(dm, full);
+    }
+
+    [bs, lams, psis].forEach((el) => el.addEventListener('input', recompute));
+    recalc.addEventListener('click', recompute);
+    reset.addEventListener('click', () => {
+      bs.value = String(BASE.b); lams.value = String(BASE.lam); psis.value = String(BASE.psi);
+      recompute();
+    });
+
+    recompute();
+  }
+
+  document.querySelectorAll<HTMLElement>('.empire').forEach(init);
 </script>
 
 <style>
+  .empire { margin-block: 1.5rem; }
+  .empire-ctrl { padding: 1rem 1.2rem; margin-bottom: 1.2rem; }
+  .empire-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
+  .empire-title { color: var(--orange-bright); font-size: 0.78rem; letter-spacing: 0.3em; text-transform: uppercase; }
+  .empire-phase { font-size: 0.72rem; letter-spacing: 0.15em; color: var(--yellow); }
+  .empire-sliders { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
+  @media (max-width: 640px) { .empire-sliders { grid-template-columns: 1fr; } }
+  .empire-sliders label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.7rem; color: var(--muted); }
+  .empire-sliders label b { color: var(--yellow); font-size: 0.78rem; }
+  .empire-sliders .sym { color: var(--orange); font-style: italic; }
+  .empire-sliders input[type='range'] { width: 100%; accent-color: var(--orange); }
+  .empire-btns { display: flex; gap: 0.4rem; margin-top: 1rem; }
+  .empire-btns button { background: var(--bg-panel-2); color: var(--text); border: 1px solid var(--line); padding: 0.45rem 0.8rem; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.08em; cursor: pointer; }
+  .empire-btns button:hover { border-color: var(--orange); color: var(--orange-bright); }
+  .empire-btns button.prim { background: var(--orange); color: #000; font-weight: 700; border-color: var(--orange); }
+  .empire-readout { font-size: 0.72rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.6rem 0.7rem; margin-top: 0.9rem; line-height: 1.7; }
+  .empire-readout :global(b) { color: var(--text); }
+
   .viz-fig { padding: 1rem 1.2rem 0.8rem; margin-block: 1.5rem; }
   .chart-box { position: relative; height: 280px; }
   .viz-fig figcaption { font-size: 0.78rem; color: var(--muted); margin-top: 0.6rem; }

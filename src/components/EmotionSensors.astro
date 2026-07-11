@@ -1,5 +1,13 @@
 ---
-/** Paso 2 · Curva de emoción (estática) + medidor interactivo de celos. */
+/**
+ * Paso 2 · Curva de emoción (estática, Chart.js) + SIMULADOR TEMPORAL de
+ * sensores emocionales. Muestra las 3 propiedades del sensor:
+ *   (1) se enciende con la escasez, aunque sea falsa,
+ *   (2) se apaga cuando algo abunda,
+ *   (3) se puede fabricar desde afuera (rumor).
+ * Dos trazas: alarma REACTIVA (celos/envidia, rápida) y PREDICTIVA
+ * (ansiedad/miedo, suavizada y anticipatoria).
+ */
 ---
 
 <figure class="panel viz-fig">
@@ -8,17 +16,39 @@
   alarma se apaga sola.</figcaption>
 </figure>
 
-<div class="emo panel">
-  <label class="emo-lab">▸ Pruébalo: ¿qué tan abundante es lo que amas? &nbsp; <b data-v></b></label>
-  <input type="range" data-s min="0" max="100" value="18" />
-  <div class="emo-row">
-    <div class="emo-face" data-face>😰</div>
-    <div class="emo-meter">
-      <canvas data-m></canvas>
-      <div class="phase" data-st>···</div>
+<figure class="sens panel">
+  <figcaption class="sens-head">
+    <span class="sens-title">◢ SENSORES EMOCIONALES · EN VIVO</span>
+    <span class="sens-phase" data-phase>en reposo</span>
+  </figcaption>
+
+  <div class="sens-grid">
+    <div class="sens-viz">
+      <div class="scope-box"><canvas data-scope></canvas></div>
+      <div class="sens-legend">
+        <span class="lg lg-r">— alarma reactiva (celos / envidia)</span>
+        <span class="lg lg-p">— alarma predictiva (ansiedad / miedo)</span>
+        <span class="lg lg-s">— escasez percibida</span>
+      </div>
+    </div>
+
+    <div class="sens-ctrl">
+      <label>Abundancia real de lo que valoras <b data-l-ab>18%</b>
+        <input type="range" data-ab min="0" max="100" step="1" value="18" /></label>
+      <label>Deseo mimético (cuánto copias lo que otros quieren) <b data-l-mim>25%</b>
+        <input type="range" data-mim min="0" max="100" step="1" value="25" /></label>
+
+      <div class="sens-btns">
+        <button data-run class="prim">▶ correr</button>
+        <button data-rumor>⚑ rumor</button>
+        <button data-reset>reiniciar</button>
+      </div>
+
+      <div class="sens-readout" data-ro></div>
     </div>
   </div>
-</div>
+  <div class="sens-foot">EL SENSOR NO MIDE LO QUE HAY · MIDE LO QUE CREES QUE FALTA</div>
+</figure>
 
 <script>
   import Chart from 'chart.js/auto';
@@ -30,6 +60,9 @@
   const AXIS = '#2a2a32';
   const INK = '#cfccc5';
 
+  const clamp = (v: number) => Math.max(0, Math.min(1, v));
+
+  // ------------------------------------------------------------------ curva
   function initCurve(cv: HTMLCanvasElement) {
     const N = 120;
     const pts = Array.from({ length: N + 1 }, (_, i) => ({ x: i / N, y: Math.exp(-3.2 * (i / N)) }));
@@ -37,7 +70,7 @@
     const calmLabel = {
       id: 'calmLabel',
       afterDatasetsDraw(chart: Chart) {
-        const { ctx, chartArea: { left, right, bottom } } = chart;
+        const { ctx, chartArea: { right, bottom } } = chart;
         ctx.save();
         ctx.font = "11px 'JetBrains Mono', monospace";
         ctx.fillStyle = COL.green;
@@ -107,44 +140,264 @@
     });
   }
 
-  function initMeter(root: HTMLElement) {
-    const sl = root.querySelector<HTMLInputElement>('[data-s]')!;
-    const face = root.querySelector<HTMLElement>('[data-face]')!;
-    const cv = root.querySelector<HTMLCanvasElement>('[data-m]')!;
-    const lab = root.querySelector<HTMLElement>('[data-v]')!;
-    const st = root.querySelector<HTMLElement>('[data-st]')!;
-    function draw() {
-      const ab = +sl.value, jeal = Math.exp(-3.2 * ab / 100) * 100;
-      lab.textContent = ab > 75 ? 'de sobra' : ab > 45 ? 'suficiente' : ab > 20 ? 'escaso' : 'muy escaso';
-      face.textContent = jeal > 70 ? '😡' : jeal > 45 ? '😰' : jeal > 22 ? '😕' : '😌';
-      const { x, w, h } = ctxOf(cv, 60); x.clearRect(0, 0, w, h); const by = h / 2 - 10;
-      x.fillStyle = 'rgba(255,255,255,0.06)'; x.fillRect(0, by, w, 20);
-      const g = x.createLinearGradient(0, 0, w, 0); g.addColorStop(0, COL.green); g.addColorStop(.5, COL.yellow); g.addColorStop(1, COL.red);
-      x.fillStyle = g; x.fillRect(0, by, w * jeal / 100, 20);
-      st.textContent = 'Celos / miedo: ' + (jeal > 70 ? 'ALTÍSIMOS' : jeal > 45 ? 'altos' : jeal > 22 ? 'bajos' : 'casi cero');
-      const c = jeal > 45 ? COL.red : jeal > 22 ? COL.orange : COL.green; st.style.color = c; st.style.borderColor = c;
+  // ------------------------------------------------------- simulador sensores
+  function initSensors(root: HTMLElement) {
+    const cv = root.querySelector<HTMLCanvasElement>('[data-scope]')!;
+    const abS = root.querySelector<HTMLInputElement>('[data-ab]')!;
+    const mimS = root.querySelector<HTMLInputElement>('[data-mim]')!;
+    const abL = root.querySelector<HTMLElement>('[data-l-ab]')!;
+    const mimL = root.querySelector<HTMLElement>('[data-l-mim]')!;
+    const runB = root.querySelector<HTMLButtonElement>('[data-run]')!;
+    const rumorB = root.querySelector<HTMLButtonElement>('[data-rumor]')!;
+    const resetB = root.querySelector<HTMLButtonElement>('[data-reset]')!;
+    const phase = root.querySelector<HTMLElement>('[data-phase]')!;
+    const ro = root.querySelector<HTMLElement>('[data-ro]')!;
+
+    const H = 210;
+    const MAX = 260; // muestras visibles en el osciloscopio
+
+    // estado dinámico de los sensores
+    let reactive = 0;   // responde rápido (celos / envidia)
+    let predSmooth = 0; // media lenta (base de la ansiedad)
+    let predPrev = 0;
+    let predictive = 0; // suavizada + anticipatoria (miedo)
+    let rumor = 0;      // pico transitorio inyectado desde afuera
+
+    let perceived = 0;
+    const histS: number[] = [];
+    const histR: number[] = [];
+    const histP: number[] = [];
+
+    let running = false;
+    let raf = 0;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // ruido pseudo-gaussiano en [-1,1]
+    const gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) / 1.5;
+
+    function push(arr: number[], v: number) { arr.push(v); if (arr.length > MAX) arr.shift(); }
+
+    // un paso de la dinámica de los sensores
+    function stepSim() {
+      const ab = +abS.value / 100;   // abundancia real
+      const m = +mimS.value / 100;   // deseo mimético
+      const realSc = 1 - ab;         // escasez real
+
+      // El deseo mimético llena el hueco: aunque abunde, si otros lo quieren,
+      // se percibe escaso (Girard). Con m alto la escasez percibida no baja.
+      const target = clamp(realSc + m * (1 - realSc) * 0.85);
+
+      // Más ruido cuando hay abundancia visible y mucho mimetismo → falsas alarmas.
+      const noiseAmp = 0.045 + 0.13 * m + 0.05 * ab;
+      const noise = gauss() * noiseAmp;
+
+      perceived = clamp(target + rumor + noise);
+
+      // reactiva: seguimiento rápido (capta cada pico y cada rumor)
+      reactive += (perceived - reactive) * 0.34;
+      reactive = clamp(reactive);
+
+      // predictiva: media lenta + término anticipatorio (tendencia)
+      predSmooth += (perceived - predSmooth) * 0.045;
+      const trend = predSmooth - predPrev;
+      predPrev = predSmooth;
+      predictive = clamp(predSmooth + trend * 9);
+
+      rumor *= 0.95; // el rumor se disipa solo
+
+      push(histS, perceived);
+      push(histR, reactive);
+      push(histP, predictive);
     }
-    sl.addEventListener('input', draw); window.addEventListener('resize', draw); draw();
+
+    // línea de una serie sobre el osciloscopio
+    function line(x: CanvasRenderingContext2D, data: number[], w: number, h: number,
+                  color: string, width: number, alpha: number) {
+      if (data.length < 2) return;
+      x.save();
+      x.globalAlpha = alpha;
+      x.strokeStyle = color;
+      x.lineWidth = width;
+      x.lineJoin = 'round';
+      x.beginPath();
+      for (let i = 0; i < data.length; i++) {
+        const px = (i / (MAX - 1)) * w;
+        const py = h - data[i] * (h - 4) - 2;
+        i === 0 ? x.moveTo(px, py) : x.lineTo(px, py);
+      }
+      x.stroke();
+      x.restore();
+    }
+
+    function draw() {
+      const { x, w, h } = ctxOf(cv, H);
+      x.clearRect(0, 0, w, h);
+
+      // rejilla horizontal + marcas 0/50/100
+      x.strokeStyle = GRID;
+      x.lineWidth = 1;
+      x.fillStyle = TICK;
+      x.font = '10px "JetBrains Mono", monospace';
+      for (let p = 0; p <= 100; p += 25) {
+        const gy = h - (p / 100) * (h - 4) - 2;
+        x.beginPath(); x.moveTo(0, gy); x.lineTo(w, gy); x.stroke();
+        x.fillText(p + '%', 2, gy - 2);
+      }
+
+      // zona de "falsa alarma": abundancia alta → cualquier pico es falso
+      const ab = +abS.value / 100;
+      if (ab > 0.55) {
+        x.save();
+        x.fillStyle = 'rgba(82,208,83,0.06)';
+        x.fillRect(0, 0, w, (h - 4) * 0.45);
+        x.restore();
+      }
+
+      line(x, histS, w, h, COL.yellow, 1.2, 0.5);      // escasez percibida (guía)
+      line(x, histP, w, h, COL.blue, 2.4, 0.95);       // predictiva
+      line(x, histR, w, h, COL.orange, 2.0, 0.95);     // reactiva
+
+      x.fillStyle = COL.muted;
+      x.font = '10px "JetBrains Mono", monospace';
+      x.textAlign = 'right';
+      x.fillText('el tiempo pasa →', w - 4, h - 4);
+      x.textAlign = 'left';
+    }
+
+    function readout() {
+      const ab = +abS.value;
+      const mim = +mimS.value;
+      const pS = perceived * 100;
+      const rV = reactive * 100;
+      const pV = predictive * 100;
+      const rumorOn = rumor > 0.04;
+
+      // ¿alarma falsa? suena fuerte con las manos llenas
+      const alarmed = rV > 45 || pV > 45;
+      const falseAlarm = ab > 55 && alarmed;
+
+      let lab: string, col: string;
+      if (rumorOn && ab > 55) { lab = 'escasez fabricada'; col = COL.purple; }
+      else if (falseAlarm) { lab = '⚠ falsa alarma'; col = COL.red; }
+      else if (alarmed) { lab = 'alarma real'; col = COL.orange; }
+      else if (pS < 20) { lab = 'sensor calmado'; col = COL.green; }
+      else { lab = 'vigilante'; col = COL.yellow; }
+      phase.textContent = lab; phase.style.color = col;
+
+      const note = falseAlarm
+        ? `<span class="warn">⚠ Suena aunque lo que valoras <b>abunda</b> (${ab}%): la alarma es <b>falsa</b>.</span>`
+        : rumorOn
+          ? `<span class="warn2">⚑ Un rumor inyectó escasez desde afuera: el sensor la toma por real.</span>`
+          : pS < 20
+            ? `<span class="ok">✓ Con abundancia y sin rumor, la alarma se apaga sola.</span>`
+            : '';
+
+      ro.innerHTML =
+        `Escasez percibida: <b>${pS.toFixed(0)}%</b> · deseo mimético: <b>${mim}%</b><br>` +
+        `Alarma reactiva (celos): <b style="color:${COL.orange}">${rV.toFixed(0)}%</b> · ` +
+        `predictiva (miedo): <b style="color:${COL.blue}">${pV.toFixed(0)}%</b>` +
+        (note ? `<br>${note}` : '');
+    }
+
+    function frame() {
+      reactive = predSmooth = predPrev = predictive = 0;
+    }
+
+    function fill(n: number) {
+      for (let i = 0; i < n; i++) stepSim();
+    }
+
+    function resetSim() {
+      stop();
+      frame();
+      rumor = 0;
+      histS.length = 0; histR.length = 0; histP.length = 0;
+      // precarga una traza completa para que se vea algo antes de "correr"
+      fill(MAX);
+      draw();
+      readout();
+    }
+
+    function loop() {
+      if (!running) return;
+      stepSim();
+      stepSim();
+      draw();
+      readout();
+      raf = requestAnimationFrame(loop);
+    }
+
+    function start() {
+      if (running) return;
+      running = true;
+      runB.textContent = '⏸ pausar';
+      runB.classList.add('on');
+      raf = requestAnimationFrame(loop);
+    }
+    function stop() {
+      running = false;
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+      runB.textContent = '▶ correr';
+      runB.classList.remove('on');
+    }
+
+    // controles
+    abS.addEventListener('input', () => {
+      abL.textContent = abS.value + '%';
+      if (!running) { draw(); readout(); }
+    });
+    mimS.addEventListener('input', () => {
+      mimL.textContent = mimS.value + '%';
+      if (!running) { draw(); readout(); }
+    });
+    runB.onclick = () => (running ? stop() : start());
+    rumorB.onclick = () => {
+      rumor = 0.65; // escasez fabricada, transitoria
+      if (!running) { start(); } // que se vea propagarse
+    };
+    resetB.onclick = resetSim;
+    window.addEventListener('resize', () => { draw(); });
+
+    resetSim();
+    if (!reduce) start(); // respeta prefers-reduced-motion: no auto-anima
   }
 
   document.querySelectorAll<HTMLCanvasElement>('[data-curve]').forEach(initCurve);
-  document.querySelectorAll<HTMLElement>('.emo').forEach(initMeter);
+  document.querySelectorAll<HTMLElement>('.sens').forEach(initSensors);
 </script>
 
 <style>
   .viz-fig { padding: 1rem 1.2rem 0.8rem; margin-block: 1.5rem; }
   .chart-box { position: relative; height: 280px; }
   .viz-fig figcaption { font-size: 0.78rem; color: var(--muted); margin-top: 0.6rem; }
-  .emo { padding: 1rem 1.2rem; margin-block: 1.5rem; }
-  .emo-lab { display: block; font-size: 0.72rem; color: var(--muted); margin-bottom: 0.4rem; }
-  .emo-lab b { color: var(--blue); }
-  .emo input { width: 100%; accent-color: var(--orange); }
-  .emo-row { display: flex; align-items: center; gap: 20px; margin-top: 0.8rem; }
-  .emo-face { font-size: 60px; line-height: 1; }
-  .emo-meter { flex: 1; }
-  .emo-meter canvas { display: block; width: 100%; height: 60px; }
-  .phase { font-size: 0.74rem; letter-spacing: 0.12em; border: 1px solid; padding: 0.45rem 0.7rem; margin-top: 0.6rem; }
-  @media (max-width: 700px) {
-    .chart-box { height: 240px; }
-  }
+  @media (max-width: 700px) { .chart-box { height: 240px; } }
+
+  .sens { padding: 1rem 1.2rem 0.8rem; margin-block: 1.5rem; }
+  .sens-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
+  .sens-title { color: var(--orange-bright); font-size: 0.78rem; letter-spacing: 0.3em; text-transform: uppercase; }
+  .sens-phase { font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; }
+  .sens-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 1.4rem; align-items: start; }
+  @media (max-width: 720px) { .sens-grid { grid-template-columns: 1fr; } }
+  .scope-box { position: relative; }
+  .sens-viz canvas[data-scope] { display: block; width: 100%; height: 210px; }
+  .sens-legend { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; margin-top: 0.5rem; font-size: 0.66rem; letter-spacing: 0.04em; }
+  .sens-legend .lg-r { color: var(--orange); }
+  .sens-legend .lg-p { color: var(--blue); }
+  .sens-legend .lg-s { color: var(--yellow); }
+  .sens-ctrl { display: flex; flex-direction: column; gap: 0.8rem; }
+  .sens-ctrl label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.7rem; color: var(--muted); letter-spacing: 0.04em; }
+  .sens-ctrl label b { color: var(--blue); }
+  .sens-ctrl input[type='range'] { width: 100%; accent-color: var(--orange); }
+  .sens-btns { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+  .sens button { background: var(--bg-panel-2); color: var(--text); border: 1px solid var(--line); padding: 0.45rem 0.7rem; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.08em; cursor: pointer; }
+  .sens button:hover { border-color: var(--orange); color: var(--orange-bright); }
+  .sens button.prim { background: var(--orange); color: #000; font-weight: 700; border-color: var(--orange); }
+  .sens button.on { background: var(--yellow); color: #000; border-color: var(--yellow); }
+  .sens-readout { font-size: 0.72rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.6rem 0.7rem; line-height: 1.8; }
+  .sens-readout :global(b) { color: var(--text); }
+  .sens-readout :global(.warn) { color: var(--red); }
+  .sens-readout :global(.warn2) { color: var(--purple); }
+  .sens-readout :global(.ok) { color: var(--green); }
+  .sens-foot { margin-top: 0.7rem; padding-top: 0.5rem; border-top: 1px dashed var(--line); font-size: 0.6rem; letter-spacing: 0.28em; color: var(--muted); }
 </style>

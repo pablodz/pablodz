@@ -3,15 +3,29 @@
  * Paso 4 · La pirámide de poder, ejemplificada: cinco jerarquías reales
  * (un imperio antiguo, el feudalismo, una democracia rica, internet y el
  * campo) con % de personas vs % de poder/riqueza por capa.
+ *
+ * Ahora, además de comparar datos históricos, deja ver la pirámide FORMARSE
+ * en el tiempo: un slider de concentración (G objetivo) y un botón "▶ correr"
+ * que integra el motor (simulate) y morfea las barras de plano a pirámide.
  */
 ---
 
 <figure class="ppyr panel">
   <figcaption class="ppyr-head">
     <span class="ppyr-title">◢ LA MISMA PIRÁMIDE, EN CINCO MUNDOS DISTINTOS</span>
+    <span class="ppyr-phase" data-phase>···</span>
   </figcaption>
   <div class="ppyr-tabs" data-tabs></div>
   <div class="ppyr-rows" data-rows></div>
+  <div class="ppyr-ctrl">
+    <label>Concentración / acaparamiento (objetivo) <b data-l>100%</b>
+      <input type="range" data-s min="0" max="100" step="1" value="100" /></label>
+    <div class="ppyr-btns">
+      <button data-run class="prim">▶ Correr</button>
+      <button data-reset>Aplanar</button>
+    </div>
+    <div class="ppyr-reading" data-read></div>
+  </div>
   <div class="readout" data-note></div>
   <div class="ppyr-legend">
     <span><i class="lg-people"></i>qué % de la gente es esa capa</span>
@@ -21,6 +35,8 @@
 </figure>
 
 <script>
+  import { BASE, simulate, COL } from '../lib/machine';
+
   interface Layer { name: string; pp: number; pl: string; wp: number; wl: string }
   interface World { k: string; tab: string; note: string; layers: Layer[] }
 
@@ -74,20 +90,50 @@
     },
   ];
 
+  const reduceMotion =
+    typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const fmt = (v: number) => (v >= 10 ? v.toFixed(0) : v >= 1 ? v.toFixed(1) : v.toFixed(2));
+
+  // % del poder que captura el 10% de personas con más poder por cabeza.
+  function topDecile(layers: Layer[], m: number): number {
+    const cur = layers.map((l) => ({ pp: l.pp, pow: l.pp + (l.wp - l.pp) * m }));
+    cur.sort((a, b) => b.pow / Math.max(1e-9, b.pp) - a.pow / Math.max(1e-9, a.pp));
+    let people = 0,
+      pow = 0;
+    for (const c of cur) {
+      if (people >= 10) break;
+      const take = Math.min(c.pp, 10 - people);
+      pow += c.pow * (take / Math.max(1e-9, c.pp));
+      people += take;
+    }
+    return pow;
+  }
+
   function init(root: HTMLElement) {
     const tabs = root.querySelector<HTMLElement>('[data-tabs]')!;
     const rows = root.querySelector<HTMLElement>('[data-rows]')!;
     const note = root.querySelector<HTMLElement>('[data-note]')!;
+    const phase = root.querySelector<HTMLElement>('[data-phase]')!;
+    const read = root.querySelector<HTMLElement>('[data-read]')!;
+    const slider = root.querySelector<HTMLInputElement>('[data-s]')!;
+    const sLabel = root.querySelector<HTMLElement>('[data-l]')!;
+    const runBtn = root.querySelector<HTMLButtonElement>('[data-run]')!;
+    const resetBtn = root.querySelector<HTMLButtonElement>('[data-reset]')!;
+
+    let idx = 0; // mundo activo (preset / objetivo histórico)
+    let bars: { powEl: HTMLElement; powLab: HTMLElement }[] = [];
+    let raf = 0;
 
     WORLDS.forEach((wd, i) => {
       const b = document.createElement('button');
       b.textContent = wd.tab;
-      b.onclick = () => show(i);
+      b.onclick = () => selectWorld(i);
       tabs.appendChild(b);
     });
 
-    function show(idx: number) {
-      tabs.querySelectorAll('button').forEach((b, i) => b.classList.toggle('on', i === idx));
+    // Construye el DOM de las capas una sola vez por mundo; guarda refs.
+    function buildRows() {
       const wd = WORLDS[idx];
       rows.innerHTML = wd.layers
         .map(
@@ -95,29 +141,117 @@
         <div class="lay">
           <div class="lay-name">${l.name}</div>
           <div class="lay-bars">
-            <div class="bar-row"><div class="bar people" data-w="${Math.max(0.6, l.pp)}"></div><span>${l.pl}</span></div>
-            <div class="bar-row"><div class="bar power" data-w="${Math.max(0.6, l.wp)}"></div><span>${l.wl}</span></div>
+            <div class="bar-row"><div class="bar people" style="width:${Math.max(0.6, l.pp)}%"></div><span>${l.pl}</span></div>
+            <div class="bar-row"><div class="bar power" data-pow></div><span data-powlab></span></div>
           </div>
         </div>`,
         )
         .join('');
+      const powEls = rows.querySelectorAll<HTMLElement>('[data-pow]');
+      const powLabs = rows.querySelectorAll<HTMLElement>('[data-powlab]');
+      bars = wd.layers.map((_, i) => ({ powEl: powEls[i], powLab: powLabs[i] }));
       note.innerHTML = wd.note;
-      // ancho 0 → objetivo en el siguiente frame, para que la transición corra
-      requestAnimationFrame(() =>
-        rows.querySelectorAll<HTMLElement>('.bar').forEach((b) => {
-          b.style.width = b.dataset.w + '%';
-        }),
-      );
     }
-    show(0);
+
+    // Pinta las barras de poder para una fracción de morfeo m ∈ [0,1].
+    function paint(m: number) {
+      const wd = WORLDS[idx];
+      wd.layers.forEach((l, i) => {
+        const cur = l.pp + (l.wp - l.pp) * m;
+        bars[i].powEl.style.width = Math.max(0.6, cur) + '%';
+        bars[i].powLab.textContent = m >= 0.995 ? l.wl : `${fmt(cur)}% ahora`;
+      });
+      const top = wd.layers[0];
+      const topCur = top.pp + (top.wp - top.pp) * m;
+      const dec = topDecile(wd.layers, m);
+      read.innerHTML = `La cima (<b>${top.name}</b>) captura <b>${fmt(topCur)}%</b> · el 10% de arriba: <b>${dec.toFixed(0)}%</b>`;
+
+      let lab: string, col: string;
+      if (dec < 22) { lab = 'Repartido · todos parecidos'; col = COL.green; }
+      else if (dec < 50) { lab = 'Pirámide formándose'; col = COL.yellow; }
+      else { lab = 'Pirámide marcada'; col = COL.orange; }
+      phase.textContent = lab;
+      phase.style.color = col;
+    }
+
+    function stopRun() {
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+      rows.classList.remove('run');
+      runBtn.textContent = '▶ Correr';
+      runBtn.classList.remove('on');
+    }
+
+    // ▶ Correr: integra el motor y morfea de plano (m=0) al objetivo (gStar),
+    // siguiendo la forma temporal real de G(t). "Acaparamiento" ↦ zeta.
+    function run() {
+      if (raf) { stopRun(); return; }
+      const gStar = +slider.value / 100;
+      if (gStar <= 0) { paint(0); return; }
+
+      const zeta = 0.14 + gStar * 0.31; // más acaparamiento → G sube antes y más
+      const traj = simulate({ ...BASE, zeta }, 300, 0.03);
+      const g = traj.map((r) => r[2]);
+      const g0 = g[0];
+      const gmax = Math.max(...g);
+      let running = 0;
+      const profile = g.map((v) => {
+        const n = (v - g0) / Math.max(1e-6, gmax - g0);
+        running = Math.max(running, n);
+        return Math.min(1, running);
+      });
+
+      if (reduceMotion) { paint(gStar); return; }
+
+      rows.classList.add('run'); // desactiva la transición CSS mientras corre rAF
+      runBtn.textContent = '⏸ Pausar';
+      runBtn.classList.add('on');
+      let pi = 0;
+      const tick = () => {
+        pi += 4;
+        if (pi >= profile.length) { paint(gStar); stopRun(); return; }
+        paint(gStar * profile[pi]);
+        raf = requestAnimationFrame(tick);
+      };
+      paint(0);
+      raf = requestAnimationFrame(tick);
+    }
+
+    function selectWorld(i: number) {
+      stopRun();
+      idx = i;
+      tabs.querySelectorAll('button').forEach((b, j) => b.classList.toggle('on', j === i));
+      buildRows();
+      // en el siguiente frame para que la transición CSS corra desde 0
+      requestAnimationFrame(() => paint(+slider.value / 100));
+    }
+
+    slider.addEventListener('input', () => {
+      stopRun();
+      const v = +slider.value;
+      sLabel.textContent = v + '%';
+      paint(v / 100);
+    });
+
+    runBtn.onclick = run;
+    resetBtn.onclick = () => {
+      stopRun();
+      slider.value = '0';
+      sLabel.textContent = '0%';
+      paint(0);
+    };
+
+    selectWorld(0);
   }
+
   document.querySelectorAll<HTMLElement>('.ppyr').forEach(init);
 </script>
 
 <style>
   .ppyr { padding: 1rem 1.2rem 0.8rem; margin-block: 2.5rem; }
-  .ppyr-head { margin-bottom: 0.9rem; }
+  .ppyr-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
   .ppyr-title { color: var(--orange-bright); font-size: 0.78rem; letter-spacing: 0.3em; text-transform: uppercase; }
+  .ppyr-phase { font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; }
   .ppyr-tabs { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1rem; }
   .ppyr-tabs :global(button) {
     background: var(--bg-panel-2); color: var(--text); border: 1px solid var(--line);
@@ -131,10 +265,26 @@
   .ppyr-rows :global(.lay-name) { font-size: 0.74rem; color: var(--text); text-align: right; line-height: 1.4; }
   .ppyr-rows :global(.lay-bars) { display: flex; flex-direction: column; gap: 0.25rem; }
   .ppyr-rows :global(.bar-row) { display: flex; align-items: center; gap: 0.6ch; font-size: 0.68rem; color: var(--muted); }
-  .ppyr-rows :global(.bar) { height: 12px; width: 0; flex: none; transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); }
+  .ppyr-rows :global(.bar) { height: 12px; width: 0; flex: none; }
   .ppyr-rows :global(.bar.people) { background: var(--blue); }
   .ppyr-rows :global(.bar.power) { background: var(--orange); }
   .ppyr-rows :global(.bar-row span) { white-space: nowrap; }
+  @media (prefers-reduced-motion: no-preference) {
+    .ppyr-rows :global(.bar) { transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    /* mientras corre el rAF, sin transición: los frames ya animan el ancho */
+    .ppyr-rows.run :global(.bar.power) { transition: none; }
+  }
+  .ppyr-ctrl { display: flex; flex-direction: column; gap: 0.7rem; margin-top: 1.1rem; }
+  .ppyr-ctrl label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.7rem; color: var(--muted); letter-spacing: 0.05em; }
+  .ppyr-ctrl label b { color: var(--blue); }
+  .ppyr-ctrl input[type='range'] { width: 100%; accent-color: var(--orange); }
+  .ppyr-btns { display: flex; gap: 0.4rem; }
+  .ppyr button { background: var(--bg-panel-2); color: var(--text); border: 1px solid var(--line); padding: 0.45rem 0.7rem; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.08em; cursor: pointer; }
+  .ppyr button:hover { border-color: var(--orange); color: var(--orange-bright); }
+  .ppyr button.prim { background: var(--orange); color: #000; font-weight: 700; border-color: var(--orange); }
+  .ppyr button.on { background: var(--yellow); color: #000; border-color: var(--yellow); }
+  .ppyr-reading { font-size: 0.72rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.6rem 0.7rem; line-height: 1.7; }
+  .ppyr-reading :global(b) { color: var(--text); }
   .readout { font-size: 0.78rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.65rem 0.8rem; margin-top: 1rem; line-height: 1.7; }
   .readout :global(b) { color: var(--text); }
   .ppyr-legend { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.66rem; color: var(--muted); margin-top: 0.7rem; }

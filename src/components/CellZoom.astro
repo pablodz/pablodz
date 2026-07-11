@@ -1,156 +1,269 @@
 ---
 /**
- * Zoom-out fractal de ambiente: células dentro de células, con una
- * mini-pirámide (3-2-1) dentro de cada subcélula. El loop se logra
- * reescalando módulo RATIO: al completar un nivel, la célula madre
- * ocupa exactamente el lugar de la hija y solo avanza el índice de
- * profundidad (etiqueta + paleta).
+ * Fractal EXPLORABLE de escalas: gen → célula → cuerpo → familia → barrio →
+ * ciudad → nación → civilización. Cada nivel es una célula anidada con su
+ * mini-pirámide, cuya altura/inclinación refleja la concentración (G) que
+ * CALCULA el motor de machine.ts (no una pirámide fija 3-2-1).
+ *
+ * Interacción:
+ *  - Scrubber (slider) para navegar a mano los niveles anidados.
+ *  - "Romper esta escala": sube el G del nivel enfocado y contagia parcialmente
+ *    a los vecinos (arriba y abajo); sus pirámides se inclinan y se tiñen.
+ *  - Play/pausa del viaje continuo hacia afuera.
+ *  - Lectura de estado por nivel visible: nombre + concentración (G).
  */
 ---
 
 <figure class="czoom panel">
   <figcaption class="czoom-head">
-    <span class="czoom-title">◢ Células dentro de células, pirámides en cada piso</span>
-    <button class="czoom-btn" data-pause type="button">⏸ Pausar</button>
+    <span class="czoom-title">◢ FRACTAL DE ESCALAS · EXPLÓRALO Y RÓMPELO</span>
+    <span class="czoom-phase" data-focus>···</span>
   </figcaption>
-  <canvas data-cv></canvas>
-  <p class="czoom-cap">Cada célula coopera hacia adentro, compite hacia afuera y forma su pequeña
-  pirámide. Y toda célula es parte de una mayor que hace exactamente lo mismo.</p>
-  <div class="czoom-foot">LA MISMA FORMA, DEL CUERPO A LA CIVILIZACIÓN</div>
+  <div class="czoom-grid">
+    <div class="czoom-viz"><canvas data-cv></canvas></div>
+    <div class="czoom-ctrl">
+      <label class="czoom-scrub">Escala en foco <b data-sl-label>familia</b>
+        <input type="range" data-scrub min="0" max="7" step="0.01" value="3" />
+        <span class="czoom-scaleline">gen · célula · cuerpo · familia · barrio · ciudad · nación · civilización</span>
+      </label>
+      <div class="czoom-btns">
+        <button data-break class="prim">✷ Romper esta escala</button>
+        <button data-repair>Reparar</button>
+        <button data-play>⏸ Pausar viaje</button>
+      </div>
+      <div class="czoom-readout" data-ro></div>
+    </div>
+  </div>
+  <p class="czoom-cap">Cada célula coopera hacia adentro, compite hacia afuera y forma su pirámide.
+  La concentración de cada piso está <b>calculada</b> por el motor. Rompe una escala y observa
+  cómo la grieta se propaga a los pisos vecinos.</p>
+  <div class="czoom-foot">LA MISMA FORMA, DEL GEN A LA CIVILIZACIÓN</div>
 </figure>
 
 <script>
-  import { ctxOf, COL } from '../lib/machine';
+  import { ctxOf, COL, simulate, BASE, type Params } from '../lib/machine';
 
-  const LEVELS = ['célula', 'órgano', 'cuerpo', 'familia', 'barrio', 'ciudad', 'nación', 'civilización'];
-  const PAL = ['#ed8d4c', '#33b7db', '#a78bfa', '#ffcc33', '#52d053'];
+  const NAMES = ['gen', 'célula', 'cuerpo', 'familia', 'barrio', 'ciudad', 'nación', 'civilización'];
+  // Gradiente verde → rojo: la escala crece y la concentración pesa más.
+  const LCOL = ['#52d053', '#33b7db', '#7fd4e0', '#ffcc33', '#ffa45c', '#ed8d4c', '#a78bfa', '#ff6b6b'];
   const APEX = '#ffdd55';
-  const RATIO = 3.4;          // radio de la madre / radio de la hija
-  const MS_PER_LEVEL = 3500;  // un piso cada ~3.5s
-  const SUBDIV = 30;          // por debajo de este radio, la célula muestra su pirámide
-  const H_MIN = 320;          // altura mínima; el CSS puede pedir más (62vh en escritorio)
+  const RED = '#ff3b3b';
+  const RATIO = 3.4;      // radio de la madre / radio de la hija
+  const SUBDIV = 30;      // por debajo de este radio la célula muestra su pirámide
+  const H_MIN = 320;
+  const SPEED = 0.5;      // niveles por segundo en el viaje automático
+  const HALF = 950;       // vida media (ms) del decaimiento de una ruptura
 
-  const md = (k: number, m: number) => ((k % m) + m) % m;
+  const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+
+  /** Interpola dos colores hex #rrggbb -> rgb(...). */
+  function mix(a: string, b: string, t: number) {
+    const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+    const ar = pa >> 16 & 255, ag = pa >> 8 & 255, ab = pa & 255;
+    const br = pb >> 16 & 255, bg = pb >> 8 & 255, bb = pb & 255;
+    const r = Math.round(ar + (br - ar) * t), gg = Math.round(ag + (bg - ag) * t), bl = Math.round(ab + (bb - ab) * t);
+    return `rgb(${r},${gg},${bl})`;
+  }
 
   function init(root: HTMLElement) {
     const cv = root.querySelector<HTMLCanvasElement>('[data-cv]')!;
-    const btn = root.querySelector<HTMLButtonElement>('[data-pause]')!;
-    // La altura la dicta el CSS (320px en móvil, ~62vh en escritorio):
-    // se mide en px y se pasa a ctxOf en cada remedición.
+    const scrub = root.querySelector<HTMLInputElement>('[data-scrub]')!;
+    const slLabel = root.querySelector<HTMLElement>('[data-sl-label]')!;
+    const btnBreak = root.querySelector<HTMLButtonElement>('[data-break]')!;
+    const btnRepair = root.querySelector<HTMLButtonElement>('[data-repair]')!;
+    const btnPlay = root.querySelector<HTMLButtonElement>('[data-play]')!;
+    const ro = root.querySelector<HTMLElement>('[data-ro]')!;
+    const focusEl = root.querySelector<HTMLElement>('[data-focus]')!;
+
     const measure = () =>
       ctxOf(cv, Math.max(H_MIN, Math.round(cv.getBoundingClientRect().height) || H_MIN));
     let g = measure();
 
-    /** Mini-pirámide 3-2-1: el vértice arriba, más brillante (el poder). */
-    function pyramid(cx: number, cy: number, r: number, col: string, a: number) {
-      const { x } = g;
-      const s = r * 0.36, dr = Math.max(1.4, r * 0.11);
-      const rows = [[0, -0.95], [-0.5, 0], [0.5, 0], [-1, 0.95], [0, 0.95], [1, 0.95]];
-      for (let i = 0; i < rows.length; i++) {
-        const px = cx + rows[i][0] * s, py = cy + rows[i][1] * s;
-        if (i === 0) {
-          x.fillStyle = APEX;
-          x.globalAlpha = a * 0.3;
-          x.beginPath(); x.arc(px, py, dr * 2, 0, 7); x.fill();
-          x.globalAlpha = a;
-          x.beginPath(); x.arc(px, py, dr * 1.2, 0, 7); x.fill();
-        } else {
-          x.fillStyle = col;
-          x.globalAlpha = a * 0.85;
-          x.beginPath(); x.arc(px, py, dr, 0, 7); x.fill();
-        }
-      }
-      x.globalAlpha = 1;
+    // --- Estado del fractal ---
+    let pos = 3;                          // posición continua en la escala [0..7]
+    let fLevel = 3;                       // nivel enfocado (entero) del último frame
+    let time = 0;                         // reloj para el temblor de las rupturas
+    const pert = new Array(8).fill(0);    // intensidad de ruptura por nivel [0..1]
+    const Gv = new Array(8).fill(0);      // concentración G calculada por nivel
+    const visible = new Set<number>();
+
+    /** G CALCULADO por el motor: la codicia (zeta) sube con la escala y con la
+     *  ruptura del nivel; se promedia la cola de la simulación para estabilizar. */
+    function gOf(level: number, extra: number) {
+      const P: Params = { ...BASE, zeta: cl(0.28 + level * 0.03 + extra, 0.05, 0.85) };
+      const out = simulate(P, 200, 0.04);
+      let s = 0; const n = 40;
+      for (let i = out.length - n; i < out.length; i++) s += out[i][2];
+      return s / n;
+    }
+    function recomputeG() {
+      for (let i = 0; i < 8; i++) Gv[i] = gOf(i, pert[i] * 0.5);
     }
 
-    /**
-     * Dibuja una célula y recurre en sus hijas (1 central + 6-8 en anillo).
-     * La recursión termina sola: bajo SUBDIV se dibuja la pirámide, y el
-     * culling descarta lo que cae fuera del lienzo, así que en la práctica
-     * solo hay 2-3 niveles de profundidad visibles a la vez.
-     */
+    /** Romper una escala: sube su ruptura y contagia parcialmente a los vecinos. */
+    function breakLevel(i: number) {
+      pert[i] = Math.min(1, pert[i] + 1);
+      if (i > 0) pert[i - 1] = Math.min(1, pert[i - 1] + 0.5);
+      if (i < 7) pert[i + 1] = Math.min(1, pert[i + 1] + 0.5);
+      if (i > 1) pert[i - 2] = Math.min(1, pert[i - 2] + 0.2);
+      if (i < 6) pert[i + 2] = Math.min(1, pert[i + 2] + 0.2);
+    }
+
+    /** Mini-pirámide: altura y "casquete" brillante crecen con G; se inclina y
+     *  enrojece con la ruptura. El vértice concentra (los pocos de arriba). */
+    function pyramid(cx: number, cy: number, r: number, lvl: number, alpha: number) {
+      const { x } = g;
+      const L = cl(Math.round(lvl), 0, 7);
+      const G = Gv[L], sh = pert[L];
+      visible.add(L);
+      const half = r * 0.6, ht = r * (0.6 + G * 1.05);
+      const lean = sh * 0.42 * Math.sin(time * 0.005 + L * 1.7);
+      const col = sh > 0.02 ? mix(LCOL[L], RED, Math.min(1, sh)) : LCOL[L];
+      x.save();
+      x.translate(cx, cy + r * 0.22);
+      x.rotate(lean);
+      // Cuerpo tenue.
+      x.beginPath(); x.moveTo(0, -ht); x.lineTo(-half, 0); x.lineTo(half, 0); x.closePath();
+      x.globalAlpha = alpha * 0.26; x.fillStyle = col; x.fill();
+      x.globalAlpha = alpha * 0.8; x.strokeStyle = col; x.lineWidth = 1.1; x.stroke();
+      // Casquete concentrado: fracción G de la altura, desde el vértice.
+      const capH = ht * Math.max(0.12, G), capW = half * capH / ht;
+      x.beginPath(); x.moveTo(0, -ht); x.lineTo(-capW, -ht + capH); x.lineTo(capW, -ht + capH); x.closePath();
+      x.globalAlpha = alpha * 0.92; x.fillStyle = sh > 0.02 ? mix(APEX, RED, sh * 0.6) : APEX; x.fill();
+      x.globalAlpha = 1;
+      x.restore();
+    }
+
+    /** Célula anidada: 1 central + un anillo de hijas; recurre hasta que el
+     *  radio baja de SUBDIV y dibuja su pirámide. El culling corta lo invisible. */
     function cell(cx: number, cy: number, r: number, d: number) {
       const { x, w, h } = g;
       if (cx + r < -24 || cx - r > w + 24 || cy + r < -24 || cy - r > h + 24) return;
-      const col = PAL[md(d, 5)];
-      let a = Math.min(1, Math.max(0, (r - 8) / 9));               // entra en fade al crecer
-      const rBig = Math.min(w, h) * 1.19;                          // umbral relativo al lienzo
-      if (r > rBig) a *= Math.max(0, 1 - (r - rBig) / (rBig * 2.4)); // sale en fade al desbordar
+      const L = cl(d, 0, 7);
+      const col = pert[L] > 0.02 ? mix(LCOL[L], RED, Math.min(1, pert[L])) : LCOL[L];
+      let a = Math.min(1, Math.max(0, (r - 8) / 9));
+      const rBig = Math.min(w, h) * 1.19;
+      if (r > rBig) a *= Math.max(0, 1 - (r - rBig) / (rBig * 2.4));
       if (a > 0.01) {
         x.beginPath(); x.arc(cx, cy, r, 0, 7);
-        x.globalAlpha = a * 0.28; x.fillStyle = col + '22'; x.fill();
+        x.globalAlpha = a * 0.26; x.fillStyle = col; x.fill();
         x.globalAlpha = a * 0.8; x.strokeStyle = col; x.lineWidth = r > 100 ? 1.6 : 1.2; x.stroke();
         x.globalAlpha = 1;
+        if (a > 0.15) visible.add(L);
       }
       if (r > SUBDIV) {
-        const sub = r / RATIO, n = 6 + md(d, 3), a0 = md(d, 8) * 0.85, dist = r * 0.62;
+        const sub = r / RATIO, n = 6 + (L % 3), a0 = (L % 8) * 0.85, dist = r * 0.62;
         cell(cx, cy, sub, d - 1);
         for (let k = 0; k < n; k++) {
           const ang = a0 + (k * Math.PI * 2) / n;
           cell(cx + dist * Math.cos(ang), cy + dist * Math.sin(ang), sub, d - 1);
         }
-      } else if (r > 8) {
-        pyramid(cx, cy, r, col, Math.min(1, (r - 8) / 7));
+      } else if (r > 9) {
+        pyramid(cx, cy, r, d, Math.min(1, (r - 9) / 8));
       }
     }
 
-    function scene(elapsed: number) {
+    function scene() {
       const { x, w, h } = g;
       x.clearRect(0, 0, w, h);
-      const depth = Math.floor(elapsed / MS_PER_LEVEL);
-      const frac = (elapsed % MS_PER_LEVEL) / MS_PER_LEVEL;
+      visible.clear();
+      const depth = Math.floor(pos), frac = pos - depth;
       const fill = Math.min(w, h) * 0.46;
-      // Zoom-out continuo: la célula actual se encoge de `fill` a `fill/RATIO`.
-      // En frac=1, su madre mide exactamente `fill`: reset sin costura.
       const rCur = fill * Math.pow(RATIO, -frac);
       cell(w / 2, h / 2, rCur * RATIO * RATIO, depth + 2);
-      // Etiqueta de escala con crossfade en el cambio de nivel.
-      const la = Math.min(1, frac / 0.09, (1 - frac) / 0.09);
-      const big = h >= 420; // lienzo hero en escritorio: etiqueta más grande
+
+      // Etiqueta de la escala en foco (persistente para el scrubber).
+      fLevel = cl(Math.round(pos), 0, 7);
+      const big = h >= 420;
+      x.textAlign = 'left';
       x.font = `${big ? 11 : 9}px "JetBrains Mono", monospace`;
       x.globalAlpha = 0.8; x.fillStyle = COL.muted;
       x.fillText('E S C A L A', 14, big ? 26 : 22);
-      x.font = `700 ${big ? 20 : 14}px "JetBrains Mono", monospace`;
-      x.globalAlpha = la; x.fillStyle = PAL[md(depth, 5)];
-      x.fillText(LEVELS[md(depth, 8)].toUpperCase(), 14, big ? 52 : 42);
       x.globalAlpha = 1;
+      x.font = `700 ${big ? 20 : 14}px "JetBrains Mono", monospace`;
+      x.fillStyle = pert[fLevel] > 0.1 ? mix(LCOL[fLevel], RED, Math.min(1, pert[fLevel])) : LCOL[fLevel];
+      x.fillText(NAMES[fLevel].toUpperCase(), 14, big ? 52 : 42);
+      x.font = `${big ? 12 : 10}px "JetBrains Mono", monospace`;
+      x.fillStyle = COL.muted;
+      x.fillText('concentración ' + Math.round(Gv[fLevel] * 100) + '%', 14, big ? 72 : 58);
     }
 
-    /** prefers-reduced-motion: dos niveles anidados, estáticos y etiquetados. */
-    function staticScene() {
-      const { x, w, h } = g;
-      x.clearRect(0, 0, w, h);
-      const fill = Math.min(w, h) * 0.44;
-      cell(w / 2, h / 2, fill, 1);
-      x.font = '700 13px "JetBrains Mono", monospace'; x.textAlign = 'center';
-      x.fillStyle = PAL[1]; x.fillText('órgano', w / 2, h / 2 - fill + 22);
-      x.fillStyle = PAL[0]; x.fillText('célula', w / 2, h / 2 - fill / RATIO - 8);
-      x.textAlign = 'left';
+    function updateRO() {
+      slLabel.textContent = NAMES[fLevel];
+      const broken = pert[fLevel] > 0.1;
+      focusEl.textContent = NAMES[fLevel] + (broken ? ' · roto' : '');
+      focusEl.style.color = broken ? RED : LCOL[fLevel];
+
+      const set = new Set(visible);
+      [fLevel - 1, fLevel, fLevel + 1].forEach((i) => { if (i >= 0 && i < 8) set.add(i); });
+      const arr = [...set].sort((a, b) => b - a);
+      ro.innerHTML =
+        '<div class="cz-rohead">niveles a la vista · concentración (G)</div>' +
+        arr.map((i) => {
+          const brk = pert[i] > 0.03;
+          return `<div class="cz-row${brk ? ' brk' : ''}">` +
+            `<span class="cz-nm" style="color:${LCOL[i]}">${NAMES[i]}</span>` +
+            `<span class="cz-bar"><i style="width:${Math.min(100, Gv[i] * 100)}%;background:${brk ? RED : LCOL[i]}"></i></span>` +
+            `<span class="cz-g">${Math.round(Gv[i] * 100)}%${brk ? ' <em>◀ propaga</em>' : ''}</span></div>`;
+        }).join('');
     }
 
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      btn.style.display = 'none';
-      staticScene();
-      window.addEventListener('resize', () => { g = measure(); staticScene(); });
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // ---------- Modo estático (prefers-reduced-motion) ----------
+    if (reduced) {
+      btnPlay.style.display = 'none';
+      const redraw = () => { recomputeG(); scene(); updateRO(); };
+      scrub.addEventListener('input', () => { pos = +scrub.value; redraw(); });
+      btnBreak.addEventListener('click', () => { breakLevel(fLevel); redraw(); });
+      btnRepair.addEventListener('click', () => { pert.fill(0); redraw(); });
+      window.addEventListener('resize', () => { g = measure(); redraw(); });
+      recomputeG(); scene(); updateRO();
       return;
     }
 
-    let elapsed = 0, last = performance.now(), raf = 0, running = true;
-    function tick(now: number) {
-      elapsed += Math.min(now - last, 100);
-      last = now;
-      scene(elapsed);
-      raf = requestAnimationFrame(tick);
+    // ---------- Modo animado ----------
+    let running = true, dir = 1, last = performance.now(), raf = 0, frame = 0;
+
+    function loop(now: number) {
+      const d = Math.min(now - last, 100);
+      last = now; time = now;
+      if (running) {
+        pos += dir * (d / 1000) * SPEED;
+        if (pos >= 7) { pos = 7; dir = -1; }
+        if (pos <= 0) { pos = 0; dir = 1; }
+        scrub.value = String(pos);
+      }
+      // La ruptura decae siempre: la grieta se propaga y luego se asienta.
+      const k = Math.pow(0.5, d / HALF);
+      for (let i = 0; i < 8; i++) pert[i] = pert[i] < 0.004 ? 0 : pert[i] * k;
+      recomputeG();
+      scene();
+      if (++frame % 4 === 0) updateRO();
+      raf = requestAnimationFrame(loop);
     }
-    btn.onclick = () => {
+
+    scrub.addEventListener('input', () => {
+      pos = +scrub.value;
+      running = false;
+      btnPlay.textContent = '▶ Viaje';
+      btnPlay.classList.remove('on');
+    });
+    btnBreak.addEventListener('click', () => { breakLevel(fLevel); updateRO(); });
+    btnRepair.addEventListener('click', () => { pert.fill(0); updateRO(); });
+    btnPlay.addEventListener('click', () => {
       running = !running;
-      btn.textContent = running ? '⏸ Pausar' : '▶ Reanudar';
-      if (running) { last = performance.now(); raf = requestAnimationFrame(tick); }
-      else cancelAnimationFrame(raf);
-    };
-    window.addEventListener('resize', () => { g = measure(); if (!running) scene(elapsed); });
-    raf = requestAnimationFrame(tick);
+      btnPlay.textContent = running ? '⏸ Pausar viaje' : '▶ Viaje';
+      btnPlay.classList.toggle('on', running);
+      if (running) last = performance.now();
+    });
+    window.addEventListener('resize', () => { g = measure(); });
+
+    btnPlay.classList.add('on');
+    recomputeG();
+    raf = requestAnimationFrame(loop);
   }
+
   document.querySelectorAll<HTMLElement>('.czoom').forEach(init);
 </script>
 
@@ -158,23 +271,38 @@
   .czoom { padding: 1rem 1.2rem 0.8rem; margin-block: 2.5rem; }
   .czoom-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
   .czoom-title { color: var(--orange-bright); font-size: 0.78rem; letter-spacing: 0.3em; text-transform: uppercase; }
-  .czoom-btn { background: var(--bg-panel-2); color: var(--text); border: 1px solid var(--line); padding: 0.3rem 0.6rem; font-family: var(--font-mono); font-size: 0.65rem; cursor: pointer; }
-  .czoom-btn:hover { border-color: var(--orange); }
-  .czoom canvas { display: block; width: 100%; height: 320px; }
-  .czoom-cap { font-size: 0.74rem; color: var(--muted); margin-top: 0.7rem; }
+  .czoom-phase { font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; }
+  .czoom-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 1.4rem; align-items: start; }
+  @media (max-width: 720px) { .czoom-grid { grid-template-columns: 1fr; } }
+  .czoom-viz canvas { display: block; width: 100%; height: 320px; }
+  .czoom-ctrl { display: flex; flex-direction: column; gap: 0.9rem; }
+  .czoom-scrub { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.7rem; color: var(--muted); letter-spacing: 0.05em; }
+  .czoom-scrub b { color: var(--yellow); text-transform: uppercase; letter-spacing: 0.1em; }
+  .czoom-scrub input[type='range'] { width: 100%; accent-color: var(--orange); margin-top: 0.15rem; }
+  .czoom-scaleline { font-size: 0.58rem; color: var(--muted); letter-spacing: 0.02em; opacity: 0.75; }
+  .czoom-btns { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .czoom button { background: var(--bg-panel-2); color: var(--text); border: 1px solid var(--line); padding: 0.45rem 0.7rem; font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.06em; cursor: pointer; }
+  .czoom button:hover { border-color: var(--orange); color: var(--orange-bright); }
+  .czoom button.prim { background: var(--orange); color: #000; font-weight: 700; border-color: var(--orange); }
+  .czoom button.prim:hover { color: #000; }
+  .czoom button.on { background: var(--yellow); color: #000; border-color: var(--yellow); }
+  .czoom-readout { font-size: 0.72rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.6rem 0.7rem; display: flex; flex-direction: column; gap: 0.35rem; }
+  .cz-rohead { font-size: 0.58rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); opacity: 0.8; margin-bottom: 0.1rem; }
+  .cz-row { display: grid; grid-template-columns: 5.4rem 1fr auto; align-items: center; gap: 0.5rem; }
+  .cz-nm { font-size: 0.68rem; letter-spacing: 0.04em; }
+  .cz-bar { height: 6px; background: var(--bg-panel-2); border: 1px solid var(--line); position: relative; overflow: hidden; }
+  .cz-bar i { display: block; height: 100%; transition: width 0.18s linear; }
+  .cz-g { font-size: 0.62rem; color: var(--text); white-space: nowrap; }
+  .cz-g :global(em) { color: var(--red); font-style: normal; letter-spacing: 0.05em; }
+  .cz-row.brk .cz-nm { color: var(--red) !important; }
+  .czoom-cap { font-size: 0.74rem; color: var(--muted); margin-top: 0.8rem; }
+  .czoom-cap b { color: var(--text); }
   .czoom-foot { margin-top: 0.7rem; padding-top: 0.5rem; border-top: 1px dashed var(--line); font-size: 0.6rem; letter-spacing: 0.28em; color: var(--muted); }
-  /* Tratamiento hero: casi página completa en escritorio. */
+  /* Tratamiento hero en escritorio. */
   @media (min-width: 900px) {
-    .czoom {
-      min-height: 88vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      padding: 1.4rem 2rem 1rem;
-    }
-    .czoom canvas { height: clamp(420px, 62vh, 860px); }
+    .czoom { padding: 1.4rem 2rem 1rem; }
+    .czoom-viz canvas { height: clamp(420px, 60vh, 780px); }
     .czoom-title { font-size: 0.9rem; }
-    .czoom-btn { font-size: 0.72rem; padding: 0.4rem 0.8rem; }
     .czoom-cap { font-size: 0.82rem; }
     .czoom-foot { font-size: 0.66rem; }
   }

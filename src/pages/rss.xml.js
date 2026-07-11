@@ -4,7 +4,7 @@ import { getCollection } from 'astro:content';
 export async function GET(context) {
   const posts = await getCollection('blog', ({ data }) => !data.draft);
   return rss({
-    title: 'Pablo Diaz — Blog',
+    title: 'Pablo Diaz · Blog',
     description: 'Blog sobre backend, datos y sistemas.',
     site: context.site,
     items: posts.map((post) => ({

@@ -4,9 +4,18 @@
  * (un imperio antiguo, el feudalismo, una democracia rica, internet y el
  * campo) con % de personas vs % de poder/riqueza por capa.
  *
- * Ahora, además de comparar datos históricos, deja ver la pirámide FORMARSE
- * en el tiempo: un slider de concentración (G objetivo) y un botón "▶ correr"
- * que integra el motor (simulate) y morfea las barras de plano a pirámide.
+ * Se dibuja como una PIRÁMIDE real: capas apiladas y centradas, una cima
+ * diminuta (la élite) y una base ancha (la mayoría). El ancho AZUL de cada
+ * capa = cuánta gente hay en ella; el ancho NARANJA (superpuesto) = cuánto
+ * captura esa capa. Como los repartos son extremos (1% capturando ~50%),
+ * los anchos usan escala LOGARÍTMICA: así una capa del 1% y otra del 90%
+ * se ven ambas sin que una aplaste a la otra. El resultado son dos pirámides
+ * opuestas: la azul (gente) ancha abajo, la naranja (captura) ancha arriba.
+ *
+ * Además deja ver la concentración FORMARSE en el tiempo: un slider de
+ * acaparamiento (G objetivo) y un botón "▶ correr" que integra el motor
+ * (simulate) y morfea desde un reparto justo (naranja = azul en cada capa)
+ * hasta la captura real (la cima naranja se hincha).
  */
 ---
 
@@ -22,14 +31,15 @@
       <input type="range" data-s min="0" max="100" step="1" value="100" /></label>
     <div class="ppyr-btns">
       <button data-run class="prim">▶ Correr</button>
-      <button data-reset>Aplanar</button>
+      <button data-reset>Reparto justo</button>
     </div>
     <div class="ppyr-reading" data-read></div>
   </div>
   <div class="readout" data-note></div>
   <div class="ppyr-legend">
-    <span><i class="lg-people"></i>qué % de la gente es esa capa</span>
-    <span><i class="lg-power"></i>qué % del poder / riqueza captura</span>
+    <span><i class="lg-people"></i>ancho azul = qué % de la gente es esa capa</span>
+    <span><i class="lg-power"></i>ancho naranja = qué % del poder / riqueza captura</span>
+    <span class="lg-log">▚ anchos en escala LOGARÍTMICA (si no, el 1% aplastaría al 90%)</span>
   </div>
   <div class="ppyr-foot">CINCO SISTEMAS SIN NADA EN COMÚN · Y LA MISMA FORMA</div>
 </figure>
@@ -95,6 +105,19 @@
 
   const fmt = (v: number) => (v >= 10 ? v.toFixed(0) : v >= 1 ? v.toFixed(1) : v.toFixed(2));
 
+  // Multiplicador "captura por persona" respecto a un reparto justo (×1).
+  const mul = (d: number) =>
+    d >= 1000 ? Math.round(d / 1000) + 'k' : d >= 100 ? Math.round(d).toString()
+    : d >= 10 ? d.toFixed(0) : d >= 1 ? d.toFixed(1) : d.toFixed(2);
+
+  // Mezcla dos colores hex por t ∈ [0,1].
+  function mix(a: string, b: string, t: number): string {
+    const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
+    const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+    const c = pa.map((v, i) => Math.round(v + (pb[i] - v) * Math.max(0, Math.min(1, t))));
+    return `rgb(${c[0]},${c[1]},${c[2]})`;
+  }
+
   // % del poder que captura el 10% de personas con más poder por cabeza.
   function topDecile(layers: Layer[], m: number): number {
     const cur = layers.map((l) => ({ pp: l.pp, pow: l.pp + (l.wp - l.pp) * m }));
@@ -122,7 +145,10 @@
     const resetBtn = root.querySelector<HTMLButtonElement>('[data-reset]')!;
 
     let idx = 0; // mundo activo (preset / objetivo histórico)
-    let bars: { powEl: HTMLElement; powLab: HTMLElement }[] = [];
+    // capas ordenadas por nº de personas (cima diminuta arriba, base ancha abajo)
+    let order: Layer[] = [];
+    let lo = 0, hi = 1; // rango log de anchos del mundo activo
+    let refs: { peopleEl: HTMLElement; powEl: HTMLElement; capLab: HTMLElement }[] = [];
     let raf = 0;
 
     WORLDS.forEach((wd, i) => {
@@ -132,39 +158,72 @@
       tabs.appendChild(b);
     });
 
-    // Construye el DOM de las capas una sola vez por mundo; guarda refs.
+    // Ancho (% del carril) para un valor v (%), en escala logarítmica del mundo.
+    // La capa con menos gente/captura queda visible (piso), la mayor llena el carril.
+    function logW(v: number): number {
+      const L = Math.log10(Math.max(1e-6, v));
+      const t = (L - lo) / Math.max(1e-6, hi - lo);
+      return 9 + Math.max(0, Math.min(1, t)) * 91; // 9%..100%
+    }
+
+    // Construye el DOM de la pirámide una sola vez por mundo; guarda refs.
     function buildRows() {
       const wd = WORLDS[idx];
-      rows.innerHTML = wd.layers
+      // orden visual: menos gente arriba (apex), más gente abajo (base)
+      order = [...wd.layers].sort((a, b) => a.pp - b.pp);
+      // rango log común a personas y captura, para que ambos anchos comparen
+      const vals = order.flatMap((l) => [l.pp, l.wp]);
+      lo = Math.log10(Math.max(1e-6, Math.min(...vals)));
+      hi = Math.log10(Math.max(...vals));
+
+      rows.innerHTML = order
         .map(
           (l) => `
         <div class="lay">
-          <div class="lay-name">${l.name}</div>
-          <div class="lay-bars">
-            <div class="bar-row"><div class="bar people" style="width:${Math.max(0.6, l.pp)}%"></div><span>${l.pl}</span></div>
-            <div class="bar-row"><div class="bar power" data-pow></div><span data-powlab></span></div>
+          <div class="lay-meta">
+            <span class="nm">${l.name}</span>
+            <span class="pp">${l.pl}</span>
+            <span class="cap" data-caplab></span>
+          </div>
+          <div class="lay-track" title="${l.pl} · captura ${l.wl}">
+            <div class="bar people" style="width:${logW(l.pp)}%"></div>
+            <div class="bar power" data-pow></div>
           </div>
         </div>`,
         )
         .join('');
       const powEls = rows.querySelectorAll<HTMLElement>('[data-pow]');
-      const powLabs = rows.querySelectorAll<HTMLElement>('[data-powlab]');
-      bars = wd.layers.map((_, i) => ({ powEl: powEls[i], powLab: powLabs[i] }));
+      const peoEls = rows.querySelectorAll<HTMLElement>('.bar.people');
+      const capLabs = rows.querySelectorAll<HTMLElement>('[data-caplab]');
+      refs = order.map((_, i) => ({ peopleEl: peoEls[i], powEl: powEls[i], capLab: capLabs[i] }));
       note.innerHTML = wd.note;
     }
 
-    // Pinta las barras de poder para una fracción de morfeo m ∈ [0,1].
+    // Pinta la captura (naranja) para una fracción de morfeo m ∈ [0,1].
+    // m=0 → reparto justo (captura = gente en cada capa); m=1 → captura real.
     function paint(m: number) {
-      const wd = WORLDS[idx];
-      wd.layers.forEach((l, i) => {
-        const cur = l.pp + (l.wp - l.pp) * m;
-        bars[i].powEl.style.width = Math.max(0.6, cur) + '%';
-        bars[i].powLab.textContent = m >= 0.995 ? l.wl : `${fmt(cur)}% ahora`;
+      order.forEach((l, i) => {
+        const cur = l.pp + (l.wp - l.pp) * m; // % del poder que captura ahora
+        const dens = cur / Math.max(1e-9, l.pp); // captura por persona (×fair)
+        const r = refs[i];
+        r.powEl.style.width = logW(cur) + '%';
+        // intensidad por densidad: azul (infra-captura) → naranja → rojo
+        const t = (Math.log10(Math.max(1e-3, dens)) + 1.5) / 3; // d≈0.03→0, 1→0.5, 30→1
+        const col = t < 0.5 ? mix(COL.blue, COL.orange, t * 2) : mix(COL.orange, COL.red, (t - 0.5) * 2);
+        r.powEl.style.background = col;
+        r.powEl.style.boxShadow = dens > 1 ? `0 0 ${Math.min(16, dens * 0.5)}px ${col}` : 'none';
+        r.capLab.innerHTML =
+          m >= 0.995
+            ? `captura <b>${l.wl}</b> · ×${mul(dens)}`
+            : `captura <b>${fmt(cur)}%</b> · ×${mul(dens)}`;
+        r.capLab.style.color = col;
       });
+
+      const wd = WORLDS[idx];
       const top = wd.layers[0];
       const topCur = top.pp + (top.wp - top.pp) * m;
       const dec = topDecile(wd.layers, m);
-      read.innerHTML = `La cima (<b>${top.name}</b>) captura <b>${fmt(topCur)}%</b> · el 10% de arriba: <b>${dec.toFixed(0)}%</b>`;
+      read.innerHTML = `La cima (<b>${top.name}</b>) es <b>${fmt(top.pp)}%</b> de la gente y captura <b>${fmt(topCur)}%</b> · el 10% de arriba se lleva <b>${dec.toFixed(0)}%</b>`;
 
       let lab: string, col: string;
       if (dec < 22) { lab = 'Repartido · todos parecidos'; col = COL.green; }
@@ -182,8 +241,8 @@
       runBtn.classList.remove('on');
     }
 
-    // ▶ Correr: integra el motor y morfea de plano (m=0) al objetivo (gStar),
-    // siguiendo la forma temporal real de G(t). "Acaparamiento" ↦ zeta.
+    // ▶ Correr: integra el motor y morfea de reparto justo (m=0) al objetivo
+    // (gStar), siguiendo la forma temporal real de G(t). "Acaparamiento" ↦ zeta.
     function run() {
       if (raf) { stopRun(); return; }
       const gStar = +slider.value / 100;
@@ -222,7 +281,8 @@
       idx = i;
       tabs.querySelectorAll('button').forEach((b, j) => b.classList.toggle('on', j === i));
       buildRows();
-      // en el siguiente frame para que la transición CSS corra desde 0
+      // en el siguiente frame para que la transición CSS corra desde el reparto justo
+      paint(0);
       requestAnimationFrame(() => paint(+slider.value / 100));
     }
 
@@ -260,21 +320,28 @@
   }
   .ppyr-tabs :global(button:hover) { border-color: var(--orange); color: var(--orange-bright); }
   .ppyr-tabs :global(button.on) { background: var(--orange); color: #000; font-weight: 700; border-color: var(--orange); }
-  .ppyr-rows { display: flex; flex-direction: column; gap: 0.9rem; }
-  .ppyr-rows :global(.lay) { display: grid; grid-template-columns: minmax(11rem, 0.6fr) 1.4fr; gap: 1rem; align-items: center; }
-  .ppyr-rows :global(.lay-name) { font-size: 0.74rem; color: var(--text); text-align: right; line-height: 1.4; }
-  .ppyr-rows :global(.lay-bars) { display: flex; flex-direction: column; gap: 0.25rem; }
-  .ppyr-rows :global(.bar-row) { display: flex; align-items: center; gap: 0.6ch; font-size: 0.68rem; color: var(--muted); }
-  .ppyr-rows :global(.bar) { height: 12px; width: 0; flex: none; }
-  .ppyr-rows :global(.bar.people) { background: var(--blue); }
-  .ppyr-rows :global(.bar.power) { background: var(--orange); }
-  .ppyr-rows :global(.bar-row span) { white-space: nowrap; }
+
+  /* La pirámide: capas apiladas, cada carril centra sus dos barras. */
+  .ppyr-rows { display: flex; flex-direction: column; gap: 3px; }
+  .ppyr-rows :global(.lay) { display: grid; grid-template-columns: minmax(9rem, 0.75fr) 1.5fr; gap: 1rem; align-items: center; }
+  .ppyr-rows :global(.lay-meta) { display: flex; flex-direction: column; gap: 0.1rem; text-align: right; line-height: 1.35; }
+  .ppyr-rows :global(.lay-meta .nm) { font-size: 0.74rem; color: var(--text); }
+  .ppyr-rows :global(.lay-meta .pp) { font-size: 0.66rem; color: var(--blue); }
+  .ppyr-rows :global(.lay-meta .cap) { font-size: 0.66rem; color: var(--orange); }
+  .ppyr-rows :global(.lay-meta b) { color: inherit; font-weight: 700; }
+  /* carril centrado: la base ancha abajo y el apex angosto arriba dibujan el triángulo */
+  .ppyr-rows :global(.lay-track) { position: relative; height: 26px; }
+  .ppyr-rows :global(.bar) { position: absolute; top: 0; left: 50%; transform: translateX(-50%); height: 100%; width: 0; }
+  .ppyr-rows :global(.bar.people) { background: var(--blue); opacity: 0.9; }
+  /* la captura se superpone centrada; translúcida para dejar ver la barra azul detrás */
+  .ppyr-rows :global(.bar.power) { background: var(--orange); opacity: 0.82; outline: 1px solid rgba(0,0,0,0.35); mix-blend-mode: screen; }
   @media (prefers-reduced-motion: no-preference) {
-    .ppyr-rows :global(.bar) { transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    .ppyr-rows :global(.bar) { transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.4s linear, box-shadow 0.4s linear; }
     /* mientras corre el rAF, sin transición: los frames ya animan el ancho */
     .ppyr-rows.run :global(.bar.power) { transition: none; }
   }
-  .ppyr-ctrl { display: flex; flex-direction: column; gap: 0.7rem; margin-top: 1.1rem; }
+
+  .ppyr-ctrl { display: flex; flex-direction: column; gap: 0.7rem; margin-top: 1.3rem; }
   .ppyr-ctrl label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.7rem; color: var(--muted); letter-spacing: 0.05em; }
   .ppyr-ctrl label b { color: var(--blue); }
   .ppyr-ctrl input[type='range'] { width: 100%; accent-color: var(--orange); }
@@ -291,17 +358,18 @@
   .ppyr-legend i { width: 14px; height: 8px; display: inline-block; margin-right: 0.5ch; vertical-align: middle; }
   .lg-people { background: var(--blue); }
   .lg-power { background: var(--orange); }
+  .ppyr-legend .lg-log { color: var(--muted); font-style: italic; }
   .ppyr-foot { margin-top: 0.7rem; padding-top: 0.5rem; border-top: 1px dashed var(--line); font-size: 0.6rem; letter-spacing: 0.28em; color: var(--muted); }
+
   @media (max-width: 700px) {
-    .ppyr-rows :global(.lay) { grid-template-columns: 1fr; gap: 0.3rem; }
-    .ppyr-rows :global(.lay-name) { text-align: left; color: var(--orange-bright); }
-    .ppyr-rows :global(.bar-row span) { white-space: normal; }
+    .ppyr-rows :global(.lay) { grid-template-columns: 1fr; gap: 0.25rem; }
+    .ppyr-rows :global(.lay-meta) { text-align: left; flex-direction: row; flex-wrap: wrap; gap: 0.1rem 0.7rem; align-items: baseline; }
+    .ppyr-rows :global(.lay-meta .nm) { color: var(--orange-bright); width: 100%; }
+    .ppyr-rows :global(.lay-track) { height: 22px; }
   }
   @media (min-width: 900px) {
     .ppyr { padding: 1.6rem 1.2rem 1.3rem; }
-    .ppyr-rows { gap: 1.2rem; }
-    .ppyr-rows :global(.bar) { height: 20px; }
-    .ppyr-rows :global(.lay-name) { font-size: 0.85rem; }
-    .ppyr-rows :global(.bar-row) { font-size: 0.78rem; }
+    .ppyr-rows :global(.lay-track) { height: 30px; }
+    .ppyr-rows :global(.lay-meta .nm) { font-size: 0.85rem; }
   }
 </style>

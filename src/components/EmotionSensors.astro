@@ -26,9 +26,9 @@
     <div class="sens-viz">
       <div class="scope-box"><canvas data-scope></canvas></div>
       <div class="sens-legend">
-        <span class="lg lg-r">— alarma reactiva (celos / envidia)</span>
-        <span class="lg lg-p">— alarma predictiva (ansiedad / miedo)</span>
-        <span class="lg lg-s">— escasez percibida</span>
+        <span class="lg lg-r">● alarma reactiva (celos / envidia)</span>
+        <span class="lg lg-p">● alarma predictiva (ansiedad / miedo)</span>
+        <span class="lg lg-s">● escasez percibida</span>
       </div>
     </div>
 
@@ -156,12 +156,18 @@
     const H = 210;
     const MAX = 260; // muestras visibles en el osciloscopio
 
+    // --- escala del eje Y SIEMPRE fija en 0–100% (nunca autoescala) ---
+    const PAD = 2;
+    const yOf = (v: number, h: number) => h - clamp(v) * (h - 2 * PAD) - PAD;
+    const xOf = (i: number, w: number) => (i / (MAX - 1)) * w;
+
     // estado dinámico de los sensores
     let reactive = 0;   // responde rápido (celos / envidia)
     let predSmooth = 0; // media lenta (base de la ansiedad)
     let predPrev = 0;
     let predictive = 0; // suavizada + anticipatoria (miedo)
     let rumor = 0;      // pico transitorio inyectado desde afuera
+    let noiseState = 0; // ruido COHERENTE (paseo suavizado, no jitter blanco)
 
     let perceived = 0;
     const histS: number[] = [];
@@ -188,41 +194,59 @@
       const target = clamp(realSc + m * (1 - realSc) * 0.85);
 
       // Más ruido cuando hay abundancia visible y mucho mimetismo → falsas alarmas.
-      const noiseAmp = 0.045 + 0.13 * m + 0.05 * ab;
-      const noise = gauss() * noiseAmp;
+      // Pero es un paseo SUAVIZADO (AR-1), no jitter blanco: el "rumor de fondo"
+      // se ve, sin saltos ilegibles de un frame a otro.
+      const noiseAmp = 0.02 + 0.06 * m + 0.03 * ab;
+      noiseState += (gauss() * noiseAmp - noiseState) * 0.18;
 
-      perceived = clamp(target + rumor + noise);
+      perceived = clamp(target + rumor + noiseState);
 
-      // reactiva: seguimiento rápido (capta cada pico y cada rumor)
-      reactive += (perceived - reactive) * 0.34;
+      // reactiva: seguimiento rápido (capta picos y rumores) pero sin sobresaltos
+      reactive += (perceived - reactive) * 0.22;
       reactive = clamp(reactive);
 
-      // predictiva: media lenta + término anticipatorio (tendencia)
-      predSmooth += (perceived - predSmooth) * 0.045;
+      // predictiva: media lenta + término anticipatorio (tendencia amortiguada)
+      predSmooth += (perceived - predSmooth) * 0.06;
       const trend = predSmooth - predPrev;
       predPrev = predSmooth;
-      predictive = clamp(predSmooth + trend * 9);
+      predictive = clamp(predSmooth + trend * 4);
 
-      rumor *= 0.95; // el rumor se disipa solo
+      rumor *= 0.965; // el rumor se disipa solo, ahora más despacio (legible)
 
       push(histS, perceived);
       push(histR, reactive);
       push(histP, predictive);
     }
 
-    // línea de una serie sobre el osciloscopio
+    // relleno bajo una serie hasta la base (0%). Con escala FIJA: dos áreas
+    // pueden solaparse sin que el eje cambie nunca.
+    function area(x: CanvasRenderingContext2D, data: number[], w: number, h: number, fillStyle: string) {
+      if (data.length < 2) return;
+      x.save();
+      x.fillStyle = fillStyle;
+      x.beginPath();
+      x.moveTo(xOf(0, w), yOf(0, h));
+      for (let i = 0; i < data.length; i++) x.lineTo(xOf(i, w), yOf(data[i], h));
+      x.lineTo(xOf(data.length - 1, w), yOf(0, h));
+      x.closePath();
+      x.fill();
+      x.restore();
+    }
+
+    // línea de una serie sobre el osciloscopio (escala Y fija 0–100%)
     function line(x: CanvasRenderingContext2D, data: number[], w: number, h: number,
-                  color: string, width: number, alpha: number) {
+                  color: string, width: number, alpha: number, dash: number[] = []) {
       if (data.length < 2) return;
       x.save();
       x.globalAlpha = alpha;
       x.strokeStyle = color;
       x.lineWidth = width;
       x.lineJoin = 'round';
+      x.setLineDash(dash);
       x.beginPath();
       for (let i = 0; i < data.length; i++) {
-        const px = (i / (MAX - 1)) * w;
-        const py = h - data[i] * (h - 4) - 2;
+        const px = xOf(i, w);
+        const py = yOf(data[i], h);
         i === 0 ? x.moveTo(px, py) : x.lineTo(px, py);
       }
       x.stroke();
@@ -233,34 +257,39 @@
       const { x, w, h } = ctxOf(cv, H);
       x.clearRect(0, 0, w, h);
 
-      // rejilla horizontal + marcas 0/50/100
-      x.strokeStyle = GRID;
-      x.lineWidth = 1;
-      x.fillStyle = TICK;
-      x.font = '10px "JetBrains Mono", monospace';
-      for (let p = 0; p <= 100; p += 25) {
-        const gy = h - (p / 100) * (h - 4) - 2;
-        x.beginPath(); x.moveTo(0, gy); x.lineTo(w, gy); x.stroke();
-        x.fillText(p + '%', 2, gy - 2);
-      }
-
-      // zona de "falsa alarma": abundancia alta → cualquier pico es falso
+      // zona de "falsa alarma": abundancia alta → cualquier pico es falso.
+      // Se ancla a la escala fija (mitad superior = >50%), no a los datos.
       const ab = +abS.value / 100;
       if (ab > 0.55) {
         x.save();
         x.fillStyle = 'rgba(82,208,83,0.06)';
-        x.fillRect(0, 0, w, (h - 4) * 0.45);
+        x.fillRect(0, yOf(1, h), w, yOf(0.5, h) - yOf(1, h));
         x.restore();
       }
 
-      line(x, histS, w, h, COL.yellow, 1.2, 0.5);      // escasez percibida (guía)
-      line(x, histP, w, h, COL.blue, 2.4, 0.95);       // predictiva
-      line(x, histR, w, h, COL.orange, 2.0, 0.95);     // reactiva
+      // rejilla horizontal + marcas 0/25/50/75/100 (eje Y SIEMPRE fijo 0–100%)
+      x.lineWidth = 1;
+      x.font = '10px "JetBrains Mono", monospace';
+      for (let p = 0; p <= 100; p += 25) {
+        const gy = yOf(p / 100, h);
+        x.strokeStyle = p === 0 || p === 100 ? AXIS : GRID;
+        x.beginPath(); x.moveTo(0, gy); x.lineTo(w, gy); x.stroke();
+        x.fillStyle = TICK;
+        x.fillText(p + '%', 2, Math.min(h - 2, gy + (p === 100 ? 10 : -2)));
+      }
+
+      // áreas rellenas de las dos alarmas: pueden SOLAPARSE sin reescalar el eje
+      area(x, histP, w, h, 'rgba(51,183,219,0.13)');   // predictiva
+      area(x, histR, w, h, 'rgba(237,141,76,0.15)');   // reactiva
+
+      line(x, histS, w, h, COL.yellow, 1.2, 0.55, [4, 3]); // escasez percibida (guía)
+      line(x, histP, w, h, COL.blue, 2.4, 0.95);           // predictiva
+      line(x, histR, w, h, COL.orange, 2.0, 0.95);         // reactiva
 
       x.fillStyle = COL.muted;
       x.font = '10px "JetBrains Mono", monospace';
       x.textAlign = 'right';
-      x.fillText('el tiempo pasa →', w - 4, h - 4);
+      x.fillText('escala fija 0–100% · el tiempo pasa →', w - 4, yOf(1, h) - 4);
       x.textAlign = 'left';
     }
 
@@ -300,7 +329,7 @@
     }
 
     function frame() {
-      reactive = predSmooth = predPrev = predictive = 0;
+      reactive = predSmooth = predPrev = predictive = noiseState = 0;
     }
 
     function fill(n: number) {
@@ -318,18 +347,28 @@
       readout();
     }
 
-    function loop() {
+    // Reloj de paso fijo: una muestra nueva cada STEP_MS, independiente del
+    // frame-rate. Lento a propósito para que un humano siga cada línea.
+    const STEP_MS = 75; // ~13 muestras/segundo → un barrido dura ~20 s
+    let last = 0;
+    let acc = 0;
+
+    function loop(ts: number) {
       if (!running) return;
-      stepSim();
-      stepSim();
-      draw();
-      readout();
+      if (!last) last = ts;
+      acc += ts - last;
+      last = ts;
+      if (acc > STEP_MS * 5) acc = STEP_MS; // evita ráfagas tras cambiar de pestaña
+      let stepped = false;
+      while (acc >= STEP_MS) { stepSim(); acc -= STEP_MS; stepped = true; }
+      if (stepped) { draw(); readout(); }
       raf = requestAnimationFrame(loop);
     }
 
     function start() {
       if (running) return;
       running = true;
+      last = 0; acc = 0;
       runB.textContent = '⏸ pausar';
       runB.classList.add('on');
       raf = requestAnimationFrame(loop);
@@ -353,8 +392,14 @@
     });
     runB.onclick = () => (running ? stop() : start());
     rumorB.onclick = () => {
-      rumor = 0.65; // escasez fabricada, transitoria
-      if (!running) { start(); } // que se vea propagarse
+      rumor = 0.6; // escasez fabricada, transitoria
+      if (reduce) {
+        // sin animación: avanza un tramo y muestra el pico ya propagado
+        fill(Math.round(MAX * 0.35));
+        draw(); readout();
+      } else if (!running) {
+        start(); // que se vea propagarse en vivo
+      }
     };
     resetB.onclick = resetSim;
     window.addEventListener('resize', () => { draw(); });

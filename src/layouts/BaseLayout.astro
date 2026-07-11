@@ -11,7 +11,7 @@ interface Props {
   description?: string;
 }
 
-const { title, description = 'Blog de Pablo Diaz — backend, datos y sistemas.' } = Astro.props;
+const { title, description = 'Blog de Pablo Diaz · backend, datos y sistemas.' } = Astro.props;
 ---
 
 <!doctype html>
@@ -23,7 +23,7 @@ const { title, description = 'Blog de Pablo Diaz — backend, datos y sistemas.'
     <meta name="description" content={description} />
     <meta name="generator" content={Astro.generator} />
     <link rel="icon" type="image/svg+xml" href={url('/favicon.svg')} />
-    <link rel="alternate" type="application/rss+xml" title="Pablo Diaz — Blog" href={url('/rss.xml')} />
+    <link rel="alternate" type="application/rss+xml" title="Pablo Diaz · Blog" href={url('/rss.xml')} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
@@ -31,7 +31,7 @@ const { title, description = 'Blog de Pablo Diaz — backend, datos y sistemas.'
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,600;0,800;1,400&family=Noto+Serif+JP:wght@700;900&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:ital,wght@0,400;0,600;0,800;1,400&family=Noto+Serif+JP:wght@700;900&display=swap"
     />
   </head>
   <body>

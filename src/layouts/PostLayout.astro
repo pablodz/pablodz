@@ -12,7 +12,7 @@ interface Props {
 const { title, description, pubDate, updatedDate } = Astro.props;
 ---
 
-<BaseLayout title={`${title} — Pablo Diaz`} description={description}>
+<BaseLayout title={`${title} · Pablo Diaz`} description={description}>
   <article>
     <div class="title-card">
       <div class="wrap">
@@ -32,7 +32,7 @@ const { title, description, pubDate, updatedDate } = Astro.props;
       </div>
 
       <div class="post-end">
-        <p class="end-text">— FIN DE LA TRANSMISIÓN —</p>
+        <p class="end-text">· FIN DE LA TRANSMISIÓN ·</p>
         <a href={url('/')} class="back">◀ VOLVER A LOS ARCHIVOS</a>
       </div>
     </div>

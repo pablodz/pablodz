@@ -1,269 +1,318 @@
 ---
 /**
- * Fractal EXPLORABLE de escalas: gen → célula → cuerpo → familia → barrio →
- * ciudad → nación → civilización. Cada nivel es una célula anidada con su
- * mini-pirámide, cuya altura/inclinación refleja la concentración (G) que
- * CALCULA el motor de machine.ts (no una pirámide fija 3-2-1).
- *
- * Interacción:
- *  - Scrubber (slider) para navegar a mano los niveles anidados.
- *  - "Romper esta escala": sube el G del nivel enfocado y contagia parcialmente
- *    a los vecinos (arriba y abajo); sus pirámides se inclinan y se tiñen.
- *  - Play/pausa del viaje continuo hacia afuera.
- *  - Lectura de estado por nivel visible: nombre + concentración (G).
+ * Zoom-out continuo por escalas: ADN, célula, persona, familia, barrio, ciudad,
+ * nación y mundo. En cada nivel se ven varias unidades agrupadas dentro de una
+ * unidad mayor de la misma forma. El viaje siempre se aleja: la unidad del
+ * centro se encoge hasta volverse una pieza del grupo siguiente, así el mismo
+ * patrón de agrupación se repite subiendo de escala. Al llegar al mundo, el
+ * recorrido reinicia limpio desde el ADN.
  */
 ---
 
 <figure class="czoom panel">
   <figcaption class="czoom-head">
-    <span class="czoom-title">◢ FRACTAL DE ESCALAS · EXPLÓRALO Y RÓMPELO</span>
-    <span class="czoom-phase" data-focus>···</span>
+    <span class="czoom-title">◢ A toda escala, la misma forma</span>
+    <button class="czoom-btn" data-pause type="button">⏸ Pausar</button>
   </figcaption>
-  <div class="czoom-grid">
-    <div class="czoom-viz"><canvas data-cv></canvas></div>
-    <div class="czoom-ctrl">
-      <label class="czoom-scrub">Escala en foco <b data-sl-label>familia</b>
-        <input type="range" data-scrub min="0" max="7" step="0.01" value="3" />
-        <span class="czoom-scaleline">gen · célula · cuerpo · familia · barrio · ciudad · nación · civilización</span>
-      </label>
-      <div class="czoom-btns">
-        <button data-break class="prim">✷ Romper esta escala</button>
-        <button data-repair>Reparar</button>
-        <button data-play>⏸ Pausar viaje</button>
-      </div>
-      <div class="czoom-readout" data-ro></div>
-    </div>
-  </div>
-  <p class="czoom-cap">Cada célula coopera hacia adentro, compite hacia afuera y forma su pirámide.
-  La concentración de cada piso está <b>calculada</b> por el motor. Rompe una escala y observa
-  cómo la grieta se propaga a los pisos vecinos.</p>
-  <div class="czoom-foot">LA MISMA FORMA, DEL GEN A LA CIVILIZACIÓN</div>
+  <canvas data-cv></canvas>
+  <p class="czoom-cap">Nos agrupamos igual en cada escala: las células forman un cuerpo, las personas
+  una familia, las familias un barrio, y así hasta el mundo. Cada grupo es apenas una pieza de otro
+  mayor que se ordena de la misma manera.</p>
+  <div class="czoom-foot">DEL ADN AL MUNDO, EL MISMO PATRÓN DE AGRUPACIÓN</div>
 </figure>
 
 <script>
-  import { ctxOf, COL, simulate, BASE, type Params } from '../lib/machine';
+  import { ctxOf } from '../lib/machine';
 
-  const NAMES = ['gen', 'célula', 'cuerpo', 'familia', 'barrio', 'ciudad', 'nación', 'civilización'];
-  // Gradiente verde → rojo: la escala crece y la concentración pesa más.
-  const LCOL = ['#52d053', '#33b7db', '#7fd4e0', '#ffcc33', '#ffa45c', '#ed8d4c', '#a78bfa', '#ff6b6b'];
-  const APEX = '#ffdd55';
-  const RED = '#ff3b3b';
-  const RATIO = 3.4;      // radio de la madre / radio de la hija
-  const SUBDIV = 30;      // por debajo de este radio la célula muestra su pirámide
-  const H_MIN = 320;
-  const SPEED = 0.5;      // niveles por segundo en el viaje automático
-  const HALF = 950;       // vida media (ms) del decaimiento de una ruptura
+  type Ctx = CanvasRenderingContext2D;
 
-  const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+  // Paleta del sitio. Colores contiguos siempre distintos para leer el salto de escala.
+  const BG = '#0a0a0c';
+  const MUTED = '#8f8b83';
+  const SCALES = [
+    { name: 'ADN',      col: '#ffcc33' },
+    { name: 'célula',   col: '#52d053' },
+    { name: 'persona',  col: '#33b7db' },
+    { name: 'familia',  col: '#a78bfa' },
+    { name: 'barrio',   col: '#ed8d4c' },
+    { name: 'ciudad',   col: '#52d053' },
+    { name: 'nación',   col: '#a78bfa' },
+    { name: 'mundo',    col: '#33b7db' },
+  ];
+  const N = SCALES.length;
 
-  /** Interpola dos colores hex #rrggbb -> rgb(...). */
-  function mix(a: string, b: string, t: number) {
-    const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
-    const ar = pa >> 16 & 255, ag = pa >> 8 & 255, ab = pa & 255;
-    const br = pb >> 16 & 255, bg = pb >> 8 & 255, bb = pb & 255;
-    const r = Math.round(ar + (br - ar) * t), gg = Math.round(ag + (bg - ag) * t), bl = Math.round(ab + (bb - ab) * t);
-    return `rgb(${r},${gg},${bl})`;
+  const RATIO = 3.85;         // radio del grupo madre / radio de la unidad hija
+  const MS_PER_LEVEL = 4400;  // una escala cada ~4.4s
+  const H_MIN = 340;
+
+  const mod = (k: number, m: number) => ((k % m) + m) % m;
+  const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
+  const smooth = (v: number) => { const t = clamp01(v); return t * t * (3 - 2 * t); };
+
+  // ---- Siluetas por escala (una forma reconocible por nivel) --------------
+  function lw(r: number, base: number) { return Math.max(0.9, r * base); }
+
+  function sil(x: Ctx, name: string, cx: number, cy: number, r: number, col: string, a: number) {
+    if (a <= 0.01 || r <= 0.6) return;
+    x.save();
+    x.strokeStyle = col;
+    x.fillStyle = col;
+    x.lineJoin = 'round';
+    x.lineCap = 'round';
+    switch (name) {
+      case 'ADN': {
+        const top = cy - r * 0.96, bot = cy + r * 0.96, amp = r * 0.4, turns = 2.1;
+        x.lineWidth = lw(r, 0.055);
+        for (const ph of [0, Math.PI]) {
+          x.globalAlpha = a; x.beginPath();
+          for (let i = 0; i <= 44; i++) {
+            const t = i / 44, y = top + (bot - top) * t;
+            const xx = cx + Math.sin(t * Math.PI * 2 * turns + ph) * amp;
+            i ? x.lineTo(xx, y) : x.moveTo(xx, y);
+          }
+          x.stroke();
+        }
+        x.lineWidth = lw(r, 0.035);
+        for (let i = 1; i < 8; i++) {
+          const t = i / 8, y = top + (bot - top) * t;
+          const x1 = cx + Math.sin(t * Math.PI * 2 * turns) * amp;
+          const x2 = cx + Math.sin(t * Math.PI * 2 * turns + Math.PI) * amp;
+          x.globalAlpha = a * 0.7; x.beginPath(); x.moveTo(x1, y); x.lineTo(x2, y); x.stroke();
+        }
+        break;
+      }
+      case 'célula': {
+        x.globalAlpha = a * 0.1; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill();
+        x.globalAlpha = a; x.lineWidth = lw(r, 0.05); x.beginPath(); x.arc(cx, cy, r, 0, 7); x.stroke();
+        x.globalAlpha = a * 0.3; x.beginPath(); x.arc(cx - r * 0.12, cy - r * 0.08, r * 0.32, 0, 7); x.fill();
+        x.globalAlpha = a * 0.9; x.lineWidth = lw(r, 0.035);
+        x.beginPath(); x.arc(cx - r * 0.12, cy - r * 0.08, r * 0.32, 0, 7); x.stroke();
+        break;
+      }
+      case 'persona': {
+        const hr = r * 0.3, hy = cy - r * 0.52;
+        x.globalAlpha = a * 0.14; x.beginPath(); x.arc(cx, hy, hr, 0, 7); x.fill();
+        x.globalAlpha = a; x.lineWidth = lw(r, 0.05);
+        x.beginPath(); x.arc(cx, hy, hr, 0, 7); x.stroke();
+        x.globalAlpha = a * 0.14;
+        x.beginPath();
+        x.moveTo(cx - r * 0.66, cy + r * 0.98);
+        x.quadraticCurveTo(cx - r * 0.6, cy - r * 0.04, cx, cy - r * 0.06);
+        x.quadraticCurveTo(cx + r * 0.6, cy - r * 0.04, cx + r * 0.66, cy + r * 0.98);
+        x.fill();
+        x.globalAlpha = a; x.stroke();
+        break;
+      }
+      case 'familia': {
+        const w = r * 1.26, bh = r * 0.86, roofY = cy - r * 0.12, top = cy - r * 0.9;
+        x.globalAlpha = a * 0.13; x.fillRect(cx - w / 2, roofY, w, bh);
+        x.globalAlpha = a; x.lineWidth = lw(r, 0.05); x.strokeRect(cx - w / 2, roofY, w, bh);
+        x.globalAlpha = a * 0.2;
+        x.beginPath(); x.moveTo(cx - w / 2 - r * 0.1, roofY); x.lineTo(cx, top);
+        x.lineTo(cx + w / 2 + r * 0.1, roofY); x.closePath(); x.fill();
+        x.globalAlpha = a; x.stroke();
+        break;
+      }
+      case 'barrio': {
+        rounded(x, cx - r * 0.98, cy - r * 0.78, r * 1.96, r * 1.56, r * 0.24);
+        x.globalAlpha = a * 0.09; x.fill();
+        x.globalAlpha = a; x.lineWidth = lw(r, 0.04); x.stroke();
+        // pequeños techos que insinúan casas en el borde superior
+        x.globalAlpha = a * 0.85; x.lineWidth = lw(r, 0.03);
+        for (let i = 0; i < 3; i++) {
+          const bx = cx + (i - 1) * r * 0.5, by = cy - r * 0.78;
+          x.beginPath(); x.moveTo(bx - r * 0.14, by); x.lineTo(bx, by - r * 0.16);
+          x.lineTo(bx + r * 0.14, by); x.stroke();
+        }
+        break;
+      }
+      case 'ciudad': {
+        // recinto con perfil de rascacielos en la parte baja
+        rounded(x, cx - r * 1.02, cy - r * 0.84, r * 2.04, r * 1.68, r * 0.16);
+        x.globalAlpha = a * 0.08; x.fill();
+        x.globalAlpha = a; x.lineWidth = lw(r, 0.038); x.stroke();
+        x.globalAlpha = a * 0.9; x.lineWidth = lw(r, 0.028);
+        const base = cy + r * 0.82;
+        const hs = [0.44, 0.74, 0.58, 0.92, 0.5, 0.7];
+        const bw = (r * 1.9) / hs.length;
+        for (let i = 0; i < hs.length; i++) {
+          const bx = cx - r * 0.95 + i * bw;
+          x.strokeRect(bx, base - r * hs[i], bw * 0.72, r * hs[i]);
+        }
+        break;
+      }
+      case 'nación': {
+        // contorno irregular tipo continente
+        const pts = 9;
+        x.beginPath();
+        for (let i = 0; i <= pts; i++) {
+          const ang = (i / pts) * Math.PI * 2;
+          const rr = r * (0.82 + 0.32 * Math.sin(i * 2.3 + 1.1) * Math.cos(i * 1.7));
+          const px = cx + Math.cos(ang) * rr, py = cy + Math.sin(ang) * rr * 0.86;
+          i ? x.lineTo(px, py) : x.moveTo(px, py);
+        }
+        x.closePath();
+        x.globalAlpha = a * 0.1; x.fill();
+        x.globalAlpha = a; x.lineWidth = lw(r, 0.036); x.stroke();
+        break;
+      }
+      case 'mundo': {
+        x.globalAlpha = a * 0.09; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill();
+        x.globalAlpha = a; x.lineWidth = lw(r, 0.04); x.beginPath(); x.arc(cx, cy, r, 0, 7); x.stroke();
+        x.globalAlpha = a * 0.7; x.lineWidth = lw(r, 0.026);
+        for (const f of [0.5, 0.82]) {
+          x.beginPath(); x.ellipse(cx, cy, r * f, r, 0, 0, 7); x.stroke();
+        }
+        for (const yy of [-0.42, 0, 0.42]) {
+          const ry = r * Math.sqrt(Math.max(0, 1 - yy * yy));
+          x.beginPath(); x.ellipse(cx, cy + yy * r, ry, ry * 0.28, 0, 0, 7); x.stroke();
+        }
+        break;
+      }
+    }
+    x.restore();
+  }
+
+  function rounded(x: Ctx, px: number, py: number, w: number, h: number, r: number) {
+    x.beginPath();
+    x.moveTo(px + r, py);
+    x.arcTo(px + w, py, px + w, py + h, r);
+    x.arcTo(px + w, py + h, px, py + h, r);
+    x.arcTo(px, py + h, px, py, r);
+    x.arcTo(px, py, px + w, py, r);
+    x.closePath();
+  }
+
+  // ---- Un grupo: silueta contenedora + unidades hijas de la escala anterior --
+  const UNIT_GATE = 58; // por debajo de este radio, una unidad ya no muestra su interior
+
+  // Grupo protagonista: silueta contenedora tenue + unidades hijas agrupadas dentro.
+  function group(x: Ctx, cx: number, cy: number, R: number, idx: number, a: number) {
+    const s = SCALES[mod(idx, N)];
+    sil(x, s.name, cx, cy, R, s.col, a * 0.7);         // contenedor tenue, marco de la escala
+    if (R <= UNIT_GATE || mod(idx, N) === 0) return;   // el ADN es la base: no lleva unidades dentro
+    const child = SCALES[mod(idx - 1, N)];
+    const ur = R * 0.24, dist = R * 0.46, ua = smooth((R - UNIT_GATE) / 40);
+    sil(x, child.name, cx, cy, ur, child.col, a * ua);                       // unidad central (el eje del zoom)
+    for (let k = 0; k < 6; k++) {
+      const ang = (k / 6) * Math.PI * 2 - Math.PI / 2;
+      sil(x, child.name, cx + Math.cos(ang) * dist, cy + Math.sin(ang) * dist, ur * 0.9, child.col, a * ua * 0.95);
+    }
   }
 
   function init(root: HTMLElement) {
     const cv = root.querySelector<HTMLCanvasElement>('[data-cv]')!;
-    const scrub = root.querySelector<HTMLInputElement>('[data-scrub]')!;
-    const slLabel = root.querySelector<HTMLElement>('[data-sl-label]')!;
-    const btnBreak = root.querySelector<HTMLButtonElement>('[data-break]')!;
-    const btnRepair = root.querySelector<HTMLButtonElement>('[data-repair]')!;
-    const btnPlay = root.querySelector<HTMLButtonElement>('[data-play]')!;
-    const ro = root.querySelector<HTMLElement>('[data-ro]')!;
-    const focusEl = root.querySelector<HTMLElement>('[data-focus]')!;
-
+    const btn = root.querySelector<HTMLButtonElement>('[data-pause]')!;
     const measure = () =>
       ctxOf(cv, Math.max(H_MIN, Math.round(cv.getBoundingClientRect().height) || H_MIN));
     let g = measure();
 
-    // --- Estado del fractal ---
-    let pos = 3;                          // posición continua en la escala [0..7]
-    let fLevel = 3;                       // nivel enfocado (entero) del último frame
-    let time = 0;                         // reloj para el temblor de las rupturas
-    const pert = new Array(8).fill(0);    // intensidad de ruptura por nivel [0..1]
-    const Gv = new Array(8).fill(0);      // concentración G calculada por nivel
-    const visible = new Set<number>();
-
-    /** G CALCULADO por el motor: la codicia (zeta) sube con la escala y con la
-     *  ruptura del nivel; se promedia la cola de la simulación para estabilizar. */
-    function gOf(level: number, extra: number) {
-      const P: Params = { ...BASE, zeta: cl(0.28 + level * 0.03 + extra, 0.05, 0.85) };
-      const out = simulate(P, 200, 0.04);
-      let s = 0; const n = 40;
-      for (let i = out.length - n; i < out.length; i++) s += out[i][2];
-      return s / n;
-    }
-    function recomputeG() {
-      for (let i = 0; i < 8; i++) Gv[i] = gOf(i, pert[i] * 0.5);
-    }
-
-    /** Romper una escala: sube su ruptura y contagia parcialmente a los vecinos. */
-    function breakLevel(i: number) {
-      pert[i] = Math.min(1, pert[i] + 1);
-      if (i > 0) pert[i - 1] = Math.min(1, pert[i - 1] + 0.5);
-      if (i < 7) pert[i + 1] = Math.min(1, pert[i + 1] + 0.5);
-      if (i > 1) pert[i - 2] = Math.min(1, pert[i - 2] + 0.2);
-      if (i < 6) pert[i + 2] = Math.min(1, pert[i + 2] + 0.2);
-    }
-
-    /** Mini-pirámide: altura y "casquete" brillante crecen con G; se inclina y
-     *  enrojece con la ruptura. El vértice concentra (los pocos de arriba). */
-    function pyramid(cx: number, cy: number, r: number, lvl: number, alpha: number) {
-      const { x } = g;
-      const L = cl(Math.round(lvl), 0, 7);
-      const G = Gv[L], sh = pert[L];
-      visible.add(L);
-      const half = r * 0.6, ht = r * (0.6 + G * 1.05);
-      const lean = sh * 0.42 * Math.sin(time * 0.005 + L * 1.7);
-      const col = sh > 0.02 ? mix(LCOL[L], RED, Math.min(1, sh)) : LCOL[L];
+    function ladder(x: Ctx, w: number, h: number, active: number, big: boolean) {
+      const y = h - (big ? 30 : 22);
+      const x0 = 22, x1 = w - 22, step = (x1 - x0) / (N - 1);
       x.save();
-      x.translate(cx, cy + r * 0.22);
-      x.rotate(lean);
-      // Cuerpo tenue.
-      x.beginPath(); x.moveTo(0, -ht); x.lineTo(-half, 0); x.lineTo(half, 0); x.closePath();
-      x.globalAlpha = alpha * 0.26; x.fillStyle = col; x.fill();
-      x.globalAlpha = alpha * 0.8; x.strokeStyle = col; x.lineWidth = 1.1; x.stroke();
-      // Casquete concentrado: fracción G de la altura, desde el vértice.
-      const capH = ht * Math.max(0.12, G), capW = half * capH / ht;
-      x.beginPath(); x.moveTo(0, -ht); x.lineTo(-capW, -ht + capH); x.lineTo(capW, -ht + capH); x.closePath();
-      x.globalAlpha = alpha * 0.92; x.fillStyle = sh > 0.02 ? mix(APEX, RED, sh * 0.6) : APEX; x.fill();
-      x.globalAlpha = 1;
-      x.restore();
-    }
-
-    /** Célula anidada: 1 central + un anillo de hijas; recurre hasta que el
-     *  radio baja de SUBDIV y dibuja su pirámide. El culling corta lo invisible. */
-    function cell(cx: number, cy: number, r: number, d: number) {
-      const { x, w, h } = g;
-      if (cx + r < -24 || cx - r > w + 24 || cy + r < -24 || cy - r > h + 24) return;
-      const L = cl(d, 0, 7);
-      const col = pert[L] > 0.02 ? mix(LCOL[L], RED, Math.min(1, pert[L])) : LCOL[L];
-      let a = Math.min(1, Math.max(0, (r - 8) / 9));
-      const rBig = Math.min(w, h) * 1.19;
-      if (r > rBig) a *= Math.max(0, 1 - (r - rBig) / (rBig * 2.4));
-      if (a > 0.01) {
-        x.beginPath(); x.arc(cx, cy, r, 0, 7);
-        x.globalAlpha = a * 0.26; x.fillStyle = col; x.fill();
-        x.globalAlpha = a * 0.8; x.strokeStyle = col; x.lineWidth = r > 100 ? 1.6 : 1.2; x.stroke();
-        x.globalAlpha = 1;
-        if (a > 0.15) visible.add(L);
-      }
-      if (r > SUBDIV) {
-        const sub = r / RATIO, n = 6 + (L % 3), a0 = (L % 8) * 0.85, dist = r * 0.62;
-        cell(cx, cy, sub, d - 1);
-        for (let k = 0; k < n; k++) {
-          const ang = a0 + (k * Math.PI * 2) / n;
-          cell(cx + dist * Math.cos(ang), cy + dist * Math.sin(ang), sub, d - 1);
+      x.strokeStyle = 'rgba(255,255,255,0.12)'; x.lineWidth = 1;
+      x.beginPath(); x.moveTo(x0, y); x.lineTo(x1, y); x.stroke();
+      x.font = `${big ? 9 : 7}px "JetBrains Mono", monospace`;
+      x.textAlign = 'center';
+      for (let i = 0; i < N; i++) {
+        const px = x0 + step * i, on = i === active;
+        x.globalAlpha = on ? 1 : 0.5;
+        x.fillStyle = on ? SCALES[i].col : MUTED;
+        x.beginPath(); x.arc(px, y, on ? 4 : 2, 0, 7); x.fill();
+        if (on || big) {
+          x.globalAlpha = on ? 1 : 0.42;
+          x.fillText(SCALES[i].name.toUpperCase(), px, y - (big ? 12 : 9));
         }
-      } else if (r > 9) {
-        pyramid(cx, cy, r, d, Math.min(1, (r - 9) / 8));
       }
+      x.restore();
+      x.textAlign = 'left';
     }
 
-    function scene() {
+    function scene(elapsed: number) {
       const { x, w, h } = g;
       x.clearRect(0, 0, w, h);
-      visible.clear();
-      const depth = Math.floor(pos), frac = pos - depth;
-      const fill = Math.min(w, h) * 0.46;
-      const rCur = fill * Math.pow(RATIO, -frac);
-      cell(w / 2, h / 2, rCur * RATIO * RATIO, depth + 2);
-
-      // Etiqueta de la escala en foco (persistente para el scrubber).
-      fLevel = cl(Math.round(pos), 0, 7);
+      const m = Math.min(w, h), fill = m * 0.24;
       const big = h >= 420;
-      x.textAlign = 'left';
+
+      const depth = Math.floor(elapsed / MS_PER_LEVEL);
+      const frac = (elapsed % MS_PER_LEVEL) / MS_PER_LEVEL;
+      const idx = mod(depth, N);
+      const cx = w / 2, cy = h / 2 - (big ? 8 : 4);
+
+      const isTop = idx === N - 1; // mundo: cima del recorrido, sin grupo mayor
+      // Cada nivel: primero se detiene mostrando sus unidades agrupadas (dwell),
+      // luego se aleja hasta volverse una pieza del grupo mayor (zoom).
+      const DWELL = 0.46;
+      const zf = frac <= DWELL ? 0 : (frac - DWELL) / (1 - DWELL);
+      const rHero = fill * Math.pow(RATIO, -zf);
+
+      // contorno del grupo mayor apareciendo alrededor: la escala siguiente que contendrá a esta
+      if (!isTop) {
+        const parent = SCALES[mod(depth + 1, N)];
+        sil(x, parent.name, cx, cy, rHero * RATIO, parent.col, smooth(zf) * 0.6);
+      }
+      // el grupo actual, con sus unidades agrupadas, encogiéndose hacia el grupo mayor
+      const aHero = 1 - smooth((zf - 0.82) / 0.18) * 0.5;
+      group(x, cx, cy, rHero, depth, aHero);
+
+      // reinicio limpio desde el ADN al terminar el mundo
+      let fade = 0;
+      if (isTop) fade = smooth((zf - 0.5) / 0.5);
+      if (idx === 0) fade = 1 - smooth(frac / 0.22);
+      if (fade > 0) { x.save(); x.globalAlpha = fade; x.fillStyle = BG; x.fillRect(0, 0, w, h); x.restore(); }
+
+      // etiqueta de la escala actual (crossfade en el salto de nivel)
+      const la = clamp01(Math.min(frac / 0.08, (1 - frac) / 0.08));
       x.font = `${big ? 11 : 9}px "JetBrains Mono", monospace`;
-      x.globalAlpha = 0.8; x.fillStyle = COL.muted;
-      x.fillText('E S C A L A', 14, big ? 26 : 22);
+      x.globalAlpha = 0.75; x.fillStyle = MUTED;
+      x.fillText('E S C A L A', 22, big ? 30 : 24);
+      x.font = `700 ${big ? 22 : 15}px "JetBrains Mono", monospace`;
+      x.globalAlpha = la * (1 - fade); x.fillStyle = SCALES[idx].col;
+      x.fillText(SCALES[idx].name.toUpperCase(), 22, big ? 58 : 46);
       x.globalAlpha = 1;
-      x.font = `700 ${big ? 20 : 14}px "JetBrains Mono", monospace`;
-      x.fillStyle = pert[fLevel] > 0.1 ? mix(LCOL[fLevel], RED, Math.min(1, pert[fLevel])) : LCOL[fLevel];
-      x.fillText(NAMES[fLevel].toUpperCase(), 14, big ? 52 : 42);
-      x.font = `${big ? 12 : 10}px "JetBrains Mono", monospace`;
-      x.fillStyle = COL.muted;
-      x.fillText('concentración ' + Math.round(Gv[fLevel] * 100) + '%', 14, big ? 72 : 58);
+
+      ladder(x, w, h, idx, big);
     }
 
-    function updateRO() {
-      slLabel.textContent = NAMES[fLevel];
-      const broken = pert[fLevel] > 0.1;
-      focusEl.textContent = NAMES[fLevel] + (broken ? ' · roto' : '');
-      focusEl.style.color = broken ? RED : LCOL[fLevel];
-
-      const set = new Set(visible);
-      [fLevel - 1, fLevel, fLevel + 1].forEach((i) => { if (i >= 0 && i < 8) set.add(i); });
-      const arr = [...set].sort((a, b) => b - a);
-      ro.innerHTML =
-        '<div class="cz-rohead">niveles a la vista · concentración (G)</div>' +
-        arr.map((i) => {
-          const brk = pert[i] > 0.03;
-          return `<div class="cz-row${brk ? ' brk' : ''}">` +
-            `<span class="cz-nm" style="color:${LCOL[i]}">${NAMES[i]}</span>` +
-            `<span class="cz-bar"><i style="width:${Math.min(100, Gv[i] * 100)}%;background:${brk ? RED : LCOL[i]}"></i></span>` +
-            `<span class="cz-g">${Math.round(Gv[i] * 100)}%${brk ? ' <em>◀ propaga</em>' : ''}</span></div>`;
-        }).join('');
+    // prefers-reduced-motion: una escena estática representativa (barrio dentro de ciudad)
+    function staticScene() {
+      const { x, w, h } = g;
+      x.clearRect(0, 0, w, h);
+      const m = Math.min(w, h), big = h >= 420;
+      const cx = w / 2, cy = h / 2 - (big ? 8 : 4);
+      sil(x, SCALES[5].name, cx, cy, m * 0.24 * RATIO, SCALES[5].col, 0.5); // ciudad, contorno mayor
+      group(x, cx, cy, m * 0.24, 4, 1);                                     // barrio con sus casas
+      x.font = `${big ? 11 : 9}px "JetBrains Mono", monospace`;
+      x.globalAlpha = 0.75; x.fillStyle = MUTED; x.fillText('E S C A L A', 22, big ? 30 : 24);
+      x.font = `700 ${big ? 22 : 15}px "JetBrains Mono", monospace`;
+      x.globalAlpha = 1; x.fillStyle = SCALES[4].col; x.fillText('BARRIO', 22, big ? 58 : 46);
+      ladder(x, w, h, 4, big);
     }
 
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    // ---------- Modo estático (prefers-reduced-motion) ----------
-    if (reduced) {
-      btnPlay.style.display = 'none';
-      const redraw = () => { recomputeG(); scene(); updateRO(); };
-      scrub.addEventListener('input', () => { pos = +scrub.value; redraw(); });
-      btnBreak.addEventListener('click', () => { breakLevel(fLevel); redraw(); });
-      btnRepair.addEventListener('click', () => { pert.fill(0); redraw(); });
-      window.addEventListener('resize', () => { g = measure(); redraw(); });
-      recomputeG(); scene(); updateRO();
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      btn.style.display = 'none';
+      staticScene();
+      window.addEventListener('resize', () => { g = measure(); staticScene(); });
       return;
     }
 
-    // ---------- Modo animado ----------
-    let running = true, dir = 1, last = performance.now(), raf = 0, frame = 0;
-
-    function loop(now: number) {
-      const d = Math.min(now - last, 100);
-      last = now; time = now;
-      if (running) {
-        pos += dir * (d / 1000) * SPEED;
-        if (pos >= 7) { pos = 7; dir = -1; }
-        if (pos <= 0) { pos = 0; dir = 1; }
-        scrub.value = String(pos);
-      }
-      // La ruptura decae siempre: la grieta se propaga y luego se asienta.
-      const k = Math.pow(0.5, d / HALF);
-      for (let i = 0; i < 8; i++) pert[i] = pert[i] < 0.004 ? 0 : pert[i] * k;
-      recomputeG();
-      scene();
-      if (++frame % 4 === 0) updateRO();
-      raf = requestAnimationFrame(loop);
+    let elapsed = 0, last = performance.now(), raf = 0, running = true;
+    function tick(now: number) {
+      elapsed += Math.min(now - last, 60);
+      last = now;
+      scene(elapsed);
+      raf = requestAnimationFrame(tick);
     }
-
-    scrub.addEventListener('input', () => {
-      pos = +scrub.value;
-      running = false;
-      btnPlay.textContent = '▶ Viaje';
-      btnPlay.classList.remove('on');
-    });
-    btnBreak.addEventListener('click', () => { breakLevel(fLevel); updateRO(); });
-    btnRepair.addEventListener('click', () => { pert.fill(0); updateRO(); });
-    btnPlay.addEventListener('click', () => {
+    btn.onclick = () => {
       running = !running;
-      btnPlay.textContent = running ? '⏸ Pausar viaje' : '▶ Viaje';
-      btnPlay.classList.toggle('on', running);
-      if (running) last = performance.now();
-    });
-    window.addEventListener('resize', () => { g = measure(); });
-
-    btnPlay.classList.add('on');
-    recomputeG();
-    raf = requestAnimationFrame(loop);
+      btn.textContent = running ? '⏸ Pausar' : '▶ Reanudar';
+      if (running) { last = performance.now(); raf = requestAnimationFrame(tick); }
+      else cancelAnimationFrame(raf);
+    };
+    window.addEventListener('resize', () => { g = measure(); if (!running) scene(elapsed); });
+    raf = requestAnimationFrame(tick);
   }
-
   document.querySelectorAll<HTMLElement>('.czoom').forEach(init);
 </script>
 
@@ -271,38 +320,23 @@
   .czoom { padding: 1rem 1.2rem 0.8rem; margin-block: 2.5rem; }
   .czoom-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
   .czoom-title { color: var(--orange-bright); font-size: 0.78rem; letter-spacing: 0.3em; text-transform: uppercase; }
-  .czoom-phase { font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; }
-  .czoom-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 1.4rem; align-items: start; }
-  @media (max-width: 720px) { .czoom-grid { grid-template-columns: 1fr; } }
-  .czoom-viz canvas { display: block; width: 100%; height: 320px; }
-  .czoom-ctrl { display: flex; flex-direction: column; gap: 0.9rem; }
-  .czoom-scrub { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.7rem; color: var(--muted); letter-spacing: 0.05em; }
-  .czoom-scrub b { color: var(--yellow); text-transform: uppercase; letter-spacing: 0.1em; }
-  .czoom-scrub input[type='range'] { width: 100%; accent-color: var(--orange); margin-top: 0.15rem; }
-  .czoom-scaleline { font-size: 0.58rem; color: var(--muted); letter-spacing: 0.02em; opacity: 0.75; }
-  .czoom-btns { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-  .czoom button { background: var(--bg-panel-2); color: var(--text); border: 1px solid var(--line); padding: 0.45rem 0.7rem; font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.06em; cursor: pointer; }
-  .czoom button:hover { border-color: var(--orange); color: var(--orange-bright); }
-  .czoom button.prim { background: var(--orange); color: #000; font-weight: 700; border-color: var(--orange); }
-  .czoom button.prim:hover { color: #000; }
-  .czoom button.on { background: var(--yellow); color: #000; border-color: var(--yellow); }
-  .czoom-readout { font-size: 0.72rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.6rem 0.7rem; display: flex; flex-direction: column; gap: 0.35rem; }
-  .cz-rohead { font-size: 0.58rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); opacity: 0.8; margin-bottom: 0.1rem; }
-  .cz-row { display: grid; grid-template-columns: 5.4rem 1fr auto; align-items: center; gap: 0.5rem; }
-  .cz-nm { font-size: 0.68rem; letter-spacing: 0.04em; }
-  .cz-bar { height: 6px; background: var(--bg-panel-2); border: 1px solid var(--line); position: relative; overflow: hidden; }
-  .cz-bar i { display: block; height: 100%; transition: width 0.18s linear; }
-  .cz-g { font-size: 0.62rem; color: var(--text); white-space: nowrap; }
-  .cz-g :global(em) { color: var(--red); font-style: normal; letter-spacing: 0.05em; }
-  .cz-row.brk .cz-nm { color: var(--red) !important; }
-  .czoom-cap { font-size: 0.74rem; color: var(--muted); margin-top: 0.8rem; }
-  .czoom-cap b { color: var(--text); }
+  .czoom-btn { background: var(--bg-panel-2); color: var(--text); border: 1px solid var(--line); padding: 0.3rem 0.6rem; font-family: var(--font-mono); font-size: 0.65rem; cursor: pointer; }
+  .czoom-btn:hover { border-color: var(--orange); }
+  .czoom canvas { display: block; width: 100%; height: 340px; }
+  .czoom-cap { font-size: 0.74rem; color: var(--muted); margin-top: 0.7rem; }
   .czoom-foot { margin-top: 0.7rem; padding-top: 0.5rem; border-top: 1px dashed var(--line); font-size: 0.6rem; letter-spacing: 0.28em; color: var(--muted); }
-  /* Tratamiento hero en escritorio. */
+  /* Tratamiento hero: casi página completa en escritorio. */
   @media (min-width: 900px) {
-    .czoom { padding: 1.4rem 2rem 1rem; }
-    .czoom-viz canvas { height: clamp(420px, 60vh, 780px); }
+    .czoom {
+      min-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 1.4rem 2rem 1rem;
+    }
+    .czoom canvas { height: clamp(440px, 64vh, 880px); }
     .czoom-title { font-size: 0.9rem; }
+    .czoom-btn { font-size: 0.72rem; padding: 0.4rem 0.8rem; }
     .czoom-cap { font-size: 0.82rem; }
     .czoom-foot { font-size: 0.66rem; }
   }

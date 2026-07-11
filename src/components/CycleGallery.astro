@@ -31,17 +31,18 @@
 
   const COL = { coop: '#33b7db', auge: '#ffcc33', conc: '#ed8d4c', colapso: '#ff5555' };
   const VERDE = '#5fd068';
+  const UMBRAL = '#7d8794'; // escaseces que la humanidad fue dejando atrás
 
   const CASOS: Caso[] = [
     {
       nombre: 'Dinastías chinas',
       rango: '206 a.C. – 1912',
       coop: 'unificación y reforma agraria al fundar cada dinastía.',
-      auge: 'siglos de prosperidad (Han, Tang, Ming…).',
+      auge: 'siglos de prosperidad (Han, Tang, Song, Ming…).',
       conc: 'las tierras se acumulan en pocas familias, el campesino pierde su parcela.',
       colapso: 'hambruna, rebelión, nueva dinastía.',
       colLabel: 'Colapso',
-      final: 'Los historiadores chinos lo llamaban "ciclo dinástico" siglos antes de cualquier modelo moderno.',
+      final: 'El "Mandato del Cielo" ya explicaba estas caídas y refundaciones hace más de dos milenios; el esquema limpio de "ciclo dinástico" es en realidad una simplificación occidental del siglo XX.',
     },
     {
       nombre: 'República romana',
@@ -96,6 +97,18 @@
   const POSPICO = [0.62, 0.60, 0.58, 0.55];      // el pico llega antes en los modernos
   const XFIN5 = 968;                             // el 5.º sale por arriba a la derecha
   const T_LOOP = 14000;                          // ms de la vuelta completa del token
+
+  // ── Umbrales de escasez ────────────────────────────────────────────────
+  // Escaseces que la humanidad fue resolviendo, en orden histórico y de nivel
+  // ascendente: cada línea queda "abajo" a medida que la escalera sube, y cada
+  // arco moderno arranca por encima de las que su época ya había superado.
+  interface Umbral { f: number; esc: string; hito: string; fecha: string }
+  const UMBRALES: Umbral[] = [
+    { f: 0.11, esc: 'alimento', hito: 'revolución agrícola', fecha: 'neolítico' },
+    { f: 0.25, esc: 'conocimiento', hito: 'imprenta de Gutenberg', fecha: '~1450' },
+    { f: 0.40, esc: 'energía', hito: 'vapor y electricidad', fecha: 's. XVIII–XIX' },
+    { f: 0.54, esc: 'tierra fértil', hito: 'nitrógeno de Haber-Bosch', fecha: '1909' },
+  ];
 
   const yDe = (f: number) => YB - ALTO * f;
   const suave = (u: number) => u * u * (3 - 2 * u);
@@ -182,6 +195,14 @@
       s += `<path d="${piso}" fill="none" stroke="${VERDE}" stroke-width="1" stroke-dasharray="2 5" opacity="0.5"/>`;
       s += `<text x="14" y="264" fill="${VERDE}" font-size="9.5" font-family="monospace" opacity="0.85">lo que sobrevive al colapso funda la siguiente etapa</text>`;
 
+      // Umbrales: líneas horizontales de escaseces que la humanidad fue dejando
+      // abajo. Las líneas van bajo los arcos (los cruzan); las etiquetas, encima.
+      s += `<text x="14" y="32" fill="${UMBRAL}" font-size="9.5" font-family="monospace" opacity="0.9">a medida que la escalera sube, estas escaseces quedan abajo, ya resueltas:</text>`;
+      for (const u of UMBRALES) {
+        const ys = yDe(u.f).toFixed(1);
+        s += `<line x1="${X0}" y1="${ys}" x2="972" y2="${ys}" stroke="${UMBRAL}" stroke-width="1" stroke-dasharray="1 6" opacity="0.6"/>`;
+      }
+
       // Un tramo de curva (y su área) por ciclo, sobre la misma línea continua.
       for (let i = 0; i < 5; i++) {
         const c = ciclos[i];
@@ -221,6 +242,24 @@
         s += `<text data-nm="${i}" x="${cxm}" y="284" fill="#8f8b83" font-size="11.5" font-family="monospace" text-anchor="middle">${CASOS[i].nombre}</text>`;
         s += `<text x="${cxm}" y="300" fill="#8f8b83" font-size="9.5" font-family="monospace" text-anchor="middle" opacity="0.8">${CASOS[i].rango}</text>`;
       }
+
+      // Etiquetas de cada escasez: sobre su propia línea y a la izquierda (antes se
+      // apilaban a la derecha, donde chocaban con los arcos que suben). Numeradas y
+      // con un check verde dibujado (no depende del glifo ✓ de la fuente): se leen
+      // como una lista progresiva de lo que la humanidad fue resolviendo al subir.
+      UMBRALES.forEach((u, j) => {
+        const yl = yDe(u.f);
+        const yt = yl - 5;
+        const texto = `${j + 1}. escasez de ${u.esc} · ${u.hito}, ${u.fecha}`;
+        const w = Math.round(texto.length * 5.7 + 34);
+        s += `<rect x="${X0 + 3}" y="${(yl - 15).toFixed(1)}" width="${w}" height="15" rx="2" fill="#0b0b10" opacity="0.82"/>`;
+        const chx = X0 + 8, chy = yt - 3;
+        s += `<path d="M ${chx} ${chy} l 2.5 2.8 l 5 -7" fill="none" stroke="${VERDE}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>`;
+        s += `<text x="${X0 + 20}" y="${yt.toFixed(1)}" font-family="monospace" font-size="9.5">` +
+             `<tspan fill="${UMBRAL}">${j + 1}. escasez de </tspan>` +
+             `<tspan fill="#b6b0a6" font-weight="bold">${u.esc}</tspan>` +
+             `<tspan fill="${UMBRAL}"> · ${u.hito}, ${u.fecha}</tspan></text>`;
+      });
 
       // Capa de fragmentos + token de luz.
       s += '<g data-fx></g>';

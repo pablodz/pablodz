@@ -1,32 +1,69 @@
 ---
 /**
- * Los 4 controles de la solución, aplicados al modelo real. Enciende cada una
- * y mira si la sociedad se estabiliza o sigue colapsando.
+ * "Los cuatro controles" del capítulo 12, aplicados al motor real (simulate()).
+ * Cada toggle enciende un control y vuelve a correr la máquina; el veredicto
+ * dice, en palabras claras, si la sociedad SE SOSTIENE o COLAPSA, y cuántos
+ * derrumbes sufre en el mismo periodo de tiempo.
  *
- * Parámetros calibrados numéricamente (script en scratchpad) para que:
- *   0 controles -> ciclos violentos sostenidos (4 auges y colapsos visibles)
- *   1 control    -> mejora parcial (menos vaivén, aún sin prosperar)
- *   3-4 controles -> próspera y estable
- * y añadir controles nunca empeora el veredicto.
+ * Mapeo al motor (calibrado numéricamente; ver scratchpad):
+ *   1 · alarma  -> sube el piso (seed), baja el daño del miedo (psi/omega),
+ *                  baja un poco la codicia (zeta). Es el MÁS débil: solo no basta.
+ *   2 · fabricada -> libera abundancia real (K), destraba (zeta/lam/omega).
+ *   3 · redistribuir -> Estado (tau), baja concentración y su daño (zeta/lam/omega).
+ *   4 · nosotros -> amplía el círculo (r0), extraer deja de convenir (lam/omega).
+ *                   Es el MÁS poderoso, como dice el capítulo.
+ *
+ * Propiedades verificadas sobre las 16 combinaciones:
+ *   - 0 controles  -> ciclos violentos (varios derrumbes).
+ *   - controles débiles solos -> no alcanzan; siguen los derrumbes.
+ *   - encender un control NUNCA empeora el veredicto (derrumbes no aumentan).
+ *   - ~3-4 controles -> próspera y estable (el "fuego" bien alimentado).
  */
 ---
 
 <figure class="lev panel">
   <figcaption class="lev-head">
-    <span class="lev-title">◢ PRUEBA LOS CONTROLES</span>
-    <span class="lev-phase" data-phase>···</span>
+    <span class="lev-title">◢ ALIMENTA EL FUEGO: LOS 4 CONTROLES</span>
+    <span class="lev-count" data-count>0 / 4 activos</span>
   </figcaption>
+
+  <div class="lev-verdict" data-verdict>
+    <span class="lev-verdict-dot" data-vdot></span>
+    <span class="lev-verdict-lab" data-vlab>···</span>
+    <span class="lev-verdict-sub" data-vsub></span>
+  </div>
+
   <div class="lev-grid">
-    <div class="chart-box"><canvas data-lev></canvas></div>
+    <div class="lev-viz">
+      <div class="chart-box"><canvas data-lev></canvas></div>
+      <p class="lev-legend">
+        Cada <b style="color:#ffcc33">valle amarillo que se derrumba a cero</b> es un colapso:
+        auge, cima, caída y reinicio. Si la línea deja de caer, el fuego se sostuvo.
+      </p>
+    </div>
+
     <div class="lev-ctrl">
-      <button data-l="alarm">1 · Bajar la alarma de escasez</button>
-      <button data-l="fab">2 · Destrabar la escasez fabricada</button>
-      <button data-l="redis">3 · Redistribuir en serio</button>
-      <button data-l="circle">4 · Ampliar el "nosotros"</button>
+      <button data-l="alarm">
+        <span class="l-top"><span class="l-n">1</span> Bajar la alarma de escasez</span>
+        <span class="l-sub">Piso de seguridad: sube el suelo del que nadie cae. El más débil solo.</span>
+      </button>
+      <button data-l="fab">
+        <span class="l-top"><span class="l-n">2</span> Destrabar la escasez fabricada</span>
+        <span class="l-sub">Libera abundancia real: monopolios, tierra retenida, patentes eternas.</span>
+      </button>
+      <button data-l="redis">
+        <span class="l-top"><span class="l-n">3</span> Redistribuir en serio</span>
+        <span class="l-sub">Estado que baja la concentración. En dosis suficiente, estabiliza.</span>
+      </button>
+      <button data-l="circle">
+        <span class="l-top"><span class="l-n">4</span> Ampliar el "nosotros"</span>
+        <span class="l-sub">Si el otro es de los tuyos, extraerle deja de convenir. El más poderoso.</span>
+      </button>
       <div class="lev-readout" data-ro></div>
     </div>
   </div>
-  <div class="lev-foot">ENCIENDE VARIAS A LA VEZ · CORRE EL MODELO REAL</div>
+
+  <div class="lev-foot">ENCIENDE VARIOS A LA VEZ · CORRE EL MOTOR REAL · MIRA SI AGUANTA</div>
 </figure>
 
 <script>
@@ -37,31 +74,42 @@
   const TICK = '#8f8b83';
   const GRID = 'rgba(255,255,255,0.06)';
 
-  // Ventana simulada: t en (60, 180], suficiente para ver 4 ciclos en el caso base.
+  // Ventana: t en (60, 180]. Suficiente para ver ~5 ciclos en el caso base.
   const STEPS = 9000;
   const SKIP = 3000;
   const DT = 0.02;
-  const SAMPLE = 6; // 1 punto de cada 6 para el gráfico
+  const SAMPLE = 6;
 
   function init(root: HTMLElement) {
     const cv = root.querySelector<HTMLCanvasElement>('[data-lev]')!;
-    const phase = root.querySelector<HTMLElement>('[data-phase]')!;
     const ro = root.querySelector<HTMLElement>('[data-ro]')!;
+    const count = root.querySelector<HTMLElement>('[data-count]')!;
+    const vdot = root.querySelector<HTMLElement>('[data-vdot]')!;
+    const vlab = root.querySelector<HTMLElement>('[data-vlab]')!;
+    const vsub = root.querySelector<HTMLElement>('[data-vsub]')!;
     const on: Record<string, boolean> = { alarm: false, fab: false, redis: false, circle: false };
 
+    // Motor base: dejado solo, gira en ciclos violentos.
     function params(): Params {
-      const P: Params = { ...BASE, zeta: 0.59, tau: 0.01, K: 10, r0: 0.38, eta: 0.027, psi: 4.3, omega: 3.25 };
-      if (on.alarm) P.zeta -= 0.21;
-      if (on.fab) { P.K += 3; P.zeta -= 0.06; P.lam -= 0.25; }
-      if (on.redis) P.tau += 0.17;
-      if (on.circle) P.r0 += 0.2;
-      P.zeta = Math.max(0.08, P.zeta);
+      const P: Params = {
+        ...BASE, zeta: 0.56, tau: 0.02, K: 10.5, r0: 0.4, eta: 0.022, psi: 3.7, omega: 2.7, lam: 2.62,
+      };
+      if (on.alarm) { P.seed += 0.05; P.eta += 0.012; P.psi -= 0.6; P.lam -= 0.155; P.zeta -= 0.03; P.omega -= 0.1; }
+      if (on.fab) { P.K += 2.2; P.lam -= 0.155; P.zeta -= 0.05; P.omega -= 0.12; }
+      if (on.redis) { P.tau += 0.1; P.lam -= 0.155; P.zeta -= 0.07; P.omega -= 0.1; }
+      if (on.circle) { P.r0 += 0.13; P.lam -= 0.155; P.omega -= 0.14; }
+      P.zeta = Math.max(0.06, P.zeta);
+      P.lam = Math.max(0.3, P.lam);
+      P.omega = Math.max(0.4, P.omega);
+      P.psi = Math.max(1.0, P.psi);
       return P;
     }
 
     const labels: string[] = [];
     const dP: number[] = [];
     const dG: number[] = [];
+    const dCrash: (number | null)[] = [];
+
     const chart = new Chart(cv, {
       type: 'line',
       data: {
@@ -71,15 +119,29 @@
             label: 'Prosperidad',
             data: dP,
             borderColor: '#ffcc33',
-            backgroundColor: 'rgba(255,204,51,0.12)',
+            backgroundColor: 'rgba(255,204,51,0.13)',
             fill: true,
             yAxisID: 'yL',
+            order: 3,
           },
           {
             label: 'Desigualdad',
             data: dG,
             borderColor: '#ed8d4c',
+            borderWidth: 1.4,
             yAxisID: 'yR',
+            order: 2,
+          },
+          {
+            label: 'Derrumbe',
+            data: dCrash,
+            borderColor: '#ff0000',
+            backgroundColor: '#ff0000',
+            showLine: false,
+            pointRadius: 3,
+            pointHoverRadius: 4,
+            yAxisID: 'yL',
+            order: 1,
           },
         ],
       },
@@ -91,14 +153,14 @@
         elements: { point: { radius: 0 }, line: { borderWidth: 2, tension: 0 } },
         scales: {
           x: {
-            title: { display: true, text: 'Tiempo', color: TICK, font: FONT },
+            title: { display: true, text: 'El tiempo pasa →', color: TICK, font: FONT },
             ticks: { color: TICK, font: FONT, maxTicksLimit: 7, maxRotation: 0 },
             grid: { color: GRID },
           },
           yL: {
             position: 'left',
             beginAtZero: true,
-            title: { display: true, text: 'Prosperidad', color: '#ffcc33', font: FONT },
+            title: { display: true, text: 'Prosperidad (vida buena)', color: '#ffcc33', font: FONT },
             ticks: { color: TICK, font: FONT },
             grid: { color: GRID },
           },
@@ -115,7 +177,7 @@
           legend: {
             position: 'top',
             align: 'start',
-            labels: { color: TICK, font: FONT, boxWidth: 14, boxHeight: 3 },
+            labels: { color: TICK, font: FONT, boxWidth: 14, boxHeight: 3, usePointStyle: false },
           },
           tooltip: {
             mode: 'index',
@@ -127,6 +189,7 @@
             bodyColor: '#c8c4bc',
             titleFont: FONT,
             bodyFont: FONT,
+            filter: (item) => item.dataset.label !== 'Derrumbe',
             callbacks: {
               title: (items) => (items.length ? `t = ${items[0].label}` : ''),
               label: (c) =>
@@ -142,38 +205,78 @@
     function refresh() {
       const d = simulate(params(), STEPS, DT).slice(SKIP);
       const pw = d.map((z) => z[3]);
-      const mn = Math.min(...pw);
       const mx = Math.max(...pw);
       const mean = pw.reduce((a, b) => a + b, 0) / pw.length;
-      const amp = mx - mn;
+
+      // Cuenta derrumbes: cruces de bajada por debajo del 30% del pico,
+      // rearmados al recuperar el 55%. Es el "¿cuántas vueltas colapsa?".
+      const thr = 0.3 * mx;
+      let crashes = 0;
+      let below = false;
+      for (const v of pw) {
+        if (!below && v < thr) { crashes++; below = true; }
+        if (below && v > 0.55 * mx) below = false;
+      }
 
       labels.length = 0;
       dP.length = 0;
       dG.length = 0;
+      dCrash.length = 0;
       for (let i = 0; i < d.length; i += SAMPLE) {
-        labels.push(((SKIP + i) * DT).toFixed(1));
+        labels.push(((SKIP + i) * DT).toFixed(0));
         dP.push(d[i][3]);
         dG.push(d[i][2] * 100);
+        dCrash.push(d[i][3] < thr ? d[i][3] : null); // puntos rojos en los valles
       }
       chart.update('none');
 
-      const stable = amp < 0.8;
-      let lab: string, c: string;
-      if (stable && mean > 3) { lab = '✓ PRÓSPERA Y ESTABLE'; c = COL.green; }
-      else if (stable) { lab = 'ESTABLE, PERO POBRE'; c = COL.blue; }
-      else if (amp > 4) { lab = 'CICLOS VIOLENTOS'; c = COL.red; }
-      else { lab = 'SIGUE COLAPSANDO'; c = COL.orange; }
-      phase.textContent = lab;
-      phase.style.color = c;
-      const count = Object.values(on).filter(Boolean).length;
-      let hint = '';
-      if (stable) hint = '<br>El ciclo desapareció: la línea amarilla ya no se derrumba.';
-      else if (amp > 4) hint = '<br>Cada pico termina en colapso.';
-      ro.innerHTML = `Controles activos: <b>${count}/4</b> · prosperidad media: <b>${mean.toFixed(2)}</b> · vaivén del ciclo: <b style="color:${amp < 0.8 ? COL.green : COL.red}">${amp.toFixed(1)}</b>${hint}`;
+      const n = Object.values(on).filter(Boolean).length;
+      count.textContent = `${n} / 4 activos`;
+
+      // Veredicto en palabras claras.
+      let lab: string, c: string, sub: string, ro1: string;
+      if (crashes >= 1) {
+        const violent = crashes >= 3;
+        lab = 'COLAPSA';
+        c = violent ? COL.red : COL.orange;
+        sub = `${crashes} derrumbe${crashes > 1 ? 's' : ''} en el mismo periodo`;
+        ro1 = violent
+          ? 'La máquina, dejada así, gira en ciclos violentos: cada cima termina en el suelo. No alcanza. Enciende más controles.'
+          : 'Todavía se derrumba: el fuego se apaga solo. Falta empuje; suma otro control.';
+      } else if (mean >= 4) {
+        lab = 'PRÓSPERA Y ESTABLE';
+        c = COL.green;
+        sub = 'el fuego arde alto, sin derrumbes';
+        ro1 = 'El ciclo desapareció y la prosperidad se sostiene arriba. Esto es lo que hay que alimentar: no se arregla una vez, se cuida.';
+      } else {
+        lab = 'SE SOSTIENE';
+        c = COL.blue;
+        sub = 'estable, pero a fuego bajo';
+        ro1 = 'Ya no colapsa: el fuego se mantiene, aunque bajo. Suma otro control (o uno más fuerte) para prosperar de verdad.';
+      }
+
+      vlab.textContent = lab;
+      vlab.style.color = c;
+      vdot.style.background = c;
+      vdot.style.boxShadow = `0 0 10px ${c}`;
+      vsub.textContent = sub;
+
+      const nivel = crashes >= 1 ? '·' : mean.toFixed(1);
+      ro.innerHTML =
+        `${ro1}<br><span class="ro-stats">Controles: <b>${n}/4</b> · derrumbes: ` +
+        `<b style="color:${crashes ? COL.red : COL.green}">${crashes}</b> · ` +
+        `nivel de vida sostenido: <b>${nivel}</b></span>`;
     }
 
     root.querySelectorAll<HTMLButtonElement>('[data-l]').forEach((b) => {
-      b.onclick = () => { const k = b.dataset.l!; on[k] = !on[k]; b.classList.toggle('on', on[k]); refresh(); };
+      b.onclick = () => {
+        const k = b.dataset.l!;
+        on[k] = !on[k];
+        b.classList.toggle('on', on[k]);
+        b.setAttribute('aria-pressed', String(on[k]));
+        refresh();
+      };
+      b.setAttribute('aria-pressed', 'false');
     });
     refresh();
   }
@@ -184,17 +287,40 @@
   .lev { padding: 1rem 1.2rem 0.8rem; margin-block: 2.5rem; }
   .lev-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
   .lev-title { color: var(--orange-bright); font-size: 0.78rem; letter-spacing: 0.3em; text-transform: uppercase; }
-  .lev-phase { font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase; }
+  .lev-count { font-size: 0.68rem; letter-spacing: 0.15em; color: var(--muted); text-transform: uppercase; }
+
+  /* Veredicto: la lectura principal, imposible de no ver. */
+  .lev-verdict { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.5rem 0.8rem; padding: 0.6rem 0.8rem; margin-bottom: 1rem; background: var(--bg-deep); border: 1px solid var(--line); border-left: 3px solid var(--line); }
+  .lev-verdict-dot { align-self: center; width: 11px; height: 11px; border-radius: 50%; background: var(--muted); flex: none; }
+  .lev-verdict-lab { font-size: 1.05rem; font-weight: 700; letter-spacing: 0.12em; color: var(--text); }
+  .lev-verdict-sub { font-size: 0.72rem; color: var(--muted); letter-spacing: 0.04em; }
+
   .lev-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 1.4rem; align-items: start; }
   @media (max-width: 720px) { .lev-grid { grid-template-columns: 1fr; } }
   .chart-box { position: relative; height: 260px; }
   @media (max-width: 700px) { .chart-box { height: 220px; } }
   @media (min-width: 900px) { .chart-box { height: clamp(260px, 40vh, 520px); } }
+  .lev-legend { margin-top: 0.5rem; font-size: 0.66rem; line-height: 1.6; color: var(--muted); }
+  .lev-legend b { color: var(--text); }
+
   .lev-ctrl { display: flex; flex-direction: column; gap: 0.5rem; }
-  .lev-ctrl button { text-align: left; background: var(--bg-panel-2); color: var(--text); border: 1px solid var(--line); padding: 0.5rem 0.7rem; font-family: var(--font-mono); font-size: 0.72rem; cursor: pointer; }
+  .lev-ctrl button { display: flex; flex-direction: column; gap: 0.2rem; text-align: left; background: var(--bg-panel-2); color: var(--text); border: 1px solid var(--line); border-left: 3px solid var(--line); padding: 0.5rem 0.65rem; font-family: var(--font-mono); cursor: pointer; transition: border-color 0.12s, background 0.12s; }
   .lev-ctrl button:hover { border-color: var(--orange); }
-  .lev-ctrl button.on { background: var(--orange); color: #000; font-weight: 700; border-color: var(--orange); }
-  .lev-readout { font-size: 0.72rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.6rem 0.7rem; margin-top: 0.3rem; }
+  .lev-ctrl button:focus-visible { outline: 2px solid var(--orange-bright); outline-offset: 2px; }
+  .l-top { font-size: 0.74rem; font-weight: 600; letter-spacing: 0.02em; }
+  .l-n { display: inline-block; min-width: 1.1em; color: var(--orange); }
+  .l-sub { font-size: 0.62rem; line-height: 1.4; color: var(--muted); }
+  .lev-ctrl button.on { border-left-color: var(--green); background: color-mix(in srgb, var(--green) 12%, var(--bg-panel-2)); }
+  .lev-ctrl button.on .l-n { color: var(--green); }
+  .lev-ctrl button.on .l-top::after { content: ' ✓ ON'; color: var(--green); font-size: 0.62rem; letter-spacing: 0.1em; }
+
+  .lev-readout { font-size: 0.7rem; line-height: 1.55; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.6rem 0.7rem; margin-top: 0.3rem; }
   .lev-readout :global(b) { color: var(--text); }
+  .lev-readout :global(.ro-stats) { display: inline-block; margin-top: 0.4rem; font-size: 0.66rem; }
   .lev-foot { margin-top: 0.7rem; padding-top: 0.5rem; border-top: 1px dashed var(--line); font-size: 0.6rem; letter-spacing: 0.28em; color: var(--muted); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lev-ctrl button { transition: none; }
+    .lev-verdict-dot { box-shadow: none !important; }
+  }
 </style>

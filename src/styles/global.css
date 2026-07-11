@@ -1,5 +1,5 @@
 /* ============================================================
-   TERMINAL — design system minimalista
+   TERMINAL · design system minimalista
    Paleta inspirada en anime mecha noventero (colores no
    copyrightables): negro profundo, naranja, verde terminal,
    púrpura, amarillo de advertencia.
@@ -28,8 +28,13 @@
 
   --font-display: 'Noto Serif JP', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, 'SF Mono', Menlo, monospace;
+  /* Fuente de lectura para el cuerpo del ensayo: sans de alta legibilidad en pantalla.
+     El mono queda reservado para código, chips y cabeceras (identidad NERV). */
+  --font-read: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
   --pad-x: clamp(1.25rem, 4vw, 3.5rem);
+  /* Medida de lectura: ancho máximo de la columna de texto (~68 caracteres). */
+  --measure: 68ch;
 }
 
 * {
@@ -169,23 +174,47 @@ main {
   100% { opacity: 1; }
 }
 
+@keyframes fade-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   html.js [data-reveal] {
     opacity: 0;
   }
   html.js [data-reveal].revealed {
-    animation: cut-in 0.4s steps(1, end) forwards;
+    /* Fundido suave en lugar del corte/flicker: menos ruido visual al leer. */
+    animation: fade-rise 0.5s ease-out forwards;
     animation-delay: var(--reveal-delay, 0ms);
   }
 }
 
 /* ---- prose (cuerpo del post, full width) ------------------- */
 .prose > * + * {
-  margin-top: 1.4rem;
+  margin-top: 1.5rem;
 }
 
 .prose {
   overflow-wrap: break-word;
+}
+
+/* Columna de lectura centrada: SOLO el texto se limita a una medida cómoda
+   (~68 caracteres). Las visualizaciones y figuras siguen a todo el ancho para
+   respirar. Patrón editorial: texto angosto + figuras anchas. */
+.prose > p,
+.prose > ul,
+.prose > ol,
+.prose > h2,
+.prose > h3,
+.prose > h4,
+.prose > blockquote,
+.prose > pre,
+.prose > hr,
+.prose > .katex-display,
+.prose > .footnotes {
+  max-width: var(--measure);
+  margin-inline: auto;
 }
 
 /* KaTeX: las ecuaciones largas hacen scroll horizontal en vez de
@@ -209,29 +238,51 @@ main {
 }
 
 .prose h2 {
-  font-size: 1.6rem;
+  font-family: var(--font-read);
+  font-weight: 700;
+  font-size: 1.7rem;
+  line-height: 1.25;
   color: var(--orange-bright);
-  margin-top: 3rem;
-  padding-top: 1.2rem;
+  margin-top: 3.4rem;
+  padding-top: 1.3rem;
   border-top: 1px dashed var(--line);
+  text-wrap: balance;
 }
 
 .prose h2::before {
   content: '▶ ';
   color: var(--green);
   font-family: var(--font-mono);
-  font-size: 1rem;
+  font-size: 0.9rem;
   vertical-align: middle;
 }
 
 .prose h3 {
-  font-size: 1.2rem;
+  font-family: var(--font-read);
+  font-weight: 700;
+  font-size: 1.28rem;
+  line-height: 1.3;
   color: var(--text);
-  margin-top: 2.2rem;
+  margin-top: 2.4rem;
+  text-wrap: balance;
+}
+
+/* Cuerpo del ensayo: sans de lectura, tamaño e interlineado cómodos. */
+.prose > p,
+.prose > ul,
+.prose > ol,
+.prose blockquote {
+  font-family: var(--font-read);
+  font-size: 1.2rem;
+  line-height: 1.72;
+}
+
+.prose > p {
+  text-wrap: pretty;
 }
 
 .prose p, .prose ul, .prose ol {
-  color: #cfccc5;
+  color: #d3d0c9;
 }
 
 .prose strong {
@@ -248,9 +299,14 @@ main {
 
 .prose blockquote {
   border-left: 3px solid var(--purple);
-  padding: 0.6rem 1.2rem;
-  color: var(--muted);
+  background: color-mix(in srgb, var(--purple) 8%, transparent);
+  padding: 0.9rem 1.4rem;
+  color: #c4c0b8;
   font-style: italic;
+}
+
+.prose li + li {
+  margin-top: 0.5rem;
 }
 
 .prose code:not(pre code) {

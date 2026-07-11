@@ -18,8 +18,7 @@
         <input type="range" data-psi min="1.0" max="5.0" step="0.1" value="3.2" /></label>
     </div>
     <div class="empire-btns">
-      <button data-recalc class="prim">▶ recalcular</button>
-      <button data-reset>Reiniciar</button>
+      <button data-reset>↺ Reiniciar a valores por defecto</button>
     </div>
     <div class="empire-readout" data-ro></div>
   </div>
@@ -296,7 +295,6 @@
     const lpsi = root.querySelector<HTMLElement>('[data-lpsi]')!;
     const phase = root.querySelector<HTMLElement>('[data-phase]')!;
     const ro = root.querySelector<HTMLElement>('[data-ro]')!;
-    const recalc = root.querySelector<HTMLButtonElement>('[data-recalc]')!;
     const reset = root.querySelector<HTMLButtonElement>('[data-reset]')!;
 
     let dalioChart: Chart | null = null;
@@ -341,7 +339,6 @@
     }
 
     [bs, lams, psis].forEach((el) => el.addEventListener('input', recompute));
-    recalc.addEventListener('click', recompute);
     reset.addEventListener('click', () => {
       bs.value = String(BASE.b); lams.value = String(BASE.lam); psis.value = String(BASE.psi);
       recompute();
@@ -368,7 +365,6 @@
   .empire-btns { display: flex; gap: 0.4rem; margin-top: 1rem; }
   .empire-btns button { background: var(--bg-panel-2); color: var(--text); border: 1px solid var(--line); padding: 0.45rem 0.8rem; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.08em; cursor: pointer; }
   .empire-btns button:hover { border-color: var(--orange); color: var(--orange-bright); }
-  .empire-btns button.prim { background: var(--orange); color: #000; font-weight: 700; border-color: var(--orange); }
   .empire-readout { font-size: 0.72rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.6rem 0.7rem; margin-top: 0.9rem; line-height: 1.7; }
   .empire-readout :global(b) { color: var(--text); }
 

@@ -1,6 +1,6 @@
 ---
 title: 'La Máquina de la Humanidad'
-description: 'Por qué los imperios suben y caen, por qué crece la desigualdad y por qué existen los celos: un modelo unificado con un solo control (la escasez), su segunda ley (la energía) y visualizaciones que corren en vivo.'
+description: 'Por qué los imperios suben y caen, por qué crece la desigualdad y por qué existen los celos: un mapa unificado con un solo control (la escasez), su segunda fuerza (la energía) y visualizaciones que corren en vivo.'
 pubDate: 2026-07-10
 tags: ['modelos', 'sociedad', 'complejidad']
 episode: 2
@@ -30,72 +30,72 @@ import HumilityPyramid from '../../components/HumilityPyramid.astro';
 import CellZoom from '../../components/CellZoom.astro';
 import ThucydidesTrap from '../../components/ThucydidesTrap.astro';
 import PurgeMachine from '../../components/PurgeMachine.astro';
+import HardFact from '../../components/HardFact.astro';
 
 El mecanismo que hizo caer al Imperio Romano tiene la misma forma que el que anoche te hizo mirar de reojo el
-celular de tu pareja. Escrito así suena absurdo. Este ensayo existe para mostrar que no es un juego de
-palabras: que un mismo patrón está detrás de los imperios que caen, de los precios que explotan, de tu jefe,
-de tus celos y de tu cansancio. Con una honestidad que conviene dejar clara desde ya: no afirmo una única
-causa idéntica en todos (eso sería un salto ilegítimo, y en la [sección 08](#08--pasa-a-muchas-escalas-como-un-parecido-de-familia) lo desarmo yo mismo), sino la misma
-máquina reconocible girando a distintas escalas. Se puede simular —vas a verla correr en tu navegador—,
-tiene controles conocidos, y una vez que aprendes a verla ya no puedes dejar de verla.
+celular de tu pareja. Suena absurdo. Y sin embargo el mismo patrón está detrás de los imperios que caen, de
+los precios que explotan, de tu jefe, de tus celos y de tu cansancio: una sola máquina, girando a distintas
+escalas. No es que todo tenga una única causa idéntica (eso sería un salto ilegítimo, y en la [sección 08](#08--pasa-a-muchas-escalas-como-un-parecido-de-familia)
+lo desarmo yo mismo); es que la misma *forma* reaparece donde mires. Tiene piezas conocidas, y una vez que
+aprendes a verla ya no puedes dejar de verla.
 
 Quien estudia un solo caso ve un evento; quien estudia cientos deja de ver eventos y empieza a ver **la
-máquina que los produce**. Este ensayo describe esa máquina: sus piezas, sus controles, y por qué produce,
-con regularidad de mecanismo, imperios que caen, burbujas que estallan, desigualdad que trepa y celos que
-queman.
+máquina que los produce**: sus piezas, sus controles, y por qué produce, con la regularidad de un mecanismo,
+imperios que caen, burbujas que estallan, desigualdad que trepa y celos que queman. Esto no es una ley de la
+naturaleza, es un **mapa**, y como todo mapa se puede discutir y corregir.
 
-> **El modelo en una frase.** La cooperación crea riqueza. La riqueza se concentra. La concentración rompe
+> La cooperación crea riqueza. La riqueza se concentra. La concentración rompe
 > la cooperación. Y todo vuelve a empezar. Ese único bucle, encendido por la escasez, explica el auge y la
 > caída de los imperios, las burbujas financieras, la desigualdad y los celos. Parecen fenómenos
 > distintos, pero son la **misma máquina** girando a distintas escalas.
 
 Esto no es filosofía de sillón: hay huellas que se pueden medir, aunque casi todas se discutan.
 
-- Los grandes imperios de los últimos 500 años (Holanda, Reino Unido, EE.UU.) parecen seguir **una misma curva** de ascenso y declive; así lo describió Ray Dalio con 8 indicadores. Conviene ser honesto con el peso de esta fuente: es un trabajo de divulgación de un gestor de fondos, no revisado por pares, y ajustado sobre los imperios que *sí* llegaron a dominar. Guarda esa última objeción, porque en la [sección 09](#09--el-costo-de-la-energía-por-qué-nos-quedamos-pegados) se vuelve contra ella misma.
-- La desigualdad **trepa justo antes** de cada gran crisis. Cuánta exactamente depende del método: las series de Saez y Zucman (las más altas de la literatura) ponen la *riqueza* del 1% más rico de EE.UU. cerca del 44-48% hacia 1929 y en torno al 40% antes de 2020; otras estimaciones (Smith-Zidar-Zwick, la Reserva Federal) la bajan al 30-35%. Y no hay que confundirla con el *ingreso* del 1% (~24% en 1928). La magnitud se disputa; la forma de la curva —dos picos, dos colapsos— aguanta mejor.
-- Peter Turchin escribió en *Nature*, en 2010, que sus indicadores (salarios estancados, exceso de aspirantes a élite, deuda) apuntaban a un pico de inestabilidad en EE.UU. hacia 2020. El pico llegó. Vale como lo que es —un pronóstico difuso, pero registrado por escrito con diez años de anticipación, no una explicación inventada después— y no más que eso: un acierto suelto, sin la lista de sus demás pronósticos al lado, no prueba un modelo.
+- Los grandes imperios de los últimos 500 años (Holanda, Reino Unido, EE.UU.) parecen seguir **una misma curva** de ascenso y declive; así lo describió Ray Dalio con 8 indicadores. Es divulgación de un gestor de fondos, no ciencia revisada por pares, y está ajustada sobre los imperios que *sí* llegaron a dominar. Guarda esa última objeción: en la [sección 09](#09--el-costo-de-la-energía-por-qué-nos-quedamos-pegados) se vuelve contra ella misma.
+- La desigualdad **trepa justo antes** de cada gran crisis. En EE.UU., la *riqueza* del 1% más rico tocó techo hacia 1929 y otra vez antes de 2020: **dos picos, dos colapsos**. (Cuánto exactamente depende del método: las series altas de Saez y Zucman la ponen cerca del 44-48% en 1929 y del 40% hacia 2020; otras, como Smith-Zidar-Zwick, la bajan al 30-35%. Es riqueza, no *ingreso*, el del 1% rondaba el 24% en 1928; y la forma de la curva aguanta mejor que el número.)
+- Peter Turchin escribió en *Nature*, en 2010, que sus indicadores (salarios estancados, exceso de aspirantes a élite, deuda) apuntaban a un pico de inestabilidad en EE.UU. hacia 2020. El pico llegó. Es un pronóstico difuso, pero quedó por escrito con diez años de anticipación, no inventado después. Aun así, un acierto suelto (sin la lista de sus demás pronósticos al lado) no prueba un modelo.
 
-El camino de este ensayo es una escalera, y conviene verla antes de subirla. Empezamos por lo más chico que
-existe: una emoción tuya. De ahí pasamos a lo que ocurre entre dos personas que hacen un trato, luego a los
-grupos, a las empresas, a los países, y terminamos en el problema más grande del momento, la rivalidad entre
-Estados Unidos y China, donde todas las piezas juegan a la vez. La apuesta del ensayo es que en cada piso de
-esa escalera vas a reconocer la misma máquina.
+El camino es una escalera, y conviene verla antes de subirla. Empezamos por lo más chico que existe: una
+emoción tuya. De ahí pasamos a lo que ocurre entre dos personas que hacen un trato, luego a los grupos, a las
+empresas, a los países, y terminamos en el problema más grande del momento, la rivalidad entre Estados Unidos
+y China, donde todas las piezas juegan a la vez. En cada piso vas a reconocer la misma máquina.
 
 <RoadMap />
 
 ## 01 · Todo empieza con la escasez
 
+<HardFact text="La codicia no necesita gente mala: basta con que lo deseado escasee. La misma persona coopera o pelea según de qué lado del umbral esté el recurso." />
+
 El principio más importante va primero, porque todo lo demás se apoya en él. Buena parte de lo que se llama
 "naturaleza humana" (la codicia, el poder, las guerras, los celos) no necesita explicarse con maldad. Basta
-con que **lo deseado sea escaso**. Con un matiz que conviene dejar claro desde el principio: a veces la
-escasez viene primero y enciende el deseo; otras veces es el deseo, sobre todo el que se copia de otros, el
-que vuelve escaso algo que sobraba. Las dos flechas existen, y el modelo las incorpora más adelante.
+con que **lo deseado sea escaso**. Y la flecha apunta en los dos sentidos: a veces la escasez viene primero y
+enciende el deseo; otras es el deseo (sobre todo el que se copia de otros) el que vuelve escaso algo que
+sobraba. El modelo incorpora ambas más adelante.
 
 El caso más claro es el aire: **es casi gratis**. Nadie pelea por él, nadie lo almacena: hay tanto que a
 nadie le preocupa quedarse sin él. Está por *encima del umbral* donde la máquina se enciende. Y aquí está la
-prueba que podría hundir la idea si fallara: cuando el aire *sí* se vuelve escaso (oxígeno en un hospital,
+prueba que la hundiría si fallara: cuando el aire *sí* se vuelve escaso (oxígeno en un hospital,
 tanques en India durante la COVID de 2021, una montaña a gran altura), aparecen al instante el precio, el
 acaparamiento y el mercado negro. Mismo gas, conducta opuesta. Lo que cambia no es la moral de la gente,
 sino de qué lado del umbral está el recurso.
 
-> **La idea central.** La escasez es el control principal. Por debajo de cierto umbral, la gente tiende a
+> La escasez es el control principal. Por debajo de cierto umbral, la gente tiende a
 > competir, acaparar y formar pirámides; por encima (el aire en un día normal), esa presión casi no aparece.
 > "Umbral" no es una ley exacta sino una distinción entre *bien libre* (sobra para todos) y *bien
 > disputado*: uno que se le puede negar a otros, que no tiene reemplazo, o que vale por comparación (como
-> el estatus: si tú tienes más, yo tengo menos). Y cuando más adelante corramos el modelo aparecerá un matiz
-> que conviene anticipar: *dentro del modelo*, tener más recursos **no** apaga la máquina por sí solo; lo que
-> manda es cuánto se acapara.
+> el estatus: si tú tienes más, yo tengo menos). Un adelanto que importa: *dentro del modelo*, tener más
+> recursos **no** apaga la máquina por sí solo; lo que manda es cuánto se acapara.
 
-Aquí están las cosas de todos los días ordenadas de un vistazo entre lo que sobra y lo que se pelea, con un
-deslizador para que muevas tú mismo la abundancia de un recurso y veas en qué momento se enciende la máquina:
+Aquí están las cosas de todos los días ordenadas de un vistazo, entre lo que sobra y lo que se pelea. Mueve
+tú mismo la abundancia de un recurso y mira en qué momento se enciende la máquina:
 
 <ScarcityThreshold />
 
 Un modelo vale lo que valen sus predicciones. Si el umbral existe, cada vez que un bien cruce de abundante a
 escaso debería verse a la *misma gente* cambiar de conducta en cuestión de días, sin que nadie se haya
-vuelto "peor persona". Es lo que ilustran estos casos, en ambas direcciones (los *ilustran*, no los
-demuestran: son ejemplos escogidos, no una muestra sistemática, y ese mismo cuidado vale para todos los
-paneles de casos que siguen):
+vuelto "peor persona". Es lo que ilustran estos casos, en ambas direcciones. (Los *ilustran*, no los
+demuestran: son ejemplos escogidos, no una muestra sistemática, y ese cuidado vale para todos los paneles que
+siguen.)
 
 <RealCases
   title="el umbral de escasez enciende la máquina"
@@ -119,10 +119,12 @@ paneles de casos que siguen):
 
 ## 02 · Las emociones son alarmas de escasez
 
-La máquina no empieza en los imperios: empieza dentro de cada persona. Conviene acotar la afirmación: no
-*toda* emoción es escasez. El amor, la curiosidad, el juego y el asombro no son alarmas de carencia; de
-hecho florecen con la seguridad. La afirmación fuerte aplica a una familia concreta de emociones, las del
-**miedo y la adquisición**: funcionan como **sensores de escasez** heredados para sobrevivir.
+<HardFact text="Los celos no miden cuánto amas, sino cuán reemplazable te sientes. Si eso que temes perder abundara, no sentirías ninguno." />
+
+La máquina no empieza en los imperios: empieza dentro de cada persona. No *toda* emoción es escasez: el amor,
+la curiosidad, el juego y el asombro no son alarmas de carencia, y de hecho florecen con la seguridad. La
+afirmación fuerte aplica a una familia concreta (las emociones del **miedo y la adquisición**), que funcionan
+como **sensores de escasez** heredados para sobrevivir.
 
 **Los celos** son el ejemplo más claro. Aparecen cuando algo valioso *y escaso* está en riesgo de perderse:
 el amor de alguien, un lugar, un estatus. Y la predicción del modelo se cumple: **si eso abundara, el celo se
@@ -130,14 +132,12 @@ apagaría casi solo**: nadie siente celos del aire que respira su pareja. No es 
 suena en falso, a veces confunde el amor con la posesión), pero es lo bastante fiable como para haber
 sobrevivido a millones de años de evolución.
 
-Esto debe decirse como lo que es: un marco útil, no un consenso científico; la ciencia de las emociones tiene
-teorías rivales serias. Y el punto débil hay que mirarlo de frente: como el amor exclusivo y el estatus son
-escasos *por definición*, ahí la hipótesis se vuelve casi circular (decir que el celo aparece cuando algo
-escaso y valioso peligra, para algo que *es* escaso por definición, es girar en el sitio). Lo que salva a la
-versión no circular es una predicción medible: para los bienes que pueden abundar o faltar de verdad, el
-sensor debería subir y bajar con la escasez *percibida*. Eso sí se comprueba —es lo que ilustran los cinco
-casos de abajo—, aunque hay que admitir que prueban el caso fácil (el bien material) mejor que el difícil (el
-estatus).
+Es un marco útil, no un consenso científico: la ciencia de las emociones tiene teorías rivales serias. Y
+tiene un punto débil que conviene mirar de frente: como el amor exclusivo y el estatus son escasos *por
+definición*, ahí la hipótesis se vuelve casi circular. Lo que la salva es una predicción medible: para los
+bienes que sí pueden abundar o faltar, el sensor debería subir y bajar con la escasez *percibida*. Eso se
+comprueba (lo ilustran los cinco casos de abajo), aunque prueba mejor el caso fácil (el bien material) que el
+difícil (el estatus).
 
 > **▸ Dos tipos de reacción a la escasez.** *Reactiva:* algo ya se está perdiendo → celos, envidia, ira.
 > *Predictiva:* algo podría faltar mañana → miedo, ansiedad, ambición, avaricia. El "egoísta" rara vez es
@@ -181,6 +181,8 @@ sea falsa), apagarse cuando desaparece, y poder *fabricarse* desde afuera. Las t
 
 ## 03 · La máquina tiene tres partes y da vueltas
 
+<HardFact text="Casi ningún imperio cayó primero por sus enemigos: cayó cuando su propia cooperación se concentró en pocas manos hasta romperse." />
+
 La máquina completa es sorprendentemente simple: tres cosas empujándose en un círculo, una y otra vez, y este
 bucle es la razón por la que casi todo lo que importa se repite. Toca cada estación del diagrama para leerla
 con calma, o dale a animar y mira la vuelta completa.
@@ -211,7 +213,7 @@ cualquier tramo y te cuenta su vuelta:
   items={[
     { y: '2 milenios', t: 'El ciclo dinástico chino', d: 'Unificación → prosperidad → concentración de tierras en pocas familias → hambruna y rebelión → nueva dinastía. El concepto del Mandato del Cielo ya capturaba esa idea hace milenios; el esquema limpio de "ciclo dinástico" (Han, Tang, Song, Ming, Qing) es en realidad una simplificación occidental del siglo XX que se salta los largos periodos de división.' },
     { y: '133 a.C.', t: 'Roma y los Graco', d: 'Tiberio Graco intentó frenar la concentración de tierra (los latifundios se comían las parcelas del campesinado-soldado); una turba de senadores lo mató a golpes. Un siglo de guerras civiles después, la república (la cooperación) estaba muerta.' },
-    { y: '1297', t: 'La Serrata de Venecia', d: 'La potencia comercial más rica de Europa cerró el acceso al Gran Consejo: la élite se blindó. No se hundió de golpe —su apogeo llegó siglo y medio después—, pero la rigidez sembrada ahí le fue quitando capacidad de adaptarse, y siglos más tarde quedó reducida a museo. La pirámide que se cierra termina matando a su propia gallina de los huevos de oro.' },
+    { y: '1297', t: 'La Serrata de Venecia', d: 'La potencia comercial más rica de Europa cerró el acceso al Gran Consejo: la élite se blindó. No se hundió de golpe (su apogeo llegó siglo y medio después), pero la rigidez sembrada ahí le fue quitando capacidad de adaptarse, y siglos más tarde quedó reducida a museo. La pirámide que se cierra termina matando a su propia gallina de los huevos de oro.' },
     { y: '1602-1799', t: 'La VOC holandesa', d: 'La primera gran multinacional vivió el ciclo entero en versión empresa: innovación cooperativa, dominio global, dividendos extractivos para unos pocos, corrupción interna y quiebra.' },
     { y: '1929 / 2008', t: 'Las burbujas', d: 'Confianza → crédito → apalancamiento concentrado → pánico. Wall Street (1929) y las hipotecas (2008) encajan de lleno; con los tulipanes holandeses de 1637 hay que tener cuidado, porque la historiografía moderna (Goldgar) mostró que su "ruina" fue muy exagerada por panfletos morales. Aun así, la vuelta del círculo se reconoce en cámara rápida.' },
   ]}
@@ -224,14 +226,13 @@ células donde la confianza todavía se verifica cara a cara: la familia, el cla
 el mercado negro con reglas propias. La sociedad grande se parte en pedazos chicos, y cada pedazo conserva
 adentro la cooperación que el conjunto perdió.
 
-Roma lo muestra a cámara lenta —muy lenta: entre la caída y el feudalismo pleno pasan cuatro o cinco siglos,
-y los historiadores aún discuten cuánto hubo de ruptura y cuánto de continuidad—. Cuando el imperio dejó de
-poder proteger y cobrar a la vez, la gente dejó de apostarle: la escala útil de la confianza fue bajando del
-Mediterráneo entero a la villa fortificada, y el feudalismo fue en buena medida eso, un continente
-reorganizado en células diminutas de lealtad verificable. El colapso
-soviético lo muestra a cámara rápida: en los años noventa, con el rublo y el Estado en duda, Rusia funcionó
-sobre redes informales de favores y trueque entre conocidos, la cooperación reconcentrada en la escala más
-chica que aguantaba el peso.
+Roma lo muestra a cámara lenta: entre la caída y el feudalismo pleno pasan cuatro o cinco siglos (y los
+historiadores aún discuten cuánto hubo de ruptura y cuánto de continuidad). Cuando el imperio dejó de poder
+proteger y cobrar a la vez, la gente dejó de apostarle: la escala útil de la confianza bajó del Mediterráneo
+entero a la villa fortificada, y el feudalismo fue en buena medida eso, un continente reorganizado en células
+diminutas de lealtad verificable. El colapso soviético lo muestra a cámara rápida: en los noventa, con el
+rublo y el Estado en duda, Rusia funcionó sobre redes informales de favores y trueque entre conocidos, la
+cooperación reconcentrada en la escala más chica que aguantaba el peso.
 
 Y luego viene la parte que cierra el ciclo: las células chicas vuelven a fusionarse, porque cooperar a
 mayor escala paga más. Las villas feudales se agregaron en reinos y los reinos en naciones; las redes rusas
@@ -258,14 +259,16 @@ ensayo es, en el fondo, un intento de que la lección también se acumule.
   ]}
 />
 
-Detrás de las simulaciones de este ensayo hay un modelo formal —tres cantidades que evolucionan juntas:
-cuánta cooperación hay, cuánta riqueza, y qué tan concentrada está—, pero no hace falta ver ninguna ecuación
-para seguir el argumento. Y conviene ser claro sobre qué tipo de afirmación viene ahora: no es un dato del
-mundo, sino una consecuencia del modelo. Al correrlo miles de veces, **lo que decide si la sociedad modelada
-colapsa o se estabiliza no es cuánta riqueza produce, sino cuánto se acapara**. Que el modelo lo diga no
-prueba que el mundo funcione así; sí dice dónde mirar, y ese resultado reaparecerá abajo.
+Detrás de las simulaciones hay un modelo formal (tres cantidades que evolucionan juntas: cuánta cooperación
+hay, cuánta riqueza, y qué tan concentrada está), pero no hace falta ver una sola ecuación para seguir el
+argumento. Y lo que viene ahora no es un dato del mundo, sino una consecuencia del modelo: al correrlo miles
+de veces, **lo que decide si la sociedad modelada colapsa o se estabiliza no es cuánta riqueza produce, sino
+cuánto se acapara**. Que el modelo lo diga no prueba que el mundo funcione así; sí dice dónde mirar, y ese
+resultado reaparecerá abajo.
 
 ## 04 · Por qué la pirámide es la tendencia por defecto
+
+<HardFact text="La desigualdad no necesita tramposos. Con tratos perfectamente justos y una moneda al aire, la riqueza se amontona sola en unos pocos." />
 
 La explicación popular de la desigualdad es moral: hay gente mala arriba. La explicación mecánica es más
 incómoda: la pirámide se forma **sola**, aunque todos los tratos sean justos (*si no hay nada que la frene*).
@@ -276,7 +279,7 @@ lleva la mayor tajada. No porque trabaje más, sino porque **los dueños son esc
 trabajadores abundantes. El dueño puede decir "si no te gusta, hay diez esperando tu puesto". Esa escasez
 *es* su poder de negociación. La pirámide nace de ahí: de quién es escaso en el trato.
 
-> **Regla simple.** En cualquier trato, el que es más escaso gana. Y como ganar te hace más fuerte para el
+> En cualquier trato, el que es más escaso gana. Y como ganar te hace más fuerte para el
 > siguiente trato, el poder se concentra solo, como una bola de nieve. Por eso, **si nada lo frena**, la
 > riqueza tiende a subir.
 
@@ -293,15 +296,14 @@ la pirámide formarse sola:
 
 <YardSale />
 
-Hay una objeción justa que conviene enfrentar de una vez: este modelo es suma cero (lo que uno gana, el otro
-lo pierde) y los tratos reales crean valor para ambas partes; el pastel crece. Concedido, con dos precisiones
-honestas. Primera: lo que condensa la riqueza en la simulación no es un truco moral, sino que cada quien
-apuesta una fracción de *su* riqueza —una estructura multiplicativa; con apuestas de monto fijo esto no
-pasaría, así que la frase exacta es "aunque cada trato sea justo *y proporcional a lo que ya se tiene*"—.
-Segunda: el crecimiento del pastel frena el mecanismo, no lo apaga, si la ventaja de tener más rinde más
-rápido de lo que crece el pastel. Esa idea se suele asociar a la desigualdad r > g de Piketty, que conviene
-*no* vender como ley establecida: está muy disputada (Acemoglu y Robinson; Rognlie, que atribuye casi todo el
-alza a la vivienda) y por sí sola no implica concentración sin supuestos extra sobre ahorro y herencia. La
+Hay una objeción justa: este modelo es suma cero (lo que uno gana, el otro lo pierde), y los tratos reales
+crean valor para ambas partes; el pastel crece. Concedido, con dos matices. Primero: lo que condensa la
+riqueza en la simulación no es un truco moral, sino que cada quien apuesta una fracción de *su* riqueza (una
+estructura multiplicativa); con apuestas de monto fijo no pasaría. La frase exacta es "aunque cada trato sea
+justo *y proporcional a lo que ya se tiene*". Segundo: el crecimiento del pastel frena el mecanismo, no lo
+apaga, si la ventaja de tener más rinde más rápido de lo que crece el pastel. Es la idea r > g de Piketty,
+que conviene *no* vender como ley: está muy disputada (Acemoglu y Robinson; Rognlie la atribuye casi toda a
+la vivienda) y por sí sola no implica concentración sin supuestos extra sobre ahorro y herencia. La
 simulación aísla un mecanismo; la economía real le añade crecimiento e instituciones.
 
 **El punto decisivo: esto no es un juguete de 40 personas, y no es solo dinero.** La simulación muestra el
@@ -321,10 +323,10 @@ regla de arriba, operando sobre poder en vez de monedas.
 
 Y los contraejemplos existen, con nombre propio: Botsuana convirtió sus diamantes en escuelas donde sus
 vecinos los convirtieron en guerras; Corea del Sur pasó del ingreso de un país pobre a la frontera
-tecnológica en dos generaciones. La máquina describe la **pendiente por defecto**, no el destino. Los países
-que escaparon no tuvieron menos escasez, sino instituciones que frenaron el acaparamiento antes de que la
-bola de nieve creciera. El modelo es coherente con eso; pero seamos claros: que un contraejemplo "encaje" no
-es lo mismo que ponerlo a prueba. Para eso habría que decir por adelantado qué resultado sí lo refutaría.
+tecnológica en dos generaciones. La máquina describe la **pendiente por defecto**, no el destino: los que
+escaparon no tuvieron menos escasez, sino instituciones que frenaron el acaparamiento antes de que la bola de
+nieve creciera. Aunque que un contraejemplo "encaje" no es lo mismo que ponerlo a prueba: para eso habría que
+decir por adelantado qué lo refutaría.
 
 Estos son mercados y épocas que no comparten nada, y en todos gana el mismo lado del trato: el escaso.
 
@@ -349,6 +351,8 @@ Estos son mercados y épocas que no comparten nada, y en todos gana el mismo lad
 />
 
 ## 05 · Cuando no hay escasez, se fabrica
+
+<HardFact text="Los diamantes no son raros. Lo caro no es la piedra: es el permiso, porque alguien guarda la oferta en una bóveda a propósito." />
 
 La pieza más incómoda del mecanismo es esta: la máquina tiene **tanta hambre de escasez** que, cuando algo
 abunda, los que pueden se dedican a *fabricar* escasez para seguir extrayendo. Con la tierra conviene hilar
@@ -397,20 +401,20 @@ están arriba les conviene que siga habiéndola.** Ese es uno de los grandes fre
 
 ## 06 · La máquina, funcionando
 
-Las palabras describen; un modelo se explora corriéndolo. Esta es la máquina en vivo: la cooperación dispara
-la prosperidad, la desigualdad trepa hasta la cima, y el colapso lo reinicia todo, una y otra vez. Programé
-el motor completo —esta sí corre de verdad, no es un video—: mueve los controles o prueba un escenario y
-observa cuántas vueltas aguanta la sociedad que configures.
+<HardFact text="La desigualdad no llega a su punto máximo después del derrumbe, sino justo antes. Es la alarma, no la consecuencia." />
+
+Las palabras describen; para entender la máquina hay que verla moverse. La cooperación dispara la
+prosperidad, la desigualdad trepa hasta la cima, y el colapso lo reinicia todo, una y otra vez. Mueve los
+controles o prueba un escenario y observa cuántas vueltas aguanta la sociedad que resulte.
 
 <MachineSim />
 
 Hay un detalle que importa más que el resto: la desigualdad (naranja) llega a su máximo *justo antes* del
-derrumbe. No llega ahí por casualidad: dentro del modelo, esa subida funciona como señal de alarma. Y una
-sorpresa que solo aparece al analizarlo a fondo: subir *solo* la "Abundancia" a tope **no** detiene los
-colapsos; los auges se hacen más grandes y los desplomes más profundos. Lo que estabiliza es bajar "cuánto se
-acapara" o ampliar el "nosotros". Insisto en algo, porque es la línea que separa un argumento honesto de uno
-tramposo: esto es lo que hace *el simulador*, no una ley medida del mundo. Su valor no es demostrar nada; es
-ordenar la intuición y decir qué buscar ahí afuera.
+derrumbe. No es casualidad: dentro del modelo, esa subida funciona como señal de alarma. Y una sorpresa que
+solo aparece al analizarlo a fondo: subir *solo* la "Abundancia" a tope **no** detiene los colapsos; los
+auges se hacen más grandes y los desplomes más profundos. Lo que estabiliza es bajar "cuánto se acapara" o
+ampliar el "nosotros". De nuevo: esto es lo que hace *el modelo*, no una ley medida del mundo. Su valor no es
+demostrar nada, sino ordenar la intuición y decir qué buscar ahí afuera.
 
 Y ahí afuera, la forma se reconoce: auges que suben, se concentran y se desploman, con la desigualdad en su
 punto más alto justo antes de la caída.
@@ -437,30 +441,29 @@ punto más alto justo antes de la caída.
 
 ## 07 · La bolsa es la máquina en cámara rápida
 
-Los mercados financieros son la máquina con datos de alta frecuencia. La bolsa es el termómetro monetario de
-todo esto: cuando el poder se concentra demasiado y las cosas se sobrevaloran, viene la crisis. Dalio
-*describió* el poder de los grandes imperios de los últimos 500 años y creyó ver siempre la misma forma —un
-largo ascenso, una cima, un declive—, y Peter Turchin rastreó indicadores parecidos hacia adentro de las
-sociedades y con ellos pronosticó por escrito, en 2010, el pico de inestabilidad de EE.UU. de la década de
-2020. Vale repetir la cautela de la introducción: lo de Dalio es divulgación, no ciencia revisada, y su
-muestra son justo los imperios que llegaron a ganar; lo de Turchin es un acierto suelto. Son indicios
-sugerentes, no pruebas, y así hay que leerlos.
+<HardFact text="Cuando tu taxista y tu primo ya están ganando en la bolsa, no es la señal de entrar: es la señal de que queda poco por subir." />
+
+Los mercados financieros son la máquina con datos de alta frecuencia. La bolsa es el termómetro de todo esto:
+cuando el poder se concentra demasiado y las cosas se sobrevaloran, viene la crisis. Dalio creyó ver en los
+grandes imperios de los últimos 500 años siempre la misma forma (ascenso, cima, declive), y Turchin rastreó
+indicadores parecidos hacia adentro de las sociedades y pronosticó por escrito, en 2010, el pico de
+inestabilidad de EE.UU. de los 2020. Con la cautela ya dicha (Dalio es divulgación; Turchin, un acierto
+suelto): son indicios sugerentes, no pruebas.
 
 Aquí van las dos cosas juntas: arriba, la prosperidad del modelo sobre el arquetipo imperial de Dalio;
 debajo, la riqueza real del 1% en EE.UU. contra la desigualdad que genera la máquina.
 
 <EmpireCharts />
 
-Conviene ser preciso sobre lo que el patrón dice y lo que no. La concentración extrema no garantiza el
-colapso ni le pone fecha: Venecia tardó cinco siglos en morir tras cerrar su élite, y la URSS colapsó con
-desigualdad medida baja. Lo que la concentración hace es volver al sistema **frágil**: reduce cuánto golpe
-externo hace falta para quebrarlo. Aquí hay que conceder algo incómodo: si la concentración alta puede tardar
-siglos en tumbar a Venecia, y la URSS cae con desigualdad baja, el patrón corre el riesgo de explicarlo todo
-—y lo que lo explica todo no predice nada—. Lo que lo salva de ser infalsable es acotarlo: no dice *cuándo*,
-pero sí que, a igualdad de golpe externo, el sistema más concentrado se quiebra antes; y eso, en principio, se
-puede medir comparando muchos países. Una advertencia más: como la riqueza del 1% es sobre todo activos
-financieros, parte de cada pico *es la burbuja midiéndose a sí misma*. La desigualdad extrema es a la vez
-síntoma y combustible; el modelo la usa como señal de alarma, no como causa única.
+El patrón dice menos de lo que parece. La concentración extrema no garantiza el colapso ni le pone fecha:
+Venecia tardó cinco siglos en morir tras cerrar su élite, y la URSS cayó con desigualdad medida baja. Lo que
+la concentración hace es volver al sistema **frágil**: reduce cuánto golpe externo hace falta para quebrarlo.
+Con Venecia tardando siglos y la URSS cayendo con desigualdad baja, el patrón corre el riesgo de explicarlo
+todo (y lo que lo explica todo no predice nada). Lo que lo salva es acotarlo: no dice *cuándo*, pero sí que, a
+igualdad de golpe externo, el sistema más concentrado se quiebra antes; y eso se puede medir comparando
+muchos países. Con un matiz técnico: como la riqueza del 1% es sobre todo activos financieros, parte de cada
+pico *es la burbuja midiéndose a sí misma*. La desigualdad extrema es a la vez síntoma y combustible; el
+modelo la usa como señal de alarma, no como causa única.
 
 La forma se repite en la historia monetaria, aunque el reloj de cada caso sea distinto:
 
@@ -485,7 +488,7 @@ La forma se repite en la historia monetaria, aunque el reloj de cada caso sea di
 />
 
 > **▸ La asimetría de información (más matizada de lo que suena).** Es tentador decir "los bots de alta
-> frecuencia ganan porque son rápidos en microsegundos". Una lectura honesta muestra que ese ángulo es débil. Esa carrera
+> frecuencia ganan porque son rápidos en microsegundos". Pero ese ángulo es débil. Esa carrera
 > por milisegundos gasta casi toda su ganancia en la propia carrera (el efecto "Reina Roja": correr cada vez más
 > rápido solo para quedarse en el mismo sitio), y hasta ha *abaratado*
 > operar para el pequeño. Lo que sí concentra la riqueza es la asimetría de **acceso y escala**: información
@@ -496,11 +499,13 @@ La forma se repite en la historia monetaria, aunque el reloj de cada caso sea di
 
 ## 08 · Pasa a muchas escalas, como un parecido de familia
 
-El mismo patrón parece repetirse en **muchos niveles**, uno dentro de otro, como muñecas rusas. La palabra
-"mismo" exige cuidado: no se afirma que un gen y un imperio obedezcan a una *única causa* idéntica.
-Eso sería un salto ilegítimo. Lo que hay es un **parecido de familia** (en el sentido de Wittgenstein): la
-misma *forma* (cooperar hacia adentro, competir hacia afuera, concentrarse, quebrarse) aparece una y otra
-vez, aunque el mecanismo concreto de cada nivel sea distinto. Es una analogía potente, no una identidad.
+<HardFact text="Resolver una escasez no trae paz: sube la pelea un piso. Con la comida y la tierra resueltas, el mundo pelea por estatus, que es escaso por definición." />
+
+El mismo patrón parece repetirse en **muchos niveles**, uno dentro de otro, como muñecas rusas. Pero "mismo"
+exige cuidado: no se afirma que un gen y un imperio obedezcan a una *única causa* idéntica (eso sería un salto
+ilegítimo). Lo que hay es un **parecido de familia** (en el sentido de Wittgenstein): la misma *forma*
+(cooperar hacia adentro, competir hacia afuera, concentrarse, quebrarse) reaparece una y otra vez, aunque el
+mecanismo concreto de cada nivel sea distinto. Es una analogía potente, no una identidad.
 
 Aquí están las capas como círculos dentro de círculos, de los genes a la civilización, y debajo una escalera
 de escaseces para que subas piso por piso resolviendo cada una:
@@ -508,13 +513,13 @@ de escaseces para que subas piso por piso resolviendo cada una:
 <ScalesLadder />
 
 Y como esta idea es la columna vertebral del ensayo, aquí está como animación continua: un viaje hacia afuera
-que nunca termina. Cada célula que ves contiene células menores con su pequeña pirámide adentro, y cuando el
-zoom se aleja descubres que esa célula era apenas una pieza de otra mayor con la misma forma. Del cuerpo a la
+que nunca termina. Cada célula que ves está entrelazada con las de al lado y contiene células menores con la
+misma forma; cuando el zoom se aleja, descubres que todas eran apenas una pieza de otra mayor. Del cuerpo a la
 familia, del barrio a la ciudad, del pueblo a la nación:
 
 <CellZoom />
 
-> **Ciclo o escalera.** ¿La máquina es un *ciclo* que se repite igual, o una *escalera* que sube sin parar?
+> ¿La máquina es un *ciclo* que se repite igual, o una *escalera* que sube sin parar?
 > Son dos cosas distintas mirando el mismo objeto. *Dentro* de un nivel (un imperio concreto) es un ciclo
 > acotado: sube, se concentra, colapsa, vuelve a un punto parecido. *Entre* niveles (de la tribu a la nación
 > a la civilización) se ve la escalera: cada colapso puede reabrirse en un marco más grande. El ciclo es lo
@@ -552,11 +557,13 @@ definición*: no todos pueden estar arriba.
 
 ## 09 · El costo de la energía: por qué nos quedamos pegados
 
-Hasta aquí, un solo control: la escasez. Falta la **segunda ley** de la máquina, la que explica por qué
+<HardFact text="Un fracaso se recuerda casi el doble que un éxito del mismo tamaño. Por eso cambiar de rumbo se siente mucho más caro de lo que es, y casi nadie se mueve." />
+
+Hasta aquí, un solo control: la escasez. Falta la **segunda fuerza** de la máquina, la que explica por qué
 (aun sabiendo que se está en un mal lugar) casi nadie se mueve. Todo cambio **cuesta energía**, y todo
 sistema vivo, del microbio al imperio, está hecho para gastar lo mínimo.
 
-> **La segunda ley.** El paisaje social no es plano: tiene *valles* (donde te quedas) y *colinas* entre
+> El paisaje social no es plano: tiene *valles* (donde te quedas) y *colinas* entre
 > ellos. Salir de un valle malo hacia uno mejor exige pagar por adelantado una **energía de activación**: subir
 > la colina antes de bajar al otro lado. (El término viene de la química: el empujón inicial sin el cual una
 > reacción no arranca, aunque después salga sola.) La escasez decide *dónde* están los valles; la energía decide
@@ -574,7 +581,7 @@ literalmente.
 > pero muy discutido (se le critica, justamente, que roce lo infalsable), así que tómalo como intuición
 > prestada, no como hecho establecido: una verdad que rompe tu modelo del mundo se siente como un pico de
 > costo. Súmale la aversión a la pérdida (en promedio una pérdida pesa cerca del doble que una ganancia igual,
-> aunque su tamaño se discute y varía mucho) y la disonancia cognitiva (Festinger). Y una precisión honesta:
+> aunque su tamaño se discute y varía mucho) y la disonancia cognitiva (Festinger). Y una precisión:
 > el costo de cambiar de opinión no es calórico (el cerebro gasta casi lo mismo pensando que en reposo). Lo
 > caro es **reconstruir el modelo del mundo y la identidad** que dependía de él. "Energía" aquí es una
 > metáfora sobre ese costo, no una medida en vatios.
@@ -601,7 +608,7 @@ para decidir dónde poner más blindaje. Los impactos se acumulaban en alas y co
 fue reforzar ahí. El estadístico Abraham Wald señaló que la muestra estaba rota: **esos mapas venían solo de
 los aviones que volvieron**. Los alcanzados en motores y cabina estaban en el fondo del canal de la Mancha.
 El blindaje debía ir exactamente **donde los sobrevivientes no mostraban agujeros**. (La escena del avión
-dibujado está algo novelada —Wald lo resolvió con matemáticas—, pero la lección es literal.) Recórrela en
+dibujado está algo novelada, Wald lo resolvió con matemáticas, pero la lección es literal.) Recórrela en
 tres pasos:
 
 <SurvivorshipPlane />
@@ -646,7 +653,7 @@ desde hace décadas, y nadie cruza**. Lo está:
 
 Un modelo que solo vive en la pizarra sirve de poco. Si la máquina es real, tiene que poder ubicar a
 cualquier persona que conoces: decir en qué estado está su sensor, en qué capa de la pirámide negocia y qué
-colinas la rodean. Esta parte hace esa prueba con doce vidas comunes. Ninguna ficha es un juicio; el
+colinas la rodean. Esta parte hace esa prueba con ocho vidas comunes. Ninguna ficha es un juicio; el
 modelo trabaja con coordenadas (cuánta escasez percibe alguien, cuánta energía le sobra, qué lado del trato
 ocupa), y la misma persona, puesta en otra coordenada, se comporta distinto. Léelas buscando dos cosas. La
 primera eres tú, que estás en al menos una, quizás en varias a la vez. La segunda es alguien que quieres y
@@ -654,24 +661,22 @@ que hasta hoy te resultaba difícil de entender. Si al terminar la lista esa per
 predecible y un poco menos incomprensible, el modelo está haciendo su trabajo.
 
 <PersonaCases
-  title="doce posiciones dentro de la máquina"
+  title="ocho posiciones dentro de la máquina"
   items={[
     { t: 'La persona que quiere dejar de ser pobre.', d: 'Su sensor está encendido día y noche, y como no hay holgura, cada colina del mapa le cuesta el doble: estudiar de noche, ahorrar, arriesgar un cambio de trabajo. La trampa está en que, desde ese valle, las únicas colinas que se ven bajas son las apuestas desesperadas, la lotería, el esquema que promete multiplicarlo todo. Calcula con el mapa que la escasez le deja ver.' },
     { t: 'La persona que trabaja cinco días a la semana en un empleo que no ama.', d: 'Está en un equilibrio racional de ahorro de energía: el valle conocido paga lo suficiente para vivir, y la colina de irse cuesta más de lo que le sobra a fin de mes. La máquina necesita millones de personas exactamente ahí, y les paga lo justo para que esa colina nunca baje.' },
     { t: 'La persona explotada en la base de la pirámide.', d: 'Abunda donde el puesto escasea, y esa es toda la aritmética de su salario. Su poder de negociación es cero por reemplazabilidad, muchas veces fabricada a propósito, y su valor humano nunca entró en el cálculo. La sección 04 corre entera dentro de su quincena.' },
-    { t: 'El rentista que cobra peaje en un flujo que otros crean.', d: 'Encontró un punto del circuito por donde pasa valor ajeno y aprendió a cobrarlo sin añadir nada: suelo retenido, una licencia, una posición intermedia. Visto desde su silla es pura racionalidad; visto desde el sistema es carga muerta, la escasez fabricada de la sección 05 con nombre de persona.' },
-    { t: 'El empresario que sabe que depende de su gente y aun así no reparte.', d: 'Su sensor de adquisición le susurra que él multiplicará ese excedente mejor que nadie, y a veces es cierto. El modelo agrega lo que la ambición no muestra: la concentración repetida termina rompiendo la cooperación que produjo el excedente, y la simulación de la sección 06 lo vuelve visible en cada corrida.' },
     { t: 'El trader novato que cree que puede ganarle al mercado.', d: 'Entra a un juego donde la información que acaba de descubrir ya estaba en el precio, y paga por aprenderlo. Su sensor confunde la historia de los ganadores visibles con la probabilidad real: está mirando los agujeros de los aviones que volvieron, el error que Wald corrigió en 1943.' },
-    { t: 'El heredero que invierte con información y acceso privilegiados.', d: 'Conoce la maquinaria por dentro y por eso no necesita creer en la meritocracia. Su ventaja es la asimetría de la sección 07: saber antes, mover más capital, moldear las reglas. Juega el mismo juego que el trader novato, con las cartas boca arriba.' },
     { t: 'El magnate que extrae sin culpa y lo cuenta con orgullo.', d: 'Un sensor de adquisición funcionando sin contrapeso interno, instalado en la cima. Lo notable está menos en él que alrededor: millones lo celebran porque sus propios sensores sueñan con ocupar su lugar. Lo que la pirámide produce en masa es la admiración que lo sostiene.' },
     { t: 'La persona infiel.', d: 'Su sensor registra una escasez interna, de deseo, de novedad o de validación, y la resuelve afuera en secreto. El secreto funciona como deuda: acumula interés hasta el día del colapso. Y la confianza rota es el excedente que la pareja había construido junta, destruido de una sola vez.' },
-    { t: 'La persona bondadosa.', d: 'Es el control de ampliar el "nosotros" hecho carne: coopera primero, sin pedir garantías. En un entorno de sensores apagados florece y contagia; en uno de escasez extrema la explotan hasta agotarla. Por eso la bondad rinde más donde hay estructuras que la protegen, y la sección 12 trata de construirlas.' },
     { t: 'La persona que piensa en terminar con su vida.', d: 'Está en el valle más profundo del mapa, con la barra de energía por debajo de todas las colinas, incluidas las pequeñas. La sección 10 está dedicada entera a ese valle y a los controles que sacan de él; lo esencial cabe en una línea: la salida existe y casi nunca empieza sola.' },
     { t: 'La persona que ya entendió la máquina.', d: 'Sabe que no puede apagarla, y sabe también lo que sí controla: en qué célula pone su energía, qué escasez deja de perseguir y qué "nosotros" alimenta. Con el mapa en la mano, cada una de esas elecciones se vuelve deliberada. Esa persona eres tú, al final de este ensayo.' },
   ]}
 />
 
 ## 10 · Cuando la máquina se apaga por dentro: la depresión y el suicidio
+
+<HardFact text="Casi todas las familias que perdieron a alguien piensan lo contrario de lo que esa persona creía: que estarían peor sin ella, no mejor. La certeza de 'soy una carga' es una lectura falsa del tablero." />
 
 Hasta aquí el ensayo explicó lo que hace la gente cuando la energía alcanza: competir, acaparar, trepar.
 Falta el caso contrario, y es quizás el más importante de todos, porque le pasa a alguien que conoces. ¿Qué
@@ -713,7 +718,7 @@ aprendida**: tras suficientes intentos fallidos, el sistema concluye que ningún
 intentar, aunque los controles hayan vuelto a servir. Es exactamente la bola que ya no empuja la colina: no
 porque la colina sea infinita, sino porque su historial dice que empujar no sirve.
 
-De estos hallazgos salen los controles generales, y conviene listarlas porque no son consejos de póster:
+De estos hallazgos salen los controles generales, y conviene listarlos porque no son consejos de póster:
 
 1. **Reentrenar la recompensa** con acciones chicas, programadas y registradas, antes de que vuelvan las ganas. Cada pequeña victoria anotada sube un milímetro la barra.
 2. **Reconectar la pertenencia.** El sensor de "no pertenezco" solo baja con vínculos reales, y el aislamiento es lo primero que la depresión construye y lo primero que hay que desarmar, en dosis pequeñas.
@@ -753,7 +758,7 @@ medir un siglo después. Los casos están documentados, y también sus salidas:
     { y: '1980-hoy', t: 'El cinturón industrial de EE.UU.', d: 'Donde cerraron las fábricas que daban identidad y sustento, los economistas Case y Deaton midieron "muertes por desesperación": suicidio, opioides y alcohol concentrados exactamente en los valles donde el trabajo desapareció y no llegó otro rumbo.' },
     { y: '1998', t: 'Japón tras su crisis financiera', d: 'Los suicidios saltaron más de un 30% en un solo año, sobre todo en hombres de mediana edad que perdieron el rol que los definía. El mapa de quién eras se borró más rápido que la posibilidad de dibujar otro.' },
     { y: '1997-hoy', t: 'Bilbao', d: 'Una ciudad industrial deprimida tras el colapso de sus astilleros eligió un rumbo nuevo y lo hizo visible con victorias tempranas. La reconversión funcionó como la gratificación reentrenada de una persona: pequeños logros registrados que suben la barra.' },
-    { y: '1945-1960', t: 'Alemania y Japón de posguerra', d: 'Dos naciones que, tras la catástrofe, encararon una verdad durísima sobre sí mismas —Alemania de forma más frontal, Japón más ambivalente— y eligieron proyectos nuevos. La colina más cara del modelo, cruzada a escala de país entero.' },
+    { y: '1945-1960', t: 'Alemania y Japón de posguerra', d: 'Dos naciones que, tras la catástrofe, encararon una verdad durísima sobre sí mismas (Alemania de forma más frontal, Japón más ambivalente) y eligieron proyectos nuevos. La colina más cara del modelo, cruzada a escala de país entero.' },
   ]}
 />
 
@@ -770,6 +775,8 @@ medir un siglo después. Los casos están documentados, y también sus salidas:
 
 ## 11 · El mapa de una sola escala: por qué chocan las grandes ideologías
 
+<HardFact text="Ninguna gran ideología fracasó por maldad. Cada una acertó en una escala y quedó ciega a todas las demás." />
+
 Capitalismo, comunismo, nacionalismo: las grandes **ideologías políticas** prometieron cada una ser *la*
 solución universal, y todas chocaron con la realidad. No porque fueran ideas de gente malvada, sino porque
 cada una fue un **mapa de baja resolución** de la humanidad, dibujado cuando no se podía ver el panorama
@@ -782,10 +789,18 @@ escalas a la vez**. Y cada una cometió el mismo error: **fijó el mapa en UNA s
 - **Comunismo** → la célula es la *clase*. Lo demás desaparece del mapa.
 - **Nacionalismo** → la célula es la *nación*. La clase y la humanidad desaparecen.
 - **Capitalismo** → la célula es el *individuo/mercado*. La comunidad desaparece.
+- **Fascismo** → la célula es la *nación-raza*. El individuo y la clase se disuelven en el Estado total.
+- **Teocracia** → la célula es la *comunidad religiosa*. El individuo y el mercado se subordinan a ella.
+- **Populismo** → la célula es "*el pueblo*". Todo el que no cabe en él pasa a ser "la élite" o "el enemigo".
+- **Anarquismo** → la célula es la *comuna local*. El Estado y toda escala mayor desaparecen.
+- **Colonialismo** → la célula es la *metrópoli* (y su "raza"). El colonizado desaparece del mapa entero.
 
 Cada uno acierta en *su* escala y es ciego a las demás. Por eso ninguno funciona del todo: la realidad tiene
-todas las escalas al mismo tiempo. Se ve mejor dibujado que argumentado: con cada botón vas a ver qué ilumina
-cada ideología y qué deja fuera:
+todas las escalas al mismo tiempo. Y hay una razón para esa ceguera que conviene ver antes del veredicto:
+**ver la máquina entera es raro**. Quien está cómodo dentro de un arreglo que le funciona (le beneficie por
+egoísmo o lo traten con bondad) casi nunca percibe el sistema que lo sostiene; suele ser quien vive en el
+borde, o quien se sale de él, el que alcanza a verlo. Cada ideología se escribió desde una posición cómoda, y
+por eso solo vio su propia escala. Arrastra la célula "tú" del centro hacia el borde y compruébalo:
 
 <IsmsMap />
 
@@ -795,15 +810,14 @@ esos niveles.
 
 <MapResolution />
 
-Dos concesiones antes del veredicto, porque el debate honesto las exige. Esas ideologías también acertaron en
-grande: el capitalismo acompañó la mayor caída de pobreza extrema de la historia (de ~36% de la humanidad en
-1990 a ~9% en 2020), y la socialdemocracia (otra ideología, con partido y doctrina) construyó los países
-más estables del planeta. El punto no es que fracasen siempre. Lo que pasa es que **aciertan mientras su escala
-coincide con el problema, y fallan en cuanto el problema cambia de escala y ellas no**. Y la versión más
-fuerte del rival merece decirse: no es que estas ideologías "no vieran" las otras escalas por torpeza —muchos
-de sus teóricos eran finísimos—, sino que apostaron, con razones, a que una escala mandaba sobre las demás.
-El modelo de este ensayo es también una apuesta: que debajo de todas está la escasez. Ninguna de las dos se
-demuestra a sí misma; se comparan por lo que explican y por lo que dejan fuera.
+Dos concesiones antes del veredicto. Esas ideologías también acertaron en grande: el capitalismo acompañó la
+mayor caída de pobreza extrema de la historia (de ~36% de la humanidad en 1990 a ~9% en 2020), y la
+socialdemocracia construyó los países más estables del planeta. El punto no es que fracasen siempre, sino que
+**aciertan mientras su escala coincide con el problema, y fallan en cuanto el problema cambia de escala y
+ellas no**. Y la versión más fuerte del rival merece decirse: no es que estas ideologías "no vieran" las
+otras escalas por torpeza (muchos de sus teóricos eran finísimos), sino que apostaron, con razones, a que una
+escala mandaba sobre las demás. El modelo de este ensayo es también una apuesta: que debajo de todas está la
+escasez. Ninguna se demuestra a sí misma; se comparan por lo que explican y por lo que dejan fuera.
 
 Esto no es tomar partido: cada ideología fue un **experimento gigante ya corrido**, con cientos de
 millones de personas dentro, y los resultados están documentados. Vistos con el modelo en la mano, el modo
@@ -813,9 +827,14 @@ de fallo es el mismo en todos (*fijar una escala e ignorar la máquina*):
   title="por qué chocó cada ideología (los experimentos ya corrieron)"
   items={[
     { y: '1917-1991', t: 'La URSS', d: 'Fijó la célula en la clase y abolió el mercado, pero no la escasez: colas, racionamiento y mercado negro crónicos. Y la pirámide volvió con otro nombre: la nomenklatura, con sus dachas y tiendas exclusivas. No bajó cuánto se acapara; solo cambió quién acapara.' },
-    { y: '1958-1962', t: 'El Gran Salto Adelante', d: 'China forzó la escala "comuna" borrando la escala familiar del mapa: la cosecha colapsó y murieron entre 30 y 45 millones de personas. Cuando la parcela familiar volvió —una iniciativa campesina de 1978 que el Estado terminó adoptando en 1982—, la producción explotó. La escala borrada del mapa seguía existiendo en la realidad.' },
+    { y: '1958-1962', t: 'El Gran Salto Adelante', d: 'China forzó la escala "comuna" borrando la escala familiar del mapa: la cosecha colapsó y murieron entre 30 y 45 millones de personas. Cuando la parcela familiar volvió (una iniciativa campesina de 1978 que el Estado terminó adoptando en 1982), la producción explotó. La escala borrada del mapa seguía existiendo en la realidad.' },
     { y: '1920-1929', t: 'El laissez-faire', d: 'EE.UU. fijó la célula en el individuo y dejó el acaparamiento sin freno: la riqueza del 1% trepó al 44-48% (según el método) y, en 1929, el sistema entero colapsó. La versión desregulada de 1980-2008 repitió el perfil: pico de desigualdad y crisis en 2008. Que la desigualdad *causara* los cracs se discute; que los acompañara, no.' },
     { y: '1914/1939', t: 'El nacionalismo', d: 'Logró cooperación interna récord, y la usó como arma para la competencia externa total: dos guerras mundiales. Amplió el "nosotros" exactamente hasta la frontera y ahí lo clavó. La máquina no se apagó: subió un piso, con tanques.' },
+    { y: 's. XVI-XX', t: 'El colonialismo europeo', d: 'Fijó la célula en la metrópoli y su "raza", y trató al resto del planeta como territorio para extraer, bajo la coartada de una "misión civilizadora". Cooperación hacia adentro de la metrópoli, extracción brutal hacia afuera: la máquina a escala imperial. Duró siglos porque el mapa borraba por completo la humanidad del colonizado.' },
+    { y: '1973-1990', t: 'El neoliberalismo chileno', d: 'Tras el golpe de 1973, los "Chicago Boys" fijaron la célula en el individuo y el mercado y lo impusieron por la fuerza. Hubo crecimiento real, pero también una de las desigualdades más altas de la región y una represión que permitió ignorar el costo social. Mercado puro sin las demás escalas: eficiente para unos, invivible para muchos.' },
+    { y: '1979-hoy', t: 'La teocracia iraní', d: 'La revolución fijó la célula en la comunidad religiosa y subordinó a ella al individuo y al mercado. Prometió justicia y pureza; cuatro décadas después reprodujo su propia élite (la Guardia Revolucionaria y sus fundaciones) acaparando la economía. No bajó cuánto se acapara: solo cambió el vocabulario del de arriba.' },
+    { y: '1999-hoy', t: 'El petro-populismo venezolano', d: 'Fijó la célula en "el pueblo" contra "la oligarquía" y financió el sueño con la renta del petróleo. Mientras el crudo estuvo caro pareció funcionar; al caer quedó a la vista lo de siempre: una nueva élite acaparando, escasez masiva y el mayor éxodo de la historia reciente de América. La escasez no se abolió con consignas.' },
+    { y: '1945-1991', t: 'La Yugoslavia de Tito', d: 'Intentó lo más ambicioso: una federación multiétnica con autogestión obrera, un "nosotros" que abrazaba varias naciones a la vez. Se sostuvo mientras Tito y la Guerra Fría la cohesionaban; sin ese pegamento, el mapa se rompió justo por la escala que había tapado (la étnica) y estalló en una guerra atroz en los noventa. La escala borrada seguía ahí.' },
     { y: '1945-hoy', t: 'Los híbridos que sí duran', d: 'Los países que mejor sostienen prosperidad (los nórdicos, la posguerra occidental) no aplican ninguna ideología pura: mezclan mercado (escala individual), redistribución (escala nacional), sindicatos (escala gremial) y tratados (escala supranacional), y recalibran cada década. No encontraron la ideología correcta; lo que hicieron fue renunciar a fijar la escala.' },
   ]}
 />
@@ -835,7 +854,7 @@ suerte. Fallaron por mecánica del modelo, y siempre por las mismas tres vías:
 - **Ninguno frenó el acaparamiento.** Cambiaron *quién* está arriba (burgueses → nomenklatura, nobles → accionistas), no *cuánto* captura el de arriba. Y ese (cuánto se acapara) es el control que manda.
 - **Todos necesitaban un "hombre nuevo".** Sus planes solo cerraban si la gente dejaba de tener sensores de escasez. Pero no hay gente pura: hay sensores encendidos en distinto grado. Un sistema que exige santos para funcionar ya falló.
 
-> **▸ La idea: la tecnología fija el tamaño del "nosotros".** Benedict Anderson mostró que la **imprenta**
+> **▸ La tecnología fija el tamaño del "nosotros".** Benedict Anderson mostró que la **imprenta**
 > creó la nación: antes de los periódicos en lengua común, un "francés" no se imaginaba parte de millones de
 > desconocidos. El alcance de la información **fija el radio de la solidaridad**. Por eso esas ideologías clásicas
 > nacieron entre los siglos XVIII y XX. Hoy internet revienta ese límite: vemos células *globales* (clima,
@@ -850,13 +869,15 @@ reajuste cuando la realidad se mueva. Solución multiescala y adaptativa, no un 
 
 ## 12 · Entonces, ¿tiene solución?
 
-La respuesta honesta, no la bonita. Y antes, una raya en el piso: hasta aquí el ensayo describía cómo gira la
-máquina; de aquí en adelante *propone* qué hacer, y eso ya no sale solo del modelo. El modelo, corrido bajo
-distintas reglas, dice qué **estabiliza**; que la estabilidad sea deseable lo pongo yo —es un valor, no un
-resultado—. Lo digo sin rodeos porque el truco más común de este tipo de textos es disfrazar una preferencia
-política de necesidad física. Con eso declarado, salen unos pocos principios claros.
+<HardFact text="La redistribución no la inventó la política moderna. Hace unos 2.500 años, la ley judía del Jubileo ya condonaba deudas y devolvía la tierra a las familias cada 50 años." />
 
-> **El veredicto honesto.** No existe una solución **final, estable y gratis**. Mientras haya escasez y miedo
+Una raya en el piso: hasta aquí el ensayo describía cómo gira la máquina; de aquí en adelante *propone* qué
+hacer, y eso ya no sale solo del modelo. El modelo dice qué **estabiliza**; que la estabilidad sea deseable lo
+pongo yo (es un valor, no un resultado). Lo digo sin rodeos porque el truco más común de este tipo de textos
+es disfrazar una preferencia política de necesidad física. Con eso declarado, salen unos pocos principios
+claros.
+
+> No existe una solución **final, estable y gratis**. Mientras haya escasez y miedo
 > al mañana, la máquina, si la dejas sola, colapsa. Pero sí hay estados de prosperidad estable que se pueden
 > *sostener*. La sociedad sana no es una máquina que se arregla una vez y ya; se parece más a un fuego que hay que alimentar.
 
@@ -914,8 +935,8 @@ freno a la carrera misma: un día de cada siete en que acumular está prohibido 
 El islam convirtió la redistribución en pilar obligatorio. El zakat toma alrededor del 2,5% de la riqueza
 acumulada (no del ingreso: del patrimonio que pasó un año guardado) y lo entrega cada año a los que están
 abajo. El control tres, como acto de fe y no como debate electoral. Y la prohibición de la usura (riba) va
-contra la bola de nieve directamente: al prohibir el interés —no solo el compuesto, sino todo incremento
-pactado sobre el préstamo—, la ventaja de tener más deja de fabricarse ventaja sola mientras duermes.
+contra la bola de nieve directamente: al prohibir el interés (no solo el compuesto, sino todo incremento
+pactado sobre el préstamo), la ventaja de tener más deja de fabricarse ventaja sola mientras duermes.
 
 El budismo atacó por el otro extremo: el sensor. Su diagnóstico central dice que el deseo insaciable
 (tanha) es la raíz del sufrimiento, y su práctica entrena a bajarle el volumen desde adentro. Es el control
@@ -925,14 +946,13 @@ Y el sijismo la volvió teatro: en el langar, el comedor de cada templo, todos c
 al mismo nivel, la misma comida, rey o mendigo, y todos sirven por turnos. Una demolición de la pirámide
 ensayada en cada comida, desde hace cinco siglos.
 
-Falta la lectura honesta, porque sin ella esto sería propaganda. Las instituciones religiosas también son
+Y aquí está la contracara, sin la cual esto sería propaganda. Las instituciones religiosas también son
 células de la máquina, con sensores encendidos y tratos repetidos, y varias terminaron construyendo
 exactamente las pirámides que predicaban desmontar. En algunas regiones y épocas, la Iglesia medieval llegó a
-poseer una porción enorme de la tierra cultivada —en ciertos cálculos, hasta un cuarto o un tercio, aunque la
-cifra varía mucho según el lugar—, con jerarquías doradas administrando el mensaje de los mansos. El Jubileo,
-hasta donde sabemos, casi nunca se aplicó del todo. Nada de eso refuta el modelo; lo
-confirma dos veces. El mensaje descubrió los controles, y la institución que lo cargaba siguió siendo presa
-de la máquina, porque los controles hay que moverlos y ninguna célula queda exenta por predicarlas.
+poseer una porción enorme de la tierra cultivada (hasta un cuarto o un tercio según el cálculo), con
+jerarquías doradas administrando el mensaje de los mansos. El Jubileo casi nunca se aplicó del todo. Esa es la
+prueba más dura de todo el ensayo: descubrir los controles no basta para moverlos, y quien predica no queda
+exento de la máquina. Léelo como el mejor recordatorio de que estos controles son difíciles, no una moraleja.
 
 <RealCases
   title="los controles, escritos hace milenios"
@@ -941,7 +961,7 @@ de la máquina, porque los controles hay que moverlos y ninguna célula queda ex
     { y: 's. VII', t: 'El zakat', d: 'Pilar obligatorio del islam: alrededor del 2,5% de la riqueza acumulada (del patrimonio, no del ingreso) se redistribuye cada año a los de abajo. Redistribución estructural como acto de fe, operando de forma continua desde hace catorce siglos.' },
     { y: 's. XVI-hoy', t: 'El langar sij', d: 'En cada templo, un comedor gratuito donde todos comen lo mismo, sentados al mismo nivel, y todos sirven por turnos. El Templo Dorado de Amritsar alimenta decenas de miles de personas al día. Anti-pirámide ensayada en cada comida, durante cinco siglos.' },
     { y: '1996', t: 'El perdón como política (Sudáfrica)', d: 'La Comisión de la Verdad y Reconciliación, presidida por el arzobispo Tutu, cambió venganza por verdad confesada en público. Perdón institucionalizado tras décadas de apartheid, en un país donde casi todos esperaban la guerra civil. El ciclo del ojo por ojo, cortado por diseño.' },
-    { y: 's. XI-XVI', t: 'La contracara: la Iglesia medieval', d: 'La institución que predicaba que los últimos serían los primeros llegó a poseer, en partes de Europa, una porción enorme de la tierra cultivada (según el cálculo, hasta un cuarto o un tercio). El mensaje descubrió los controles; la célula que lo cargaba siguió presa de la máquina. La tensión confirma el modelo, no lo refuta.' },
+    { y: 's. XI-XVI', t: 'La contracara: la Iglesia medieval', d: 'La institución que predicaba que los últimos serían los primeros llegó a poseer, en partes de Europa, una porción enorme de la tierra cultivada (según el cálculo, hasta un cuarto o un tercio). El mensaje descubrió los controles; la célula que lo cargaba siguió presa de la máquina. Descubrirlos no basta para moverlos.' },
   ]}
 />
 
@@ -950,7 +970,7 @@ de la máquina, porque los controles hay que moverlos y ninguna célula queda ex
   items={[
     { t: 'Una persona que perdonó una deuda familiar imposible de cobrar.', d: 'El dinero ya estaba perdido; lo que seguía cobrando intereses era el rencor, en cada Navidad y en cada silencio. Perdonar no le devolvió la plata: le apagó un ciclo que llevaba años extrayendo energía de toda la familia. El Jubileo, en tamaño sobremesa.' },
     { t: 'Una persona humilde en un puesto alto,', d: 'que reparte el crédito, admite lo que no sabe y almuerza con los practicantes. A su alrededor la gente comparte información en vez de acapararla, porque trepar dejó de ser la única moneda. La pirámide no se forma donde la cima se niega a comportarse como cima.' },
-    { t: 'Una persona que da un porcentaje fijo de lo que tiene, todos los años, sin anunciarlo.', d: 'No espera sentirse generosa ni que la causa la conmueva: es una regla, como el zakat. Los controles que dependen del estado de ánimo se mueven poco; las que son hábito se mueven solas.' },
+    { t: 'Una persona que da un porcentaje fijo de lo que tiene, todos los años, sin anunciarlo.', d: 'No espera sentirse generosa ni que la causa la conmueva: es una regla, como el zakat. Los controles que dependen del estado de ánimo se mueven poco; los que son hábito se mueven solos.' },
   ]}
 />
 
@@ -993,7 +1013,7 @@ aplana: se reconstruye más alta, con un nuevo acaparador arriba y un rastro de 
   title="cada intento de extirpar al culpable, y en qué terminó"
   items={[
     { y: '1793-94', t: 'El Terror (Revolución Francesa)', d: 'En nombre de la virtud revolucionaria se ejecutó a los "enemigos del pueblo": unos 17.000 por sentencia y decenas de miles más en la represión. El terror no distingue entre revolucionario puro y enemigo: bajo esa lógica todos son sospechosos, y terminó guillotinando a su propio arquitecto, Robespierre.' },
-    { y: '1929-33', t: 'Los kulaks y el Holodomor (URSS)', d: 'Stalin declaró clase enemiga a los campesinos que tenían un poco más y los deportó y ejecutó por millones (la deskulakización). Aparte, la colectivización forzada desató la hambruna de 1932-33 —el Holodomor en Ucrania—, que mató de hambre a millones de campesinos de toda condición. El resultado no fue igualdad: fue una nueva élite, la nomenklatura, sobre un campo arrasado.' },
+    { y: '1929-33', t: 'Los kulaks y el Holodomor (URSS)', d: 'Stalin declaró clase enemiga a los campesinos que tenían un poco más y los deportó y ejecutó por millones (la deskulakización). Aparte, la colectivización forzada desató la hambruna de 1932-33 (el Holodomor en Ucrania), que mató de hambre a millones de campesinos de toda condición. El resultado no fue igualdad: fue una nueva élite, la nomenklatura, sobre un campo arrasado.' },
     { y: '1941-45', t: 'La "solución final" nazi', d: 'El nombre es literal. El régimen definió a una categoría de personas como la causa de todos los males y montó una maquinaria industrial para exterminarla. El genocidio más documentado de la historia, y el ejemplo extremo de a dónde lleva la idea de borrar a "los culpables".' },
     { y: '1966-76', t: 'La Revolución Cultural (China)', d: 'Se cazó a los "elementos burgueses" con vecinos, alumnos e hijos denunciándose entre sí. El sensor a fondo: sobrevivía quien acusaba primero. No nació una sociedad nueva; nació el miedo como forma de vida.' },
     { y: '1975-79', t: 'El Año Cero (Camboya)', d: 'Los Jemeres Rojos quisieron reiniciar la sociedad desde cero eliminando a intelectuales, comerciantes y hasta a quien usara lentes. Murió cerca de un cuarto del país. La utopía sin escasez, buscada matando a todos los que "sobraban".' },
@@ -1020,27 +1040,51 @@ dejado una sociedad más habitable en vez de un cementerio.
   ]}
 />
 
-> **▸ La imagen final.** La pregunta madura no es "¿cómo eliminamos a los egoístas?" (eso es imposible y,
+> La pregunta madura no es "¿cómo eliminamos a los egoístas?" (eso es imposible y,
 > cuando se ha intentado, termina en catástrofe). Es: **"¿cómo mantenemos la escasez lo bastante baja, el
 > círculo lo bastante ancho y el acaparar lo bastante frenado, como para que valga la pena vivir dentro del
 > ciclo?"** No hay final feliz automático. Hay un fuego que, si lo cuidamos, puede arder por generaciones. Y
 > cuidarlo resulta ser, exactamente, lo que llamamos civilización.
 
-## 13 · El modelo, dicho por otros
+## 13 · Dónde la máquina falla
 
-Antes del examen final, un puente. El mismo mecanismo aparece, con otro nombre, en la obra de varios
-pensadores serios sobre colapso, desigualdad y cooperación. Conviene decir qué **no** son: no son
-*confirmaciones independientes* —eso sería tramposo, porque todas comparten la misma intuición de fondo—,
-sino maneras distintas de nombrar la misma idea. Vistas juntas, la vuelven más nítida:
+<HardFact text="Un mapa que explica todo no explica nada. Aquí están los tres lugares donde el mío se rompe: marcarlos es lo que lo separa de un horóscopo." />
 
-- **Tainter · rendimientos decrecientes.** Las sociedades resuelven problemas *añadiendo complejidad*, pero cada capa rinde menos; llega un punto en que mantenerla cuesta más de lo que produce, y colapsar se vuelve la salida "barata".
-- **Scheidel · el gran nivelador.** La desigualdad extrema casi nunca se ha reducido en paz: solo la nivelaron la guerra total, la revolución, el colapso del Estado y la pandemia. El "reset" suele ser violento, y eso refuerza la parte oscura del modelo.
-- **Moloch · la trampa multipolar.** Es el nombre del *valle*: aunque todos veamos el buen equilibrio, cada actor racional se ve forzado al malo, y desviarse primero te hace perder. Formaliza por qué "ya sabemos a dónde ir" no basta. (No es un paper académico, sino un ensayo de blog muy citado, de Scott Alexander.)
-- **Prigogine · el fuego, en serio.** Una sociedad viva es una *estructura disipativa*: se mantiene ordenada solo mientras disipa energía. El colapso no es un evento puntual; es lo que pasa por defecto cuando dejas de alimentar el fuego.
-- **Soros · reflexividad.** Lo que la gente cree *altera* aquello que supuestamente solo mide. El precio no solo refleja el valor: lo causa. Profecías autocumplidas, burbujas que se inflan porque todos creen que se inflarán.
-- **Preferencia temporal · el micro-motor.** "Cuánto se acapara" depende de cuánto vale el mañana comparado con el hoy para cada persona: si el futuro se siente incierto, lo racional es agarrar hoy todo lo que se pueda. Escasez e inseguridad vuelven el futuro incierto, y las emociones de la [sección 02](#02--las-emociones-son-alarmas-de-escasez) son esto mismo, sentido desde adentro.
+Un modelo se conoce por sus fronteras, no por sus aciertos. Hasta aquí la máquina se reconoció en catorce
+dominios, y un lector atento ya debería estar incómodo: una figura que aparece en *todas partes* corre el
+riesgo de estar en la cabeza del que mira, no en el mundo. Es el mismo sesgo de superviviente de la
+[sección 09](#09--el-costo-de-la-energía-por-qué-nos-quedamos-pegados), aplicado al autor. Así que voy a hacer
+lo contrario de lo que hace la máquina cuando se defiende sola: señalar tres lugares donde el mapa no cuadra,
+sin taparlos con una nota al pie.
 
-## 14 · El examen final: EE.UU. y China
+**Uno: hay cooperación que crece y no se concentra.** El software libre, Wikipedia y la ciencia abierta
+producen un valor enorme y *no* forman la pirámide de riqueza que el modelo predice por defecto. Linux mueve
+la economía mundial y nadie es su dueño. La máquina tiene respuesta (son bienes que no se agotan al
+compartirlos, así que la bola de nieve no encuentra de qué alimentarse), pero esa respuesta se parece
+sospechosamente a un parche: si el mecanismo se apaga cada vez que el recurso es abundante y no rival,
+entonces el modelo describe la escasez, no la cooperación, y la mitad luminosa de la humanidad le queda fuera
+de foco.
+
+**Dos: hay sociedades que se quedan planas.** Muchos pueblos cazadores-recolectores sostuvieron igualdad
+durante milenios sin colapsar, con mecanismos activos para *impedir* que alguien acumulara: al cazador que
+presume su presa se lo ridiculiza a propósito. El modelo lo llama "instituciones que frenan el acaparamiento",
+pero eso invierte la carga de la prueba: si la pirámide fuera de verdad la tendencia por defecto, no debería
+hacer falta un tabú explícito para evitarla en cada generación. Quizá la concentración no es *el* default,
+sino una de dos configuraciones estables, y la historia agraria eligió una.
+
+**Tres: el modelo es ciego a lo que crea.** Por diseño es una teoría de la carencia: filoso para la pelea, la
+extracción y el colapso, y casi mudo para explicar por qué alguien pinta, cuida a un desconocido o dedica su
+vida a un problema del que no sacará nada. Los mete en cajas laterales (Fredrickson, Frankl), no en el motor.
+Un mapa que solo ve escasez verá conflicto donde a veces solo hay creación.
+
+Ninguna de las tres hunde el modelo; las tres marcan hasta dónde llega. Y dejan la pregunta con la que
+conviene entrar al último capítulo: **¿qué observación te haría decir "aquí la máquina no aplica"?** Un mapa
+que puedes responder eso es un mapa que puedes discutir; uno que no, es solo una historia bien contada. Este
+quiere ser lo primero.
+
+## 14 · EE.UU. y China
+
+<HardFact text="De las 16 veces que una potencia en ascenso alcanzó a la que mandaba, 12 terminaron en guerra. No es un destino, pero es la estadística con la que se arranca." />
 
 Un modelo vale lo que valen sus predicciones, y su examen final es el problema más grande que existe. Hoy
 ese problema tiene nombre: la rivalidad entre Estados Unidos y China. No es un caso más de la máquina. Es
@@ -1055,7 +1099,7 @@ uno puede ser el primero. La [sección 08](#08--pasa-a-muchas-escalas-como-un-pa
 - **Escasez fabricada, a escala de Estado.** Los controles de exportación de chips son la [sección 05](#05--cuando-no-hay-escasez-se-fabrica) con bandera: no falta la cosa, falta el *permiso*. Cada control provoca la respuesta espejo (restricciones a tierras raras), y la escasez fabricada de uno enciende el sensor del otro.
 - **El ciclo de Dalio, en vivo.** Un imperio establecido en la parte tardía de su curva frente a uno ascendente en la temprana. Graham Allison contó los casos: de 16 veces en la historia en que una potencia ascendente alcanzó a la establecida, **12 terminaron en guerra** (una cifra muy citada, aunque la selección de casos se discute con razón). No es destino; es lo que pasa cuando nadie toca los controles.
 - **Las pirámides internas empujan hacia afuera.** Los dos países llegan a este choque con desigualdad interna alta, y la [sección 04](#04--por-qué-la-pirámide-es-la-tendencia-por-defecto) explica lo que sigue: cuando la pirámide aprieta adentro, el nacionalismo es la válvula más barata. Señalar al rival externo cuesta menos energía que redistribuir adentro. La presión externa no llega a pesar de los problemas internos; en realidad se *alimenta* de ellos, en ambos lados.
-- **La trampa sin salida individual.** En armas y en IA, los dos ven el buen equilibrio (frenar la carrera) y ninguno puede moverse primero sin sentir que pierde. Bastan dos actores racionales con el sensor encendido. Es la trampa de Moloch (la [sección 13](#13--el-modelo-dicho-por-otros)), en su versión más peligrosa.
+- **La trampa sin salida individual.** En armas y en IA, los dos ven el buen equilibrio (frenar la carrera) y ninguno puede moverse primero sin sentir que pierde. Bastan dos actores racionales con el sensor encendido. Es la trampa de Moloch (el nombre que Scott Alexander le dio a ese valle donde todos ven el buen equilibrio y nadie puede moverse primero), en su versión más peligrosa.
 - **La energía de activación.** Cambiar de rumbo cuesta hoy (industrias, votos, prestigio) y paga mañana. Los dos gobiernos están en un valle malo que ambos conocen, separados del bueno por una colina que ninguno quiere subir primero.
 
 Ese segundo punto tiene nombre desde hace 2.400 años y conviene detenerse en él, porque es la parte más
@@ -1064,7 +1108,7 @@ causó ni la maldad de Atenas ni la de Esparta, sino un mecanismo: "fue el ascen
 provocó en Esparta lo que llevó a la guerra". (La versión más citada dice "lo que la hizo *inevitable*", pero
 el griego original no es tan tajante, y conviene no leerlo como una ley de fatalidad.) Cuando una potencia que
 sube alcanza a la que está arriba, el miedo mutuo hace el resto. El politólogo Graham Allison contó 16 casos
-así en cinco siglos y en 12 hubo guerra —con la salvedad, otra vez, de que qué cuenta como "caso" se discute—.
+así en cinco siglos y en 12 hubo guerra (con la salvedad, otra vez, de que qué cuenta como "caso" se discute).
 Y no es historia lejana: en su cumbre con Trump en Pekín, hace un par de meses (mayo de 2026),
 [Xi Jinping planteó "la llamada trampa de Tucídides"](https://theconversation.com/xi-warned-trump-against-the-thucydides-trap-heres-what-ancient-greece-can-tell-us-about-us-china-relations-283106),
 más como pregunta que como advertencia, justo antes de referirse a Taiwán, que sí presentó como el punto más
@@ -1074,9 +1118,9 @@ que puedes recorrer:
 
 <ThucydidesTrap />
 
-**Lo que el modelo predice si nadie hace nada** no es misterioso, porque ya se corrió cientos de veces:
-escalada por espejo, el mundo partido en bloques que fabrican escasez mutua, el "nosotros" de cada lado
-encogiéndose bajo estrés, y el ciclo de siempre (auge, concentración, choque). La diferencia es una sola y lo
+**Lo que el mapa advierte si nadie hace nada** no es misterioso, porque el modelo ya se corrió cientos de
+veces: escalada por espejo, el mundo partido en bloques que fabrican escasez mutua, el "nosotros" de cada
+lado encogiéndose bajo estrés, y el ciclo de siempre (auge, concentración, choque). La diferencia es una sola y lo
 cambia todo: las vueltas anteriores del ciclo colapsaban un imperio y la escalera seguía. Esta vuelta gira
 con armas nucleares e inteligencia artificial. **El colapso ya no sería local.** No hay "vuelta a empezar"
 garantizada un piso más arriba.
@@ -1113,7 +1157,7 @@ con miles de misiles y aun así gestionaron la máquina:
   ]}
 />
 
-**El cierre honesto:** nada de esto elimina el ciclo. La [sección 12](#12--entonces-tiene-solución) ya dio el veredicto: no hay solución
+**El cierre:** nada de esto elimina el ciclo. La [sección 12](#12--entonces-tiene-solución) ya dio el veredicto: no hay solución
 final, estable y gratis. Lo que estas medidas hacen es más modesto y más valioso: mantener la rivalidad **por
 debajo del umbral de guerra** mientras los controles internos hacen su trabajo lento. La Guerra Fría no tuvo
 final feliz; tuvo *gestión* (reglas, canales, proyectos compartidos) que evitó lo peor durante 45 años. Y
@@ -1181,5 +1225,5 @@ literatura discrepa, lo digo en el texto, y al final dejo las fuentes de las cor
 - [Worchel, Lee y Adewole, *JPSP* (1975)](https://doi.org/10.1037/0022-3514.32.5.906) y [Gal y Rucker, *JCP* (2018)](https://myscp.onlinelibrary.wiley.com/doi/abs/10.1002/jcpy.1047) : el principio de escasez, y los límites de la aversión a la pérdida.
 - [WMO/UNEP, *Scientific Assessment of Ozone Depletion 2022*](https://csl.noaa.gov/assessments/ozone/2022/) y [Our World in Data, línea de pobreza](https://ourworldindata.org/from-1-90-to-2-15-a-day-the-updated-international-poverty-line) : la recuperación del ozono y la caída de la pobreza extrema.
 
-Todo el modelo corre localmente en tu navegador: una máquina, muchas escalas, dos controles fundamentales, la
-escasez (dónde están los valles) y la energía (si puedes salir).
+Dos fuerzas mueven todo lo anterior: la escasez, que decide dónde están los valles, y la energía, que decide
+si puedes salir de ellos.

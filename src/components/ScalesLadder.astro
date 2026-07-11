@@ -34,59 +34,188 @@ const nestSvg = `<svg viewBox="0 0 420 420" style="max-width:400px;width:100%">$
 </div>
 
 <div class="ladder panel">
+  <div class="ladder-head">
+    <span class="ladder-title">◢ LA ESCALERA DE LAS ESCASECES</span>
+    <span class="ladder-phase" data-phase>Piso 1 · material</span>
+  </div>
+
   <div class="ladder-svg" data-svg></div>
-  <p class="ladder-cap">La escalera de las escaseces. Resuelves una, subes a la siguiente. La máquina no
-  muere: cambia de combustible y se hace más grande.</p>
+
   <div class="ladder-btns">
     <button data-up class="prim">✓ Resolver esta escasez → subir un piso</button>
+    <button data-down>▼ Bajar un piso</button>
     <button data-reset>Volver al principio</button>
   </div>
+
   <div class="readout" data-info></div>
+
+  <p class="ladder-cap">Resuelves una escasez y la pelea no muere: <b>sube un piso</b>. Abajo, escaseces
+  <b class="mat">materiales</b> (la cantidad puede crecer, así que se resuelven). Arriba, bienes
+  <b class="pos">posicionales</b> (estar "arriba" es relativo: no todos caben, así que <em>nunca</em> se
+  vacían).</p>
 </div>
 
 <script>
   function init(root) {
     const host = root.querySelector('[data-svg]');
     const info = root.querySelector('[data-info]');
+    const phase = root.querySelector('[data-phase]');
     const up = root.querySelector('[data-up]');
+    const down = root.querySelector('[data-down]');
     const rs = root.querySelector('[data-reset]');
-    const rungs = [['Comida', 'sobrevivir el día'], ['Tierra', 'un lugar propio'], ['Dinero', 'seguridad y opciones'], ['Atención', 'ser visto'], ['Estatus', 'estar por encima'], ['Sentido', 'que todo importe'], ['¿ ?', 'la próxima escasez']];
-    const n = rungs.length, x0 = 70, x1 = 830, y0 = 270, y1 = 30;
+
+    // kind: 'mat' = material (resoluble) · 'pos' = posicional (escaso por definición)
+    const rungs = [
+      { n: 'Comida', s: 'sobrevivir el día', k: 'mat' },
+      { n: 'Tierra', s: 'un lugar propio', k: 'mat' },
+      { n: 'Dinero', s: 'seguridad y opciones', k: 'mat' },
+      { n: 'Atención', s: 'que te vean', k: 'pos' },
+      { n: 'Estatus', s: 'estar por encima', k: 'pos' },
+      { n: 'Sentido', s: 'que todo importe', k: 'pos' },
+      { n: '¿ ?', s: 'la próxima escasez', k: 'pos', ghost: true },
+    ];
+    const N = rungs.length;
+    const C = {
+      mat: '#33b7db', pos: '#a78bfa', now: '#ffcc33', nowDim: '#ed8d4c',
+      done: '#52d053', line: '#4a4a55', deep: '#101014', muted: '#8f8b83', red: '#ff6b6b',
+    };
+    // Geometría de la escalera.
+    const X0 = 60, SW = 116, SH = 56, baseY = 430;
+    const cxOf = (i) => X0 + i * SW + SW / 2;
+    const tyOf = (i) => baseY - i * SH;
+
     let cur = 0;
-    function draw() {
-      let s = '<defs><marker id="lam" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill="#4a4a55"/></marker></defs>';
-      s += '<text x="450" y="18" fill="#8f8b83" font-size="12" font-family="monospace" text-anchor="middle">resuelves una escasez, subes a la siguiente</text>';
-      for (let i = 0; i < n; i++) {
-        const t = i / (n - 1), px = x0 + (x1 - x0) * t, py = y0 + (y1 - y0) * t, r = 16 + i * 3;
-        if (i < n - 1) {
-          const t2 = (i + 1) / (n - 1), px2 = x0 + (x1 - x0) * t2, py2 = y0 + (y1 - y0) * t2;
-          s += `<line x1="${px + r * 0.7}" y1="${py - r * 0.7}" x2="${px2 - r - 6}" y2="${py2 + (16 + (i + 1) * 3) * 0.7}" stroke="#4a4a55" stroke-width="1.5" marker-end="url(#lam)"/>`;
-        }
+
+    function stairPath() {
+      let p = `M ${X0} ${baseY}`;
+      for (let i = 0; i < N; i++) {
+        const ty = tyOf(i);
+        p += ` L ${X0 + i * SW} ${ty} L ${X0 + (i + 1) * SW} ${ty}`;
       }
-      for (let i = 0; i < n; i++) {
-        const t = i / (n - 1), px = x0 + (x1 - x0) * t, py = y0 + (y1 - y0) * t, r = 16 + i * 3;
-        const base = `hsl(${28 + 6 * i},80%,${58 + 2 * i}%)`;
-        let stroke = base, fill = '#101014', op = 1, lw = 2, glow = '';
-        if (i < cur) { fill = base + '22'; op = 0.5; }
-        else if (i === cur) { stroke = '#ffcc33'; lw = 3.5; glow = `<circle cx="${px}" cy="${py}" r="${r + 7}" fill="none" stroke="#ffcc33" stroke-width="1" opacity="0.5"/>`; }
-        else { op = 0.35; }
-        s += glow;
-        s += `<circle cx="${px}" cy="${py}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${lw}" opacity="${op}"/>`;
-        if (i < cur) s += `<text x="${px}" y="${py + 5}" fill="${base}" font-size="15" text-anchor="middle" opacity="0.8">&#10003;</text>`;
-        s += `<text x="${px}" y="${py + r + 16}" fill="${stroke}" font-size="12" font-family="monospace" text-anchor="middle" opacity="${op}">${rungs[i][0]}</text>`;
-      }
-      host.innerHTML = `<svg viewBox="0 0 900 300" style="max-width:100%;width:100%">${s}</svg>`;
+      return p + ` L ${X0 + N * SW} ${baseY} Z`;
     }
+
+    function draw() {
+      let s = '';
+      // Silueta de la escalera.
+      s += `<path d="${stairPath()}" fill="${C.deep}" stroke="${C.line}" stroke-width="1.4" opacity="0.9"/>`;
+      // Umbral material / posicional (entre "Dinero" y "Atención").
+      const thY = 265;
+      s += `<line x1="24" y1="${thY}" x2="900" y2="${thY}" stroke="${C.pos}" stroke-width="1" stroke-dasharray="3 5" opacity="0.5"/>`;
+      s += `<text x="28" y="${thY - 6}" fill="${C.pos}" font-size="10" font-family="monospace" opacity="0.85">▲ posicional · nunca se vacía</text>`;
+      s += `<text x="28" y="${thY + 15}" fill="${C.mat}" font-size="10" font-family="monospace" opacity="0.85">▼ material · se resuelve</text>`;
+      // Título.
+      s += `<text x="460" y="20" fill="${C.muted}" font-size="12" font-family="monospace" text-anchor="middle">resuelves una escasez ▸ subes un piso ▸ reaparece la pelea, más arriba</text>`;
+      // Flechas "sube al siguiente".
+      for (let i = 0; i < N - 1; i++) {
+        const rx = X0 + (i + 1) * SW;
+        const my = (tyOf(i) + tyOf(i + 1)) / 2;
+        const active = i === cur;
+        const col = active ? C.now : C.line;
+        const op = active ? 1 : 0.4;
+        s += `<path d="M ${rx} ${my + 7} L ${rx} ${my - 7} M ${rx - 4} ${my - 3} L ${rx} ${my - 7} L ${rx + 4} ${my - 3}" fill="none" stroke="${col}" stroke-width="${active ? 2.2 : 1.4}" opacity="${op}"/>`;
+      }
+      // Nodos.
+      for (let i = 0; i < N; i++) {
+        const cx = cxOf(i), ty = tyOf(i);
+        const rw = 100, rh = 34, rx = cx - rw / 2, ry = ty - 8 - rh;
+        const rung = rungs[i];
+        const base = rung.k === 'mat' ? C.mat : C.pos;
+        let stroke = base, fill = C.deep, op = 1, lw = 2, textCol = base, dash = '';
+        let badge = '', badgeCol = '';
+
+        if (rung.ghost) { dash = ' stroke-dasharray="4 4"'; }
+
+        if (i < cur) {
+          // Ya pasaste por este piso.
+          if (rung.k === 'mat') { stroke = C.done; textCol = C.done; op = 0.55; badge = '✓'; badgeCol = C.done; }
+          else { op = 0.55; badge = '∞'; badgeCol = C.pos; }
+        } else if (i === cur) {
+          stroke = C.now; textCol = C.now; lw = 3.2;
+          s += `<circle class="pulse" cx="${cx}" cy="${ty - 8 - rh / 2}" r="${rw / 2 + 8}" fill="none" stroke="${C.now}" stroke-width="1.2"/>`;
+        } else {
+          op = 0.4;
+        }
+
+        // Marco del nodo.
+        s += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" rx="6" fill="${fill}" stroke="${stroke}" stroke-width="${lw}" opacity="${op}"${dash}/>`;
+        // Nombre.
+        s += `<text x="${cx}" y="${ry + 15}" fill="${textCol}" font-size="13" font-family="monospace" font-weight="700" text-anchor="middle" opacity="${op}">${rung.n}</text>`;
+        // Subtítulo.
+        s += `<text x="${cx}" y="${ry + 28}" fill="${C.muted}" font-size="8.5" font-family="monospace" text-anchor="middle" opacity="${op}">${rung.s}</text>`;
+        // Insignia de estado (esquina).
+        if (badge) s += `<text x="${rx + rw - 9}" y="${ry + 14}" fill="${badgeCol}" font-size="13" font-weight="700" text-anchor="middle">${badge}</text>`;
+        // Marcador "la máquina" sobre el piso actual.
+        if (i === cur) {
+          const my = ry - 12;
+          s += `<circle cx="${cx}" cy="${my - 4}" r="3.2" fill="${C.now}"/>`;
+          s += `<path d="M ${cx} ${my} L ${cx - 5} ${my + 8} L ${cx + 5} ${my + 8} Z" fill="${C.now}"/>`;
+        }
+        // Zona clicable.
+        s += `<rect data-i="${i}" x="${cx - SW / 2}" y="${ry - 18}" width="${SW}" height="${rh + 34}" fill="transparent" style="cursor:pointer"/>`;
+      }
+      // Suelo.
+      s += `<text x="${X0}" y="455" fill="${C.muted}" font-size="10" font-family="monospace">piso 1 (comida) = suelo · cada peldaño, un piso más</text>`;
+
+      host.innerHTML = `<svg viewBox="0 0 920 478" style="max-width:100%;width:100%" role="img" aria-label="Escalera de escaseces: comida, tierra, dinero, atención, estatus, sentido">${s}</svg>`;
+    }
+
+    function esc(list) { return list.map((r) => r.n).join(', '); }
+
     function refresh() {
       draw();
       const r = rungs[cur];
-      info.innerHTML = cur < n - 1
-        ? `Ahora peleas por <b style="color:#ffcc33">${r[0]}</b>, ${r[1]}. Resuélvela y aparecerá una escasez nueva, un piso más arriba.`
-        : `Llegaste al tope imaginable (<b>${r[0]}</b>)… y aun así surge una escasez nueva. La máquina solo cambia de nivel.`;
-      up.disabled = cur >= n - 1;
-      up.style.opacity = cur >= n - 1 ? '0.4' : '1';
+      const below = rungs.slice(0, cur);
+      const resueltas = below.filter((x) => x.k === 'mat');
+      const abiertas = below.filter((x) => x.k === 'pos');
+
+      // Fase (cabecera).
+      if (r.ghost) { phase.textContent = 'sin techo'; phase.style.color = C.red; }
+      else if (r.k === 'mat') { phase.textContent = `Piso ${cur + 1} · material`; phase.style.color = C.mat; }
+      else { phase.textContent = `Piso ${cur + 1} · posicional`; phase.style.color = C.pos; }
+
+      // Lectura de estado.
+      let html = '';
+      if (r.ghost) {
+        html += `<div class="ro-now">Llegaste al <b>último piso imaginable</b>… y aun así asoma <b style="color:${C.red}">otra escasez</b>.</div>`;
+        html += `<p class="ro-why">La máquina no muere: solo cambia de combustible y se hace más grande. Siempre hay un piso más.</p>`;
+      } else {
+        html += `<div class="ro-now">Ahora peleas por <b style="color:${C.now}">${r.n}</b>: ${r.s}.</div>`;
+        if (r.k === 'mat') {
+          html += `<div class="ro-kind mat">MATERIAL · la cantidad puede crecer</div>`;
+          html += `<p class="ro-why">Con suficiente abundancia, esta escasez <b>se resuelve para todos</b>. Pero al resolverla la pelea no se acaba: <b>salta un piso arriba</b>.</p>`;
+        } else {
+          html += `<div class="ro-kind pos">POSICIONAL · escaso por definición</div>`;
+          html += `<p class="ro-why">Aunque sobre de todo, <b>no todos pueden estar "arriba"</b>: lo tuyo es estar por encima de otro. Este peldaño <b>nunca se vacía</b>: por eso aquí la máquina no se apaga.</p>`;
+        }
+      }
+      // Qué quedó abajo.
+      if (cur > 0) {
+        let chips = '';
+        if (resueltas.length) chips += resueltas.map((x) => `<span class="chip done">✓ ${x.n}</span>`).join('');
+        if (abiertas.length) chips += abiertas.map((x) => `<span class="chip open">∞ ${x.n}</span>`).join('');
+        html += `<div class="ro-below"><span class="ro-lbl">Abajo:</span> ${chips}</div>`;
+        if (abiertas.length) html += `<div class="ro-note">Las ∞ siguen abiertas: pasaste de piso, pero esa escasez posicional nunca quedó resuelta.</div>`;
+      }
+      info.innerHTML = html;
+
+      // Botones.
+      const atTop = cur >= N - 1;
+      up.disabled = atTop;
+      up.style.opacity = atTop ? '0.4' : '1';
+      up.textContent = atTop
+        ? '▲ no hay techo'
+        : (r.k === 'mat' ? '✓ Resolver esta escasez → subir un piso' : 'Subir un piso → (esta no se resuelve)');
+      down.disabled = cur <= 0;
+      down.style.opacity = cur <= 0 ? '0.4' : '1';
     }
-    up.onclick = () => { if (cur < n - 1) { cur++; refresh(); } };
+
+    host.addEventListener('click', (e) => {
+      const el = e.target.closest('[data-i]');
+      if (el) { cur = +el.getAttribute('data-i'); refresh(); }
+    });
+    up.onclick = () => { if (cur < N - 1) { cur++; refresh(); } };
+    down.onclick = () => { if (cur > 0) { cur--; refresh(); } };
     rs.onclick = () => { cur = 0; refresh(); };
     refresh();
   }
@@ -100,17 +229,46 @@ const nestSvg = `<svg viewBox="0 0 420 420" style="max-width:400px;width:100%">$
   .scales-nest { display: grid; place-items: center; }
   .scales-txt p { font-size: 0.86rem; color: #cfccc5; }
   .scales-txt p + p { margin-top: 0.8rem; }
-  .ladder { padding: 1rem 1.2rem; margin-block: 1.5rem; }
+
+  .ladder { padding: 1rem 1.2rem 0.9rem; margin-block: 1.5rem; }
+  .ladder-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.7rem; }
+  .ladder-title { color: var(--orange-bright); font-size: 0.78rem; letter-spacing: 0.28em; text-transform: uppercase; }
+  .ladder-phase { font-size: 0.72rem; letter-spacing: 0.14em; font-family: var(--font-mono); }
+
   .ladder-svg { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .ladder-svg :global(svg) { display: block; width: 100%; }
-  @media (max-width: 700px) {
+  @media (max-width: 760px) {
     /* La escalera mantiene un ancho legible en mobile y se desplaza. */
-    .ladder-svg :global(svg) { min-width: 640px; }
+    .ladder-svg :global(svg) { min-width: 660px; }
   }
-  .ladder-cap { font-size: 0.78rem; color: var(--muted); margin-top: 0.6rem; }
-  .ladder-btns { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.8rem; }
-  .ladder-btns button { background: var(--bg-panel-2); color: var(--text); border: 1px solid var(--line); padding: 0.45rem 0.7rem; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; }
+  .ladder-svg :global(.pulse) { animation: ladderPulse 1.9s ease-in-out infinite; transform-origin: center; }
+  @keyframes ladderPulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.75; } }
+  @media (prefers-reduced-motion: reduce) {
+    .ladder-svg :global(.pulse) { animation: none; opacity: 0.55; }
+  }
+
+  .ladder-btns { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.85rem; }
+  .ladder-btns button { background: var(--bg-panel-2); color: var(--text); border: 1px solid var(--line); padding: 0.45rem 0.7rem; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.05em; cursor: pointer; }
+  .ladder-btns button:hover:not(:disabled) { border-color: var(--orange); color: var(--orange-bright); }
   .ladder-btns button.prim { background: var(--orange); color: #000; font-weight: 700; border-color: var(--orange); }
-  .readout { font-size: 0.78rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.6rem 0.7rem; margin-top: 0.7rem; }
+  .ladder-btns button:disabled { cursor: default; }
+
+  .readout { font-size: 0.78rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.7rem 0.8rem; margin-top: 0.75rem; }
   .readout :global(b) { color: var(--text); }
+  .readout :global(.ro-now) { color: var(--text); font-size: 0.86rem; }
+  .readout :global(.ro-kind) { display: inline-block; font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.14em; padding: 0.15rem 0.45rem; border: 1px solid; border-radius: 3px; margin: 0.5rem 0 0.1rem; }
+  .readout :global(.ro-kind.mat) { color: var(--blue); border-color: var(--blue); }
+  .readout :global(.ro-kind.pos) { color: var(--purple); border-color: var(--purple); }
+  .readout :global(.ro-why) { margin-top: 0.4rem; line-height: 1.5; }
+  .readout :global(.ro-below) { margin-top: 0.6rem; padding-top: 0.55rem; border-top: 1px dashed var(--line); display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
+  .readout :global(.ro-lbl) { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.1em; text-transform: uppercase; }
+  .readout :global(.chip) { font-family: var(--font-mono); font-size: 0.66rem; padding: 0.12rem 0.4rem; border: 1px solid; border-radius: 3px; }
+  .readout :global(.chip.done) { color: var(--green); border-color: var(--green); }
+  .readout :global(.chip.open) { color: var(--purple); border-color: var(--purple); }
+  .readout :global(.ro-note) { margin-top: 0.45rem; font-size: 0.72rem; font-style: italic; opacity: 0.9; }
+
+  .ladder-cap { font-size: 0.76rem; color: var(--muted); margin-top: 0.7rem; line-height: 1.5; }
+  .ladder-cap b { color: var(--text); }
+  .ladder-cap b.mat { color: var(--blue); }
+  .ladder-cap b.pos { color: var(--purple); }
 </style>

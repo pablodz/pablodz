@@ -54,7 +54,7 @@
     const N = 40;
     let wealth: number[] = [];
     let alive: boolean[] = [];
-    let fear = 0;           // 0..1 — escasez de seguridad
+    let fear = 0;           // 0..1 · escasez de seguridad
     let round = 0, purges = 0, dead = 0;
     let baselineTop = 0;    // top-10% antes de la primera purga
     let hist: number[] = [];
@@ -90,7 +90,7 @@
         if (winner === i) { wealth[i] += stake; wealth[j] -= stake; }
         else { wealth[j] += stake; wealth[i] -= stake; }
       }
-      // Bajo miedo alto: "denunciar antes de ser denunciado" — cada ronda alguien
+      // Bajo miedo alto: "denunciar antes de ser denunciado": cada ronda alguien
       // cae y su parte la captura otro. Sobrevivir depende de acusar primero.
       if (fear > 0.35 && live.length > 4 && Math.random() < fear) {
         const victim = live[Math.floor(Math.random() * live.length)];

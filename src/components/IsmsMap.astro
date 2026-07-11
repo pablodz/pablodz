@@ -1,142 +1,334 @@
 ---
 /**
- * El mapa de cada ideología: comunismo, nacionalismo y capitalismo fijaron su mapa
- * de la humanidad en UNA sola escala y borraron las demás. La realidad tiene
- * todas las escalas a la vez (gobernanza policéntrica de Elinor Ostrom).
+ * Quién ve el sistema y quién no. El sistema es un marco con límites.
+ * Dentro, las células cómodas (egoístas y bondadosas por igual) no lo ven:
+ * el sistema funciona con/para ellas. Solo desde el BORDE se ve el marco
+ * entero, y siempre hay células que se salen de los límites (outsiders).
+ * Arrastra ⊕ TÚ del centro cómodo hacia el borde: cuanto más central estás,
+ * más esfuerzo cuesta ver; al acercarte al borde se revela la estructura.
  */
 ---
 
 <div class="ismmap panel">
   <div class="ism-head">
-    <span class="ism-title">◢ EL MAPA DE CADA IDEOLOGÍA · Y LO QUE BORRA</span>
+    <span class="ism-title">◢ QUIÉN VE EL SISTEMA · Y QUIÉN NO</span>
   </div>
   <div class="ism-grid">
     <div>
-      <canvas data-c></canvas>
+      <canvas data-c aria-label="Mapa de células dentro de un marco; arrastra TÚ hacia el borde para revelar el sistema"></canvas>
       <div class="ism-legend">
-        <span><i style="background:#ed8d4c"></i>individuo</span>
-        <span><i style="background:#33b7db"></i>familia/tribu</span>
-        <span><i style="background:#a78bfa"></i>clase/gremio</span>
-        <span><i style="background:#ffcc33"></i>nación</span>
-        <span><i style="background:#52d053"></i>humanidad</span>
+        <span><i style="background:#ed8d4c"></i>egoísta</span>
+        <span><i style="background:#52d053"></i>bondadosa</span>
+        <span><i class="ring" style="border-color:#ffcc33"></i>ve el sistema (borde)</span>
+        <span><i style="background:#765898"></i>se salió (afuera)</span>
+        <span><i class="ring" style="border-color:#ffa45c"></i>tú</span>
       </div>
     </div>
     <div class="ism-ctrl">
-      <div class="ism-btns" data-btns></div>
+      <div class="ism-state" data-state>·</div>
+
+      <div class="ism-meter">
+        <div class="ism-mlabel"><span>Esfuerzo para ver</span><b data-eff>·</b></div>
+        <div class="ism-bar eff"><i data-effbar></i></div>
+      </div>
+      <div class="ism-meter">
+        <div class="ism-mlabel"><span>Visión del sistema</span><b data-vis>·</b></div>
+        <div class="ism-bar vis"><i data-visbar></i></div>
+      </div>
+
       <div class="readout" data-ro></div>
+
+      <div class="ism-btns">
+        <button data-center>← al centro cómodo</button>
+        <button data-edge>llévame al borde →</button>
+      </div>
     </div>
   </div>
-  <div class="ism-foot">UN MAPA DE UNA SOLA ESCALA SIEMPRE CHOCA CON LAS DEMÁS</div>
+  <div class="ism-foot">EL QUE ESTÁ CÓMODO DENTRO NO VE EL MARCO · SOLO SE VE DESDE EL BORDE</div>
 </div>
 
 <script>
   import { ctxOf, COL } from '../lib/machine';
 
-  type Nivel = 'ind' | 'fam' | 'cla' | 'nac' | 'hum';
+  type Kind = 'ego' | 'bon' | 'seer' | 'out';
+  interface Cell { nx: number; ny: number; k: Kind; }
 
-  interface Vista { tab: string; on: Nivel[]; borra: Nivel | null; ro: string }
-
-  const VISTAS: Vista[] = [
-    {
-      tab: 'COMUNISMO · la clase', on: ['cla'], borra: 'nac',
-      ro: 'El mapa ve solo la <b>clase</b>. Familia, nación e individuo quedan borrados. La factura: la URSS (1917-1991), que abolió el mercado pero no la escasez (colas, mercado negro), y la pirámide volvió como <b>nomenklatura</b>.',
-    },
-    {
-      tab: 'NACIONALISMO · la nación', on: ['nac'], borra: 'hum',
-      ro: 'El mapa ve solo la <b>nación</b>. La clase y la humanidad desaparecen. La factura: cooperación interna récord usada como arma en <b>1914 y 1939</b>.',
-    },
-    {
-      tab: 'CAPITALISMO · el individuo', on: ['ind'], borra: 'fam',
-      ro: 'El mapa ve solo al <b>individuo y el mercado</b>. La comunidad desaparece. La factura: acaparamiento sin freno, el 1% con ~48% de la riqueza y el <b>crash de 1929</b>; repetido en 2008.',
-    },
-    {
-      tab: 'POLICÉNTRICO · todas a la vez', on: ['ind', 'fam', 'cla', 'nac', 'hum'], borra: null,
-      ro: 'La realidad tiene <b>todas las escalas al mismo tiempo</b>. La respuesta que sí funciona no es otra ideología: es un control por escala, reajustado sin parar: la gobernanza <b>policéntrica</b> de Elinor Ostrom (Nobel 2009).',
-    },
-  ];
-
-  // Púrpura más claro que COL.purple: a trazo fino sobre fondo oscuro no se veía.
-  const TINTA: Record<Nivel, string> = {
-    ind: COL.orange, fam: COL.blue, cla: '#a78bfa', nac: COL.yellow, hum: COL.green,
-  };
+  function mulberry32(seed: number) {
+    let t = seed >>> 0;
+    return () => {
+      t += 0x6d2b79f5;
+      let r = Math.imul(t ^ (t >>> 15), 1 | t);
+      r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+      return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+    };
+  }
 
   function init(root: HTMLElement) {
     const cv = root.querySelector<HTMLCanvasElement>('[data-c]')!;
-    const btns = root.querySelector<HTMLElement>('[data-btns]')!;
+    const stEl = root.querySelector<HTMLElement>('[data-state]')!;
+    const effEl = root.querySelector<HTMLElement>('[data-eff]')!;
+    const visEl = root.querySelector<HTMLElement>('[data-vis]')!;
+    const effBar = root.querySelector<HTMLElement>('[data-effbar]')!;
+    const visBar = root.querySelector<HTMLElement>('[data-visbar]')!;
     const ro = root.querySelector<HTMLElement>('[data-ro]')!;
-    let cur = 0;
+    const btnCenter = root.querySelector<HTMLButtonElement>('[data-center]')!;
+    const btnEdge = root.querySelector<HTMLButtonElement>('[data-edge]')!;
 
-    VISTAS.forEach((vs, i) => {
-      const b = document.createElement('button');
-      b.textContent = vs.tab;
-      b.onclick = () => { cur = i; draw(); };
-      btns.appendChild(b);
-    });
+    const RM = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    // Geometría de MapResolution: 3 grupos, 3 subgrupos, 7 puntos cada uno (coords unitarias).
-    const grupos = 3, subs = 3, por = 7;
+    // ── Campo de células (posiciones normalizadas dentro del marco, estables) ──
+    const rnd = mulberry32(20240711);
+    const cells: Cell[] = [];
+    // Cómodas: agrupadas hacia el centro, mezcla de egoístas y bondadosas.
+    for (let i = 0; i < 26; i++) {
+      const a = rnd() * Math.PI * 2;
+      const r = 0.05 + Math.pow(rnd(), 0.8) * 0.34; // 0.05..0.39 del centro → nunca al borde
+      cells.push({ nx: 0.5 + r * Math.cos(a), ny: 0.5 + r * Math.sin(a), k: rnd() < 0.5 ? 'ego' : 'bon' });
+    }
+    // Videntes: pegadas al borde del marco (ven el sistema entero).
+    for (let i = 0; i < 9; i++) {
+      const along = 0.1 + rnd() * 0.8;
+      const inset = 0.015 + rnd() * 0.045;
+      const side = i % 4;
+      if (side === 0) cells.push({ nx: along, ny: inset, k: 'seer' });
+      else if (side === 1) cells.push({ nx: 1 - inset, ny: along, k: 'seer' });
+      else if (side === 2) cells.push({ nx: along, ny: 1 - inset, k: 'seer' });
+      else cells.push({ nx: inset, ny: along, k: 'seer' });
+    }
+    // Outsiders: se salieron de los límites (coordenada fuera de [0,1]).
+    for (let i = 0; i < 6; i++) {
+      const along = 0.12 + rnd() * 0.76;
+      const out = 0.05 + rnd() * 0.09;
+      const side = i % 4;
+      if (side === 0) cells.push({ nx: along, ny: -out, k: 'out' });
+      else if (side === 1) cells.push({ nx: 1 + out, ny: along, k: 'out' });
+      else if (side === 2) cells.push({ nx: along, ny: 1 + out, k: 'out' });
+      else cells.push({ nx: -out, ny: along, k: 'out' });
+    }
 
-    function draw() {
-      btns.querySelectorAll('button').forEach((b, i) => b.classList.toggle('on', i === cur));
-      const vs = VISTAS[cur];
-      ro.innerHTML = vs.ro;
-
-      const { x, w, h } = ctxOf(cv, 280);
-      x.clearRect(0, 0, w, h);
-      const cx = w / 2, cy = h / 2, R = Math.min(w, h) / 2 - 14;
-      const enc = (n: Nivel) => vs.on.includes(n);
-
-      // Trazo de un nivel: color pleno si está encendido; apagado = rojo punteado, opacidad baja.
-      function anillo(px: number, py: number, r: number, n: Nivel, lw: number) {
-        x.beginPath(); x.arc(px, py, r, 0, 7);
-        if (enc(n)) { x.strokeStyle = TINTA[n]; x.globalAlpha = 1; x.setLineDash([]); x.lineWidth = lw + 1; }
-        else { x.strokeStyle = COL.red; x.globalAlpha = 0.38; x.setLineDash([4, 4]); x.lineWidth = 1.2; }
-        x.stroke(); x.globalAlpha = 1; x.setLineDash([]);
-      }
-
-      // Anillo exterior: humanidad / civilización.
-      anillo(cx, cy, R, 'hum', 2);
-      // Círculo grande: la nación.
-      anillo(cx, cy, R * 0.86, 'nac', 2);
-
-      const posBorra: Record<string, [number, number]> = {};
-      posBorra.nac = [cx, cy - R * 0.86 - 5];
-      posBorra.hum = [cx, cy - R - 5];
-
-      for (let g = 0; g < grupos; g++) {
-        const ga = (g / grupos) * 2 * Math.PI - Math.PI / 2;
-        const gx = cx + R * 0.48 * Math.cos(ga), gy = cy + R * 0.48 * Math.sin(ga);
-        // Círculo mediano: clase / gremio.
-        anillo(gx, gy, R * 0.34, 'cla', 1.8);
-        if (g === 0) posBorra.cla = [gx, gy - R * 0.34 - 5];
-        for (let sN = 0; sN < subs; sN++) {
-          const sa = (sN / subs) * 2 * Math.PI + g;
-          const sx = gx + R * 0.2 * Math.cos(sa), sy = gy + R * 0.2 * Math.sin(sa);
-          // Círculo pequeño: familia / tribu.
-          anillo(sx, sy, R * 0.125, 'fam', 1.4);
-          if (g === 0 && sN === 0) posBorra.fam = [sx, sy - R * 0.125 - 5];
-          for (let k = 0; k < por; k++) {
-            const ka = (k / por) * 2 * Math.PI + sN;
-            const px = sx + R * 0.075 * Math.cos(ka), py = sy + R * 0.075 * Math.sin(ka);
-            // Punto: la persona individual.
-            x.beginPath(); x.arc(px, py, enc('ind') ? 2.8 : 2, 0, 7);
-            if (enc('ind')) { x.fillStyle = TINTA.ind; x.globalAlpha = 1; }
-            else { x.fillStyle = COL.red; x.globalAlpha = 0.35; }
-            x.fill(); x.globalAlpha = 1;
-          }
-        }
-      }
-
-      // Etiqueta roja junto a un nivel apagado (vistas 1-3).
-      if (vs.borra) {
-        const [ex, ey] = posBorra[vs.borra];
-        x.font = '600 11px "JetBrains Mono", ui-monospace, monospace';
-        x.textAlign = 'center'; x.textBaseline = 'bottom';
-        x.fillStyle = COL.red; x.globalAlpha = 0.85;
-        x.fillText('◤ borrado del mapa', ex, ey);
-        x.globalAlpha = 1;
+    // Web de estructura (topología fija): pares cercanos en el marco.
+    const links: [number, number][] = [];
+    for (let i = 0; i < cells.length; i++) {
+      for (let j = i + 1; j < cells.length; j++) {
+        const dx = cells[i].nx - cells[j].nx, dy = cells[i].ny - cells[j].ny;
+        if (dx * dx + dy * dy < 0.045) links.push([i, j]);
       }
     }
+
+    // Célula "tú" (arrastrable), en coordenadas normalizadas del marco.
+    let tnx = 0.5, tny = 0.5;
+    // Geometría del último frame, para mapear puntero → normalizado.
+    let geo = { L: 0, T: 0, W: 1, Hh: 1 };
+
+    const clampT = (v: number) => Math.max(-0.28, Math.min(1.28, v));
+
+    function draw() {
+      const H = (cv.clientWidth || 600) < 440 ? 300 : 360;
+      cv.style.height = H + 'px';
+      const { x, w, h } = ctxOf(cv, H);
+      x.clearRect(0, 0, w, h);
+
+      const Mx = 54, My = 50;
+      const L = Mx, T = My, W = w - 2 * Mx, Hh = h - 2 * My;
+      geo = { L, T, W, Hh };
+      const R = L + W, B = T + Hh;
+      const px = (nx: number) => L + nx * W;
+      const py = (ny: number) => T + ny * Hh;
+
+      // Métricas de "tú": distancia hacia el borde más cercano del marco.
+      const tx = px(tnx), ty = py(tny);
+      const distIn = Math.min(tx - L, R - tx, ty - T, B - ty);
+      const halfMin = Math.min(W, Hh) / 2;
+      const outside = distIn < 0;
+      const p = 1 - Math.max(0, Math.min(1, distIn / halfMin)); // 0 centro · 1 borde/afuera
+      const vr = Math.pow(p, 1.4); // curva de revelado (concentrada en el borde)
+
+      const line = (a: number) => { x.globalAlpha = a; };
+
+      // ── Estructura oculta: rejilla del marco (se revela con la visión) ──
+      x.strokeStyle = '#ffffff';
+      x.lineWidth = 1;
+      const gridA = 0.03 + 0.14 * vr;
+      for (let i = 1; i < 6; i++) {
+        line(gridA); x.beginPath();
+        x.moveTo(L + (W * i) / 6, T); x.lineTo(L + (W * i) / 6, B); x.stroke();
+      }
+      for (let j = 1; j < 5; j++) {
+        line(gridA); x.beginPath();
+        x.moveTo(L, T + (Hh * j) / 5); x.lineTo(R, T + (Hh * j) / 5); x.stroke();
+      }
+
+      // Conexiones entre células (el tejido del sistema).
+      x.strokeStyle = COL.orange; x.lineWidth = 1;
+      line(0.04 + 0.42 * vr);
+      x.beginPath();
+      for (const [i, j] of links) {
+        x.moveTo(px(cells[i].nx), py(cells[i].ny));
+        x.lineTo(px(cells[j].nx), py(cells[j].ny));
+      }
+      x.stroke();
+      x.globalAlpha = 1;
+
+      // ── El marco: los límites del sistema ──
+      x.strokeStyle = COL.orange; x.lineWidth = 1.5;
+      line(0.14 + 0.72 * vr);
+      x.strokeRect(L, T, W, Hh);
+      x.globalAlpha = 1;
+      // Corchetes NERV en las esquinas.
+      const ck = 14;
+      x.strokeStyle = COL.orangeBright; x.lineWidth = 2;
+      line(0.28 + 0.62 * vr);
+      x.beginPath();
+      x.moveTo(L, T + ck); x.lineTo(L, T); x.lineTo(L + ck, T);
+      x.moveTo(R - ck, T); x.lineTo(R, T); x.lineTo(R, T + ck);
+      x.moveTo(R, B - ck); x.lineTo(R, B); x.lineTo(R - ck, B);
+      x.moveTo(L + ck, B); x.lineTo(L, B); x.lineTo(L, B - ck);
+      x.stroke();
+      x.globalAlpha = 1;
+
+      // Etiqueta del marco (se revela con la visión).
+      x.font = '600 10px "JetBrains Mono", ui-monospace, monospace';
+      x.textAlign = 'left'; x.textBaseline = 'bottom';
+      x.fillStyle = COL.orange; line(0.18 + 0.7 * vr);
+      x.fillText('LÍMITES DEL SISTEMA', L + 2, T - 6);
+      x.globalAlpha = 1;
+
+      // ── Campo de percepción de "tú" (crece cerca del borde) ──
+      const Rp = 10 + vr * halfMin * 0.95;
+      const grad = x.createRadialGradient(tx, ty, 0, tx, ty, Rp);
+      grad.addColorStop(0, 'rgba(255,164,92,' + (0.05 + 0.16 * vr).toFixed(3) + ')');
+      grad.addColorStop(1, 'rgba(255,164,92,0)');
+      x.fillStyle = grad;
+      x.beginPath(); x.arc(tx, ty, Rp, 0, 7); x.fill();
+      x.setLineDash([3, 4]); x.strokeStyle = COL.orangeBright; x.lineWidth = 1;
+      line(0.12 + 0.35 * vr);
+      x.beginPath(); x.arc(tx, ty, Rp, 0, 7); x.stroke();
+      x.setLineDash([]); x.globalAlpha = 1;
+
+      // ── Células ──
+      // Outsiders (con hilo que muestra que se salieron).
+      for (const c of cells) {
+        if (c.k !== 'out') continue;
+        const cxp = px(c.nx), cyp = py(c.ny);
+        const ex = Math.max(L, Math.min(R, cxp)), ey = Math.max(T, Math.min(B, cyp));
+        x.setLineDash([2, 3]); x.strokeStyle = COL.purple; line(0.35);
+        x.beginPath(); x.moveTo(cxp, cyp); x.lineTo(ex, ey); x.stroke();
+        x.setLineDash([]);
+        x.fillStyle = COL.purple; line(0.85);
+        x.beginPath(); x.arc(cxp, cyp, 4, 0, 7); x.fill();
+        x.globalAlpha = 1;
+      }
+      // Cómodas: egoístas y bondadosas (ciegas: sin visión).
+      for (const c of cells) {
+        if (c.k !== 'ego' && c.k !== 'bon') continue;
+        x.fillStyle = c.k === 'ego' ? COL.orange : COL.green; line(0.9);
+        x.beginPath(); x.arc(px(c.nx), py(c.ny), 4.5, 0, 7); x.fill();
+        x.globalAlpha = 1;
+      }
+      // Videntes del borde: anillo (ojo) siempre visible → ven el sistema.
+      for (const c of cells) {
+        if (c.k !== 'seer') continue;
+        const cxp = px(c.nx), cyp = py(c.ny);
+        x.strokeStyle = COL.yellow; x.lineWidth = 1.6; line(0.85);
+        x.beginPath(); x.arc(cxp, cyp, 6.5, 0, 7); x.stroke();
+        x.fillStyle = COL.yellow; line(1);
+        x.beginPath(); x.arc(cxp, cyp, 2.4, 0, 7); x.fill();
+        x.globalAlpha = 1;
+      }
+
+      // ── "Tú" ──
+      x.strokeStyle = COL.orangeBright; x.lineWidth = 2.4;
+      x.beginPath(); x.arc(tx, ty, 8, 0, 7); x.stroke();
+      x.beginPath();
+      x.moveTo(tx - 12, ty); x.lineTo(tx + 12, ty);
+      x.moveTo(tx, ty - 12); x.lineTo(tx, ty + 12);
+      x.stroke();
+      x.fillStyle = COL.orangeBright;
+      x.beginPath(); x.arc(tx, ty, 2.6, 0, 7); x.fill();
+      x.font = '700 11px "JetBrains Mono", ui-monospace, monospace';
+      x.textAlign = 'center'; x.textBaseline = 'bottom';
+      x.fillText('TÚ', tx, ty - 12);
+
+      // Rótulo grande al ver el sistema.
+      if (vr > 0.02) {
+        x.font = '700 12px "JetBrains Mono", ui-monospace, monospace';
+        x.textAlign = 'center'; x.textBaseline = 'top';
+        x.fillStyle = COL.orangeBright; line(Math.min(1, vr * 1.1));
+        x.fillText('◢ VES EL SISTEMA', w / 2, 6);
+        x.globalAlpha = 1;
+      }
+
+      // Pista de uso.
+      x.font = '10px "JetBrains Mono", ui-monospace, monospace';
+      x.textAlign = 'left'; x.textBaseline = 'bottom';
+      x.fillStyle = COL.muted; line(0.75);
+      x.fillText('arrastra ⊕ hacia el borde', L + 2, h - 6);
+      x.globalAlpha = 1;
+
+      // ── Lectura de estado ──
+      const effPct = Math.round(100 * (1 - p));
+      const visPct = Math.round(100 * p);
+      effEl.textContent = effPct + '%';
+      visEl.textContent = visPct + '%';
+      effBar.style.width = effPct + '%';
+      visBar.style.width = visPct + '%';
+
+      let title: string, col: string, txt: string;
+      if (outside) {
+        title = 'FUERA DE LOS LÍMITES · OUTSIDER'; col = COL.purple;
+        txt = 'Te saliste del marco. Siempre hay células que <b>se salen de los límites</b> del sistema. Desde afuera se ve completo, pero al precio de ya no caber dentro.';
+      } else if (p >= 0.72) {
+        title = 'EN EL BORDE · VES EL SISTEMA'; col = COL.orangeBright;
+        txt = 'Desde el borde se ve <b>el sistema entero</b>: sus límites, sus conexiones, el todo. Las que están aquí pueden nombrarlo, porque el sistema <b>no está hecho a su medida</b>.';
+      } else if (p >= 0.34) {
+        title = 'TE ACERCAS AL BORDE'; col = COL.yellow;
+        txt = 'Cuanto más te alejas del centro cómodo, <b>más aparece la estructura</b>: las líneas, el marco, lo que antes era invisible. Todavía cuesta, pero ya lo intuyes.';
+      } else {
+        title = 'CÓMODA · CIEGA AL BORDE'; col = COL.orange;
+        txt = 'Estás en el centro, donde el sistema funciona <b>para ti</b>. Aquí conviven egoístas y bondadosas: da igual, el sistema las acomoda a todas y por eso <b>ninguna lo ve</b>. Salir cuesta un esfuerzo enorme.';
+      }
+      stEl.textContent = title;
+      stEl.style.color = col;
+      ro.innerHTML = txt;
+    }
+
+    // ── Arrastre de "tú" ──
+    let dragging = false;
+    function toNorm(e: PointerEvent) {
+      const rect = cv.getBoundingClientRect();
+      tnx = clampT((e.clientX - rect.left - geo.L) / geo.W);
+      tny = clampT((e.clientY - rect.top - geo.T) / geo.Hh);
+      draw();
+    }
+    cv.addEventListener('pointerdown', (e) => {
+      dragging = true; cv.setPointerCapture(e.pointerId); toNorm(e);
+    });
+    cv.addEventListener('pointermove', (e) => {
+      if (!dragging) return; e.preventDefault(); toNorm(e);
+    });
+    const end = () => { dragging = false; };
+    cv.addEventListener('pointerup', end);
+    cv.addEventListener('pointercancel', end);
+
+    // ── Glide por botón (accesible/teclado), respeta reduced-motion ──
+    function glide(txn: number, tyn: number) {
+      if (RM()) { tnx = txn; tny = tyn; draw(); return; }
+      const s0x = tnx, s0y = tny, t0 = performance.now(), dur = 520;
+      const f = (t: number) => {
+        const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+        tnx = s0x + (txn - s0x) * e; tny = s0y + (tyn - s0y) * e;
+        draw(); if (k < 1) requestAnimationFrame(f);
+      };
+      requestAnimationFrame(f);
+    }
+    btnCenter.onclick = () => glide(0.5, 0.5);
+    btnEdge.onclick = () => {
+      let nx = Math.max(0, Math.min(1, tnx)), ny = Math.max(0, Math.min(1, tny));
+      const d = [nx, 1 - nx, ny, 1 - ny], m = Math.min(...d), ins = 0.02;
+      if (m === d[0]) nx = ins; else if (m === d[1]) nx = 1 - ins;
+      else if (m === d[2]) ny = ins; else ny = 1 - ins;
+      glide(nx, ny);
+    };
 
     window.addEventListener('resize', draw);
     draw();
@@ -148,21 +340,30 @@
   .ismmap { padding: 1rem 1.2rem 0.8rem; margin-block: 2.5rem; }
   .ism-head { margin-bottom: 0.9rem; }
   .ism-title { color: var(--orange-bright); font-size: 0.78rem; letter-spacing: 0.3em; text-transform: uppercase; }
-  .ism-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 1.4rem; align-items: start; }
+  .ism-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 1.4rem; align-items: start; }
   @media (max-width: 720px) { .ism-grid { grid-template-columns: 1fr; } }
-  .ism-grid canvas { display: block; width: 100%; height: 280px; }
+  .ism-grid canvas { display: block; width: 100%; height: 360px; touch-action: none; cursor: grab; }
+  .ism-grid canvas:active { cursor: grabbing; }
   .ism-legend { display: flex; gap: 0.9rem; flex-wrap: wrap; font-size: 0.64rem; color: var(--muted); margin-top: 0.5rem; }
   .ism-legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 0.4ch; vertical-align: middle; }
-  .ism-ctrl { display: flex; flex-direction: column; gap: 0.8rem; }
-  .ism-btns { display: flex; flex-direction: column; gap: 0.4rem; }
-  .ism-btns :global(button) {
-    background: var(--bg-panel-2); color: var(--text); border: 1px solid var(--line);
-    padding: 0.45rem 0.7rem; font-family: var(--font-mono); font-size: 0.68rem;
-    letter-spacing: 0.08em; cursor: pointer; text-align: left;
-  }
-  .ism-btns :global(button:hover) { border-color: var(--orange); color: var(--orange-bright); }
-  .ism-btns :global(button.on) { background: var(--orange); color: #000; font-weight: 700; border-color: var(--orange); }
+  .ism-legend i.ring { background: transparent !important; border: 2px solid; box-sizing: border-box; }
+  .ism-ctrl { display: flex; flex-direction: column; gap: 0.75rem; }
+  .ism-state { font-size: 0.74rem; letter-spacing: 0.12em; font-weight: 700; color: var(--orange); }
+  .ism-meter { display: flex; flex-direction: column; gap: 0.28rem; }
+  .ism-mlabel { display: flex; justify-content: space-between; font-size: 0.64rem; letter-spacing: 0.06em; color: var(--muted); }
+  .ism-mlabel b { color: var(--text); }
+  .ism-bar { height: 8px; background: var(--bg-deep); border: 1px solid var(--line); overflow: hidden; }
+  .ism-bar i { display: block; height: 100%; width: 0; transition: width 0.08s linear; }
+  .ism-bar.eff i { background: var(--red); }
+  .ism-bar.vis i { background: var(--green); }
   .readout { font-size: 0.76rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.6rem 0.75rem; line-height: 1.7; }
   .readout :global(b) { color: var(--text); }
+  .ism-btns { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+  .ism-btns button {
+    flex: 1 1 auto; background: var(--bg-panel-2); color: var(--text); border: 1px solid var(--line);
+    padding: 0.45rem 0.6rem; font-family: var(--font-mono); font-size: 0.66rem;
+    letter-spacing: 0.06em; cursor: pointer;
+  }
+  .ism-btns button:hover { border-color: var(--orange); color: var(--orange-bright); }
   .ism-foot { margin-top: 0.9rem; padding-top: 0.5rem; border-top: 1px dashed var(--line); font-size: 0.6rem; letter-spacing: 0.28em; color: var(--muted); }
 </style>

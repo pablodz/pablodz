@@ -1,0 +1,55 @@
+---
+/**
+ * "Facto": una frase corta y dura que choca de frente contra la creencia
+ * general. Una por capítulo. Se usa como <HardFact text="..." /> (o con `nota`
+ * para una micro-aclaración). Estética de advertencia (hazard), para que golpee.
+ */
+interface Props {
+  text: string;
+  nota?: string;
+}
+const { text, nota } = Astro.props;
+---
+
+<aside class="hardfact">
+  <span class="hf-tag">⚡ FACTO</span>
+  <p class="hf-text">{text}</p>
+  {nota && <p class="hf-nota">{nota}</p>}
+</aside>
+
+<style>
+  .hardfact {
+    margin-block: 2rem;
+    padding: 1rem 1.2rem;
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--yellow);
+    position: relative;
+  }
+  .hf-tag {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--yellow);
+    margin-bottom: 0.5rem;
+  }
+  .hf-text {
+    font-family: var(--font-display, serif);
+    font-size: 1.12rem;
+    line-height: 1.45;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0;
+  }
+  .hf-nota {
+    margin: 0.55rem 0 0;
+    font-size: 0.74rem;
+    line-height: 1.55;
+    color: var(--muted);
+  }
+  @media (min-width: 900px) {
+    .hf-text { font-size: 1.28rem; }
+  }
+</style>

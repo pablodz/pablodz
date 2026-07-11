@@ -1,10 +1,18 @@
 ---
 /**
- * La pirámide contra las instrucciones antiguas: el mismo modelo yard-sale
- * de 40 personas, pero con tres reglas milenarias como deslizadores:
- * humildad (ceder la ganancia al que tiene menos), compartir (donar del
- * excedente) y perdón (condonar deudas). Con las tres activas, la pirámide
- * no logra formarse.
+ * La pirámide, contra las instrucciones antiguas.
+ *
+ * Es EXACTAMENTE la sociedad de la sección 04 (YardSale): 40 personas que
+ * empiezan iguales, hacen tratos justos (una moneda decide quién gana un
+ * poquito) y aun así la riqueza se condensa arriba: la pirámide se forma sola.
+ *
+ * Aquí se le añaden tres perillas que son instrucciones religiosas milenarias.
+ * Ninguna toca la "justicia" del trato; solo redistribuyen lo que la mecánica
+ * concentra. La riqueza total se conserva siempre (40 unidades):
+ *   - HUMILDAD  : el que gana teniendo más cede parte de la ganancia al de menos.
+ *   - COMPARTIR : cada ronda, los de arriba dan del excedente a los de abajo.
+ *   - PERDÓN    : jubileo periódico que rescata a los atrapados abajo (paga el de arriba).
+ * Súbelas y la pirámide se aplana en vivo.
  */
 ---
 
@@ -16,16 +24,25 @@
   <div class="hpyr-grid">
     <div><canvas data-cv></canvas></div>
     <div class="hpyr-ctrl">
-      <label>Humildad (no acumular estatus) <b data-hl>0</b>
-        <input type="range" data-h min="0" max="100" step="1" value="0" /></label>
-      <label>Compartir (dar del excedente) <b data-cl>0</b>
-        <input type="range" data-c min="0" max="100" step="1" value="0" /></label>
-      <label>Perdón (condonar deudas) <b data-pl>0</b>
-        <input type="range" data-p min="0" max="100" step="1" value="0" /></label>
+      <label class="knob">
+        <span class="knob-top"><span class="knob-name">Humildad</span><b data-hl>0</b></span>
+        <input type="range" data-h min="0" max="100" step="1" value="0" />
+        <span class="knob-note">el que gana teniendo más cede parte al que tiene menos</span>
+      </label>
+      <label class="knob">
+        <span class="knob-top"><span class="knob-name">Compartir</span><b data-cl>0</b></span>
+        <input type="range" data-c min="0" max="100" step="1" value="0" />
+        <span class="knob-note">cada ronda, los de arriba dan del excedente a los de abajo</span>
+      </label>
+      <label class="knob">
+        <span class="knob-top"><span class="knob-name">Perdón</span><b data-pl>0</b></span>
+        <input type="range" data-p min="0" max="100" step="1" value="0" />
+        <span class="knob-note">jubileo: cada 40 rondas rescata a los atrapados abajo</span>
+      </label>
       <div class="hpyr-presets">
         <button data-pre="0,0,0" class="on">Sin instrucciones</button>
-        <button data-pre="70,0,0">Solo humildad</button>
-        <button data-pre="60,50,60">Las tres a la vez</button>
+        <button data-pre="45,0,0">Solo humildad</button>
+        <button data-pre="45,40,45">Las tres a la vez</button>
       </div>
       <div class="hpyr-btns">
         <button data-play class="prim">▶ Correr</button>
@@ -53,41 +70,39 @@
     const phase = root.querySelector<HTMLElement>('[data-phase]')!;
     const ro = root.querySelector<HTMLElement>('[data-ro]')!;
     const presets = [...root.querySelectorAll<HTMLButtonElement>('[data-pre]')];
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    // Constantes verificadas (600 rondas): 0/0/0 -> top10 ~78%; 60/50/60 -> ~13%.
+    // Constantes verificadas (600 rondas, 5 semillas):
+    //   0/0/0 -> el 10% de arriba ~85%;  45/40/45 -> ~15%.
     const N = 40;
-    const STAKE_F = 0.12;     // fracción del mínimo apostada en cada trato
-    const DEBT_LINE = 0.3;    // bajo esta riqueza, perder puede empujar a deuda
-    const DEBT_FLOOR = -0.5;  // deuda máxima
-    const SHARE_MAX = 0.02;   // c=100 dona 2% del excedente por ronda
-    const FORGIVE_EVERY = 50; // rondas entre jubileos
-    const RESET_W = 0.05;     // riqueza tras la condonación
-    const MAX_ROUNDS = 1200;
+    const STAKE_F = 0.12;      // fracción del mínimo apostada en cada trato (= sección 04)
+    const SHARE_MAX = 0.025;   // compartir=100 -> se dona el 2.5% del excedente por ronda
+    const FORGIVE_EVERY = 40;  // rondas entre jubileos (perdón)
+    const POVERTY_FRAC = 0.5;  // "atrapado abajo" = por debajo de la mitad del promedio
+    const MAX_ROUNDS = 800;
 
     let wealth: number[] = []; let round = 0; let running = false; let raf = 0;
+    let flash = 0; // parpadeo del canvas justo tras un jubileo
 
-    function stopA() { running = false; if (raf) cancelAnimationFrame(raf); raf = 0; play.textContent = '▶ Correr'; play.classList.remove('on'); }
-    function resetAll() { wealth = new Array(N).fill(1); round = 0; stopA(); draw(); stats(); }
+    function stopA() { running = false; if (raf) cancelAnimationFrame(raf); raf = 0; play.textContent = reduce ? '▶ Correr 150 rondas' : '▶ Correr'; play.classList.remove('on'); }
+    function resetAll() { wealth = new Array(N).fill(1); round = 0; flash = 0; stopA(); draw(); stats(); }
 
     function step() {
       const h = +hs.value, c = +cs.value, p = +ps.value;
-      // tratos al azar
+      // Tratos justos al azar: una moneda decide quién gana (idéntico a la sección 04).
       for (let k = 0; k < N; k++) {
         const i = Math.floor(Math.random() * N), j = Math.floor(Math.random() * N);
         if (i === j) continue;
-        const m = Math.min(wealth[i], wealth[j]);
-        if (m <= 0) continue; // el endeudado no comercia: queda atrapado abajo
-        const stake = STAKE_F * Math.max(m, DEBT_LINE);
+        const stake = STAKE_F * Math.min(wealth[i], wealth[j]);
+        if (stake <= 1e-6) continue;
         const richer = wealth[i] >= wealth[j] ? i : j;
-        const poorer = richer === i ? j : i;
-        let winner = Math.random() < 0.5 ? i : j;
-        // humildad: el que tiene más cede la ganancia al que tiene menos
-        if (winner === richer && Math.random() < h / 100) winner = poorer;
+        const winner = Math.random() < 0.5 ? i : j;
         const loser = winner === i ? j : i;
-        wealth[winner] += stake;
-        wealth[loser] = Math.max(DEBT_FLOOR, wealth[loser] - stake);
+        // HUMILDAD: si el ganador es el que ya tenía más, cede una fracción de la ganancia.
+        const t = winner === richer ? stake * (1 - h / 100) : stake;
+        wealth[winner] += t; wealth[loser] -= t;
       }
-      // compartir: los que están sobre el promedio donan parte de su excedente
+      // COMPARTIR: los que están sobre el promedio donan parte del excedente; se reparte abajo.
       if (c > 0) {
         const mean = wealth.reduce((a, b) => a + b, 0) / N;
         const below: number[] = []; let pool = 0;
@@ -98,45 +113,63 @@
         if (below.length) { const each = pool / below.length; for (const q of below) wealth[q] += each; }
       }
       round++;
-      // perdón: jubileo periódico de deudas
+      // PERDÓN: jubileo. Cada FORGIVE_EVERY rondas se rescata a los atrapados abajo,
+      // subiéndolos a la línea de pobreza; lo pagan los de arriba (la riqueza total no cambia).
       if (p > 0 && round % FORGIVE_EVERY === 0) {
-        for (let q = 0; q < N; q++) if (wealth[q] < 0 && Math.random() < p / 100) wealth[q] = RESET_W;
+        const mean = wealth.reduce((a, b) => a + b, 0) / N;
+        const floor = POVERTY_FRAC * mean;
+        let lifted = 0;
+        for (let q = 0; q < N; q++) if (wealth[q] < floor && Math.random() < p / 100) { lifted += floor - wealth[q]; wealth[q] = floor; }
+        if (lifted > 0) {
+          let excess = 0; for (let q = 0; q < N; q++) if (wealth[q] > mean) excess += wealth[q] - mean;
+          if (excess > 0) for (let q = 0; q < N; q++) if (wealth[q] > mean) wealth[q] -= lifted * (wealth[q] - mean) / excess;
+          flash = 6;
+        }
       }
     }
 
     function stats() {
       const s = [...wealth].sort((a, b) => b - a);
-      const tot = s.reduce((a, b) => a + b, 0);
-      const k = Math.max(1, Math.round(N * 0.1));
+      const tot = s.reduce((a, b) => a + b, 0) || 1;
+      const k = Math.max(1, Math.round(N * 0.1));       // el 10% de arriba (4 personas)
       let top = 0; for (let q = 0; q < k; q++) top += s[q];
-      const t10 = top / tot * 100;
-      const debt = wealth.filter((x) => x < 0).length;
-      ro.innerHTML = `Ronda <b>${round}</b> · el <b>10%</b> más rico tiene <b>${t10.toFixed(0)}%</b> · en deuda: <b>${debt}</b> ${debt === 1 ? 'persona' : 'personas'}`;
+      let bot = 0; for (let q = N - Math.round(N * 0.5); q < N; q++) bot += s[q]; // mitad de abajo
+      const t10 = top / tot * 100, b50 = bot / tot * 100;
+      const mean = tot / N; const trapped = wealth.filter((x) => x < POVERTY_FRAC * mean).length;
+      ro.innerHTML = `Ronda <b>${round}</b> · el <b>10%</b> de arriba tiene <b>${t10.toFixed(0)}%</b> · la mitad de abajo, solo <b>${b50.toFixed(0)}%</b><br><span class="hpyr-sub">atrapados abajo (menos de media ración): <b>${trapped}</b> ${trapped === 1 ? 'persona' : 'personas'}</span>`;
       let lab: string, col: string;
-      if (t10 > 60) { lab = 'PIRÁMIDE DURA'; col = COL.red; }
-      else if (t10 > 40) { lab = 'PIRÁMIDE SUAVE'; col = COL.orange; }
-      else { lab = 'REPARTIDO'; col = COL.green; }
+      if (t10 < 20) { lab = 'REPARTIDO'; col = COL.green; }
+      else if (t10 < 45) { lab = 'EMPIEZA LA PIRÁMIDE'; col = COL.yellow; }
+      else if (t10 < 70) { lab = 'PIRÁMIDE MARCADA'; col = COL.orange; }
+      else { lab = 'CASI TODO ARRIBA'; col = COL.red; }
       phase.textContent = lab; phase.style.color = col;
     }
 
     function draw() {
       const H = Math.max(240, cv.clientHeight || 240);
-      const { x, w, h } = ctxOf(cv, H); x.clearRect(0, 0, w, h); const pad = 10;
-      const s = [...wealth].sort((a, b) => a - b);
-      const mx = Math.max(...s, 0.01); const mn = Math.min(...s, 0);
+      const { x, w, h } = ctxOf(cv, H); x.clearRect(0, 0, w, h);
+      const pad = 10, top = 26, bot = h - pad;
+      const s = [...wealth].sort((a, b) => a - b); // de la más pobre (izq) a la más rica (der)
+      const mx = Math.max(...s, 0.01);
+      const mean = s.reduce((a, b) => a + b, 0) / N;
       const bw = (w - 2 * pad) / N;
-      const top = 24, bot = h - pad;
-      const zero = mn < 0 ? bot + (bot - top) * mn / (mx - mn) : bot; // línea de cero
+      const scale = (v: number) => (bot - top) * v / mx;
+      // barras: cada persona. Rojo = 10% de arriba, naranja = 20% siguiente, azul = el resto.
       for (let i = 0; i < N; i++) {
-        const bh = (bot - top) * Math.abs(s[i]) / (mx - mn || 0.01);
-        const col = s[i] < 0 ? COL.purple : i >= N * 0.9 ? COL.red : i >= N * 0.7 ? COL.orange : COL.blue;
-        x.fillStyle = col;
-        if (s[i] >= 0) x.fillRect(pad + i * bw, zero - bh, bw - 1.5, bh);
-        else x.fillRect(pad + i * bw, zero, bw - 1.5, bh);
+        const bh = scale(s[i]);
+        const col = i >= N * 0.9 ? COL.red : i >= N * 0.7 ? COL.orange : COL.blue;
+        x.fillStyle = col; x.fillRect(pad + i * bw, bot - bh, bw - 1.5, bh);
       }
-      if (mn < 0) { x.strokeStyle = COL.grid; x.beginPath(); x.moveTo(pad, zero); x.lineTo(w - pad, zero); x.stroke(); }
-      x.fillStyle = COL.muted; x.font = '11px "JetBrains Mono", monospace';
-      x.fillText('cada barra = una persona (de la más pobre a la más rica) →', pad, 14);
+      // línea de "reparto perfecto" (el promedio): si todas las barras la tocan, es igualitario.
+      const my = bot - scale(mean);
+      x.strokeStyle = COL.green; x.setLineDash([4, 4]); x.beginPath();
+      x.moveTo(pad, my); x.lineTo(w - pad, my); x.stroke(); x.setLineDash([]);
+      x.fillStyle = COL.green; x.font = '10px "JetBrains Mono", monospace';
+      x.fillText('reparto igualitario', pad + 2, Math.max(top - 4, my - 4));
+      x.fillStyle = COL.muted;
+      x.fillText('cada barra = una persona (de la más pobre a la más rica) →', pad, 16);
+      // destello sutil tras un jubileo (sin animación agresiva; respeta reduced-motion)
+      if (flash > 0 && !reduce) { x.fillStyle = 'rgba(82,208,83,' + (flash / 6 * 0.12) + ')'; x.fillRect(0, 0, w, h); flash--; }
     }
 
     function labels() { hl.textContent = hs.value; cl.textContent = cs.value; pl.textContent = ps.value; }
@@ -157,7 +190,18 @@
       if (round >= MAX_ROUNDS) { stopA(); return; }
       raf = requestAnimationFrame(anim);
     }
-    play.onclick = () => { if (running) stopA(); else { running = true; play.textContent = '⏸ Pausar'; play.classList.add('on'); raf = requestAnimationFrame(anim); } };
+    play.onclick = () => {
+      if (reduce) {
+        // Sin animación: avanza un tramo de rondas y dibuja el resultado.
+        if (round >= MAX_ROUNDS) resetAll();
+        const target = Math.min(MAX_ROUNDS, round + 150);
+        while (round < target) step();
+        draw(); stats();
+        return;
+      }
+      if (running) stopA();
+      else { running = true; play.textContent = '⏸ Pausar'; play.classList.add('on'); raf = requestAnimationFrame(anim); }
+    };
     reset.onclick = resetAll;
     window.addEventListener('resize', draw);
     labels(); markPreset(); resetAll();
@@ -174,18 +218,22 @@
   @media (max-width: 720px) { .hpyr-grid { grid-template-columns: 1fr; } }
   .hpyr-grid canvas { display: block; width: 100%; height: 240px; }
   @media (min-width: 900px) { .hpyr-grid canvas { height: clamp(240px, 36vh, 420px); } }
-  .hpyr-ctrl { display: flex; flex-direction: column; gap: 0.7rem; }
-  .hpyr-ctrl label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.7rem; color: var(--muted); }
-  .hpyr-ctrl label b { color: var(--blue); }
+  .hpyr-ctrl { display: flex; flex-direction: column; gap: 0.75rem; }
+  .hpyr-ctrl .knob { display: flex; flex-direction: column; gap: 0.2rem; }
+  .hpyr-ctrl .knob-top { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.74rem; }
+  .hpyr-ctrl .knob-name { color: var(--text); letter-spacing: 0.06em; }
+  .hpyr-ctrl .knob-top b { color: var(--blue); font-size: 0.8rem; }
+  .hpyr-ctrl .knob-note { font-size: 0.62rem; line-height: 1.25; color: var(--muted); }
   .hpyr-ctrl input[type='range'] { width: 100%; accent-color: var(--orange); }
-  .hpyr-presets { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+  .hpyr-presets { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.15rem; }
   .hpyr-btns { display: flex; gap: 0.4rem; }
   .hpyr button { background: var(--bg-panel-2); color: var(--text); border: 1px solid var(--line); padding: 0.45rem 0.7rem; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.08em; cursor: pointer; }
   .hpyr button:hover { border-color: var(--orange); color: var(--orange-bright); }
   .hpyr button.prim { background: var(--orange); color: #000; font-weight: 700; border-color: var(--orange); }
   .hpyr button.on { background: var(--yellow); color: #000; border-color: var(--yellow); }
   .hpyr-presets button.on { background: var(--orange); color: #000; border-color: var(--orange); font-weight: 700; }
-  .hpyr-readout { font-size: 0.72rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.6rem 0.7rem; }
+  .hpyr-readout { font-size: 0.72rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.6rem 0.7rem; line-height: 1.5; }
   .hpyr-readout :global(b) { color: var(--text); }
+  .hpyr-readout :global(.hpyr-sub) { color: var(--muted); font-size: 0.66rem; }
   .hpyr-foot { margin-top: 0.7rem; padding-top: 0.5rem; border-top: 1px dashed var(--line); font-size: 0.6rem; letter-spacing: 0.28em; color: var(--muted); }
 </style>

@@ -1,86 +1,344 @@
 ---
-/** Paso 3 · El bucle de la máquina: SVG animado + etapas clicables. */
+/**
+ * El bucle de la máquina: tres partes que se empujan en círculo.
+ *   Cooperación → Riqueza → Concentración → (rompe) → reinicia.
+ * Un cometa recorre el anillo animando valores REALES de C/W/G tomados de
+ * simulate(BASE): se ve el flujo girar y la causa→efecto (la cooperación
+ * llena la riqueza, la riqueza alimenta la concentración, la concentración
+ * drena la cooperación → colapso → escasez → vuelve a empezar). Tres medidores
+ * en vivo + estaciones clicables para inspeccionar cada fase.
+ */
 ---
 
-<div class="loop panel">
-  <div class="loop-grid">
-    <svg data-svg viewBox="0 0 440 400"></svg>
-    <ol class="loop-steps">
-      <li><b>La gente coopera.</b> Cuando actuamos como un "nosotros", producimos de sobra: comida, confianza, inventos, riqueza. El único motor que crea algo nuevo.</li>
-      <li><b>Se acumula un excedente.</b> La cooperación deja valor sobre la mesa. La sociedad prospera. Es el <em>auge</em>.</li>
-      <li><b>Alguien lo acapara.</b> Todo excedente es un premio. Aparecen los que toman más de lo que aportan. Basta con que la escasez susurre "asegúrate".</li>
-      <li><b>Se forma una pirámide.</b> Acaparar, repetido, concentra el poder arriba. Pocos tienen casi todo. Es la <em>cima</em>.</li>
-      <li><b>Colapsa.</b> La desigualdad rompe el "nosotros", la cooperación muere, el excedente se destruye… y la máquina se reinicia. Un poco más grande.</li>
-    </ol>
+<figure class="mloop panel">
+  <figcaption class="mloop-head">
+    <span class="mloop-title">◢ EL BUCLE DE LA MÁQUINA</span>
+    <span class="mloop-phase" data-phase>···</span>
+  </figcaption>
+
+  <div class="mloop-grid">
+    <div class="mloop-viz">
+      <svg data-svg viewBox="0 0 460 440" role="img"
+           aria-label="Anillo del ciclo: cooperación, riqueza y concentración empujándose en círculo."></svg>
+    </div>
+
+    <div class="mloop-side">
+      <div class="mloop-meters">
+        <div class="mtr mtr-c">
+          <div class="mtr-top"><span class="mtr-name">Cooperación</span><span class="mtr-val" data-v="C">0%</span></div>
+          <div class="mtr-track"><i class="mtr-fill" data-f="C"></i></div>
+        </div>
+        <div class="mtr mtr-w">
+          <div class="mtr-top"><span class="mtr-name">Riqueza · excedente</span><span class="mtr-val" data-v="W">0%</span></div>
+          <div class="mtr-track"><i class="mtr-fill" data-f="W"></i></div>
+        </div>
+        <div class="mtr mtr-g">
+          <div class="mtr-top"><span class="mtr-name">Concentración · desigualdad</span><span class="mtr-val" data-v="G">0%</span></div>
+          <div class="mtr-track"><i class="mtr-fill" data-f="G"></i></div>
+        </div>
+      </div>
+
+      <div class="mloop-readout" data-ro>Dale a reproducir y mira la vuelta completa, o toca una estación del anillo para inspeccionarla.</div>
+
+      <div class="mloop-btns">
+        <button data-play class="prim" type="button">⏸ Pausar</button>
+        <button data-reset type="button">Reiniciar giro</button>
+        <span class="mloop-hint">toca una estación ↺</span>
+      </div>
+    </div>
   </div>
-  <div class="loop-btns">
-    <button data-play class="prim">▶ Animar el ciclo</button>
-    <span class="loop-hint">(o haz clic en cada etapa del círculo)</span>
-  </div>
-  <div class="readout" data-info>Haz clic en una etapa (o dale a "Animar") para ver qué ocurre en cada punto del ciclo.</div>
-</div>
+
+  <div class="mloop-foot">TRES PARTES · UN CÍRCULO · SIN FINAL</div>
+</figure>
 
 <script>
-  import { COL } from '../lib/machine';
+  import { simulate, BASE, COL } from '../lib/machine';
+
+  // --- Geometría del anillo ---------------------------------------------------
+  const cx = 230, cy = 214, R = 138, rN = 45;
+  const rad = (deg: number) => (deg * Math.PI) / 180;
+  const polar = (deg: number, r = R): [number, number] => [cx + r * Math.cos(rad(deg)), cy + r * Math.sin(rad(deg))];
+
+  // Estaciones a 120°: Cooperación (arriba), Riqueza (abajo-dcha), Concentración (abajo-izq).
+  const ST = [
+    {
+      u: 0, ang: -90, col: COL.blue,
+      name: 'COOPERACIÓN', sub: 'nace el «nosotros»',
+      desc: 'El único motor que crea algo nuevo. Cuando actuamos como un «nosotros» producimos de sobra: comida, confianza, inventos, riqueza. La escasez es la chispa que lo enciende.',
+    },
+    {
+      u: 1 / 3, ang: 30, col: COL.yellow,
+      name: 'RIQUEZA', sub: 'el excedente se desborda',
+      desc: 'La cooperación deja un excedente sobre la mesa. La sociedad prospera: es el auge. Pero todo excedente es un premio, y todo premio atrae a quien quiere quedárselo.',
+    },
+    {
+      u: 2 / 3, ang: 150, col: COL.orange,
+      name: 'CONCENTRACIÓN', sub: 'pocos acaparan',
+      desc: 'Acaparar, repetido, concentra el poder arriba: pocos tienen casi todo. La desigualdad crece hasta que rompe el «nosotros»: la cooperación muere, el excedente se destruye y la máquina reinicia, un poco más grande.',
+    },
+  ];
+
+  // Arcos (sentido horario) con hueco junto a cada nodo. El 3.º es la RUPTURA (rojo).
+  const GAP = 26;
+  const ARC = [
+    { a0: -90 + GAP, a1: 30 - GAP, col: COL.blue, mid: 'llena', txt: '▸ La cooperación LLENA la riqueza: el «nosotros» produce un excedente.' },
+    { a0: 30 + GAP, a1: 150 - GAP, col: COL.orange, mid: 'acapara', txt: '▸ La riqueza ALIMENTA la concentración: el excedente atrae a quien lo acapara.' },
+    { a0: 150 + GAP, a1: 270 - GAP, col: COL.red, mid: 'rompe', txt: '▸ La concentración ROMPE la cooperación: la desigualdad mata el «nosotros», el excedente se destruye… y la escasez lo vuelve a encender.' },
+  ];
+
+  function arcPath(a0: number, a1: number): string {
+    const [x0, y0] = polar(a0), [x1, y1] = polar(a1);
+    const large = a1 - a0 > 180 ? 1 : 0;
+    return `M${x0.toFixed(1)} ${y0.toFixed(1)} A ${R} ${R} 0 ${large} 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`;
+  }
+
+  // --- Un ciclo canónico REAL de simulate() (de valle a valle, se repite limpio) ---
+  function canonicalCycle(): number[][] {
+    const raw = simulate(BASE, 1700, 0.05);
+    const mins: number[] = [];
+    for (let i = 40; i < raw.length - 40; i++) {
+      let isMin = true;
+      for (let k = i - 30; k <= i + 30; k++) { if (raw[k][3] < raw[i][3]) { isMin = false; break; } }
+      if (isMin) { mins.push(i); i += 40; }
+    }
+    if (mins.length >= 2) return raw.slice(mins[0], mins[1] + 1);
+    return raw.slice(595, 1397);
+  }
+
   function init(root: HTMLElement) {
     const svg = root.querySelector<SVGSVGElement>('[data-svg]')!;
-    const info = root.querySelector<HTMLElement>('[data-info]')!;
-    const btn = root.querySelector<HTMLButtonElement>('[data-play]')!;
-    const cx = 220, cy = 200, R = 140;
-    const nodes = [
-      { t: 'Cooperación', c: COL.blue, d: 'La gente actúa como un "nosotros" y produce de sobra. Es el único motor que crea algo nuevo.' },
-      { t: 'Excedente', c: COL.yellow, d: 'La cooperación deja valor sobre la mesa. La sociedad prospera: es el auge.' },
-      { t: 'Se acapara', c: COL.orange, d: 'Todo premio atrae a quien toma más de lo que aporta. Basta con que la escasez susurre "asegúrate".' },
-      { t: 'Pirámide', c: COL.purple, d: 'Acaparar, repetido, concentra el poder arriba. Pocos tienen casi todo: la cima.' },
-      { t: 'Colapso', c: COL.red, d: 'La desigualdad rompe el "nosotros", la cooperación muere y todo se reinicia, un poco más grande.' },
-    ];
-    const n = nodes.length, ang = (i: number) => -Math.PI / 2 + i / n * 2 * Math.PI;
-    let s = `<defs><marker id="lar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0 0 L7 3 L0 6 z" fill="#4a4a55"/></marker></defs>`;
-    for (let i = 0; i < n; i++) {
-      const a0 = ang(i) + 0.42, a1 = ang(i + 1) - 0.42;
-      const x0 = cx + R * Math.cos(a0), y0 = cy + R * Math.sin(a0), x1 = cx + R * Math.cos(a1), y1 = cy + R * Math.sin(a1);
-      const mx = cx + (R + 26) * Math.cos((a0 + a1) / 2), my = cy + (R + 26) * Math.sin((a0 + a1) / 2);
-      s += `<path d="M${x0} ${y0} Q ${mx} ${my} ${x1} ${y1}" fill="none" stroke="#4a4a55" stroke-width="2" marker-end="url(#lar)"/>`;
+    const phaseEl = root.querySelector<HTMLElement>('[data-phase]')!;
+    const ro = root.querySelector<HTMLElement>('[data-ro]')!;
+    const playBtn = root.querySelector<HTMLButtonElement>('[data-play]')!;
+    const resetBtn = root.querySelector<HTMLButtonElement>('[data-reset]')!;
+
+    const CYC = canonicalCycle();
+    const Wmax = Math.max(...CYC.map((r) => r[1]));
+
+    // Interpola el ciclo canónico en frac∈[0,1].
+    function sampleAt(frac: number): number[] {
+      const x = Math.max(0, Math.min(1, frac)) * (CYC.length - 1);
+      const i = Math.floor(x), t = x - i;
+      const a = CYC[i], b = CYC[Math.min(CYC.length - 1, i + 1)];
+      return [0, 1, 2, 3].map((k) => a[k] + (b[k] - a[k]) * t);
     }
-    for (let i = 0; i < n; i++) {
-      const x = cx + R * Math.cos(ang(i)), y = cy + R * Math.sin(ang(i));
-      s += `<g data-node="${i}" style="cursor:pointer"><circle data-c="${i}" cx="${x}" cy="${y}" r="36" fill="#101014" stroke="${nodes[i].c}" stroke-width="2.5"/><text x="${x}" y="${y + 4}" fill="${nodes[i].c}" font-size="12" font-family="monospace" font-weight="700" text-anchor="middle" style="pointer-events:none">${nodes[i].t}</text></g>`;
+    // Deforma la posición del anillo (u) al momento real del ciclo (frac) para
+    // que cada tramo narre su parte en orden: subida → cima → colapso.
+    function warp(u: number): number {
+      if (u < 1 / 3) return 0.18 + (0.46 - 0.18) * (u / (1 / 3));
+      if (u < 2 / 3) return 0.46 + (0.52 - 0.46) * ((u - 1 / 3) / (1 / 3));
+      return 0.52 + (1.0 - 0.52) * ((u - 2 / 3) / (1 / 3));
     }
-    s += `<circle data-tok cx="0" cy="0" r="9" fill="#fff" opacity="0"/>`;
-    s += `<text class="c-title" x="${cx}" y="${cy - 4}" fill="${COL.orangeBright}" font-size="13" font-family="monospace" font-weight="700" text-anchor="middle">LA MÁQUINA</text>`;
-    s += `<text class="c-sub" x="${cx}" y="${cy + 14}" fill="${COL.muted}" font-size="10" font-family="monospace" text-anchor="middle">da vueltas para siempre</text>`;
+    function phaseOf(u: number): [string, string] {
+      if (u < 0.08) return ['ESCASEZ · SE REINICIA', COL.blue];
+      if (u < 0.3) return ['NACE EL «NOSOTROS»', COL.blue];
+      if (u < 0.42) return ['AUGE · CRECE LA RIQUEZA', COL.green];
+      if (u < 0.56) return ['CIMA · TODO EN LO ALTO', COL.yellow];
+      if (u < 0.72) return ['SE ACAPARA · DESIGUALDAD', COL.orange];
+      return ['COLAPSO · SE ROMPE', COL.red];
+    }
+
+    // --- Construir SVG ---------------------------------------------------------
+    let s = '<defs>';
+    ARC.forEach((a, i) => {
+      s += `<marker id="ml-ar${i}" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill="${a.col}"/></marker>`;
+    });
+    s += '</defs>';
+
+    // Arcos + flujo
+    ARC.forEach((a, i) => {
+      s += `<path class="ml-arc" data-arc="${i}" d="${arcPath(a.a0, a.a1)}" fill="none" stroke="${a.col}" stroke-width="3" stroke-linecap="round" marker-end="url(#ml-ar${i})" opacity="0.35"/>`;
+      s += `<path class="ml-flow" data-flow="${i}" d="${arcPath(a.a0, a.a1)}" fill="none" stroke="${a.col}" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 13" opacity="0"/>`;
+      const [mx, my] = polar((a.a0 + a.a1) / 2, 96);
+      s += `<text class="ml-mid" data-mid="${i}" x="${mx.toFixed(1)}" y="${(my + 3).toFixed(1)}" fill="${COL.muted}" font-size="9.5" font-family="monospace" font-weight="700" letter-spacing="0.5" text-anchor="middle" style="pointer-events:none;text-transform:uppercase">${a.mid}</text>`;
+    });
+
+    // Emblema central: giro nº (da vueltas para siempre)
+    s += `<text x="${cx}" y="${cy - 6}" fill="${COL.muted}" font-size="8" font-family="monospace" letter-spacing="2" text-anchor="middle" style="pointer-events:none">GIRO</text>`;
+    s += `<text class="ml-giro" data-giro x="${cx}" y="${cy + 13}" fill="${COL.orangeBright}" font-size="16" font-family="monospace" font-weight="700" text-anchor="middle" style="pointer-events:none">1</text>`;
+
+    // Estaciones (nodos clicables)
+    ST.forEach((n, i) => {
+      const [nx, ny] = polar(n.ang);
+      const above = ny < cy;
+      const ly = above ? ny - rN - 18 : ny + rN + 22;
+      const sy = above ? ny - rN - 6 : ny + rN + 35;
+      s += `<g class="ml-node" data-node="${i}" style="cursor:pointer">`;
+      s += `<circle class="ml-glow" data-glow="${i}" cx="${nx}" cy="${ny}" r="${rN}" fill="${n.col}" opacity="0"/>`;
+      s += `<circle class="ml-ring" data-ring="${i}" cx="${nx}" cy="${ny}" r="${rN}" fill="#0a0a0c" fill-opacity="0.55" stroke="${n.col}" stroke-width="2.5"/>`;
+      s += `<text class="ml-nval" data-nval="${i}" x="${nx}" y="${ny + 6}" fill="${n.col}" font-size="17" font-family="monospace" font-weight="700" text-anchor="middle" style="pointer-events:none">0%</text>`;
+      s += `<text x="${nx}" y="${ly}" fill="${n.col}" font-size="10.5" font-family="monospace" font-weight="700" letter-spacing="0.5" text-anchor="middle" style="pointer-events:none">${n.name}</text>`;
+      s += `<text x="${nx}" y="${sy}" fill="${COL.muted}" font-size="8.5" font-family="monospace" text-anchor="middle" style="pointer-events:none">${n.sub}</text>`;
+      s += `</g>`;
+    });
+
+    // Cometa (aguja del ciclo)
+    s += `<circle class="ml-halo" data-halo cx="${cx}" cy="${cy - R}" r="15" fill="#fff" opacity="0.18"/>`;
+    s += `<circle class="ml-comet" data-comet cx="${cx}" cy="${cy - R}" r="7" fill="#fff"/>`;
     svg.innerHTML = s;
-    const tok = svg.querySelector<SVGCircleElement>('[data-tok]')!;
-    function highlight(i: number) { for (let k = 0; k < n; k++) { const c = svg.querySelector<SVGCircleElement>(`[data-c="${k}"]`)!; c.setAttribute('stroke-width', k === i ? '5' : '2.5'); c.setAttribute('fill', k === i ? nodes[k].c + '33' : '#101014'); } }
-    function show(i: number) { highlight(i); info.innerHTML = `<b style="color:${nodes[i].c}">${nodes[i].t}.</b> ${nodes[i].d}`; }
-    for (let i = 0; i < n; i++) svg.querySelector<SVGGElement>(`[data-node="${i}"]`)!.onclick = () => { stop(); show(i); };
-    let raf = 0, playing = false, ph = 0, cur = -1;
-    function stop() { playing = false; if (raf) cancelAnimationFrame(raf); raf = 0; tok.setAttribute('opacity', '0'); btn.textContent = '▶ Animar el ciclo'; btn.classList.remove('on'); }
-    function frame() { ph = (ph + 0.010) % 1; const a = ang(0) + ph * 2 * Math.PI; const idx = Math.round(ph * n) % n; tok.setAttribute('cx', (cx + R * Math.cos(a)).toFixed(1)); tok.setAttribute('cy', (cy + R * Math.sin(a)).toFixed(1)); tok.setAttribute('fill', nodes[idx].c); if (idx !== cur) { cur = idx; show(idx); } raf = requestAnimationFrame(frame); }
-    btn.onclick = () => { if (playing) stop(); else { playing = true; cur = -1; tok.setAttribute('opacity', '1'); btn.textContent = '⏸ Pausar'; btn.classList.add('on'); raf = requestAnimationFrame(frame); } };
+
+    // Refs
+    const arcs = Array.from(svg.querySelectorAll<SVGPathElement>('[data-arc]'));
+    const flows = Array.from(svg.querySelectorAll<SVGPathElement>('[data-flow]'));
+    const mids = Array.from(svg.querySelectorAll<SVGTextElement>('[data-mid]'));
+    const glows = Array.from(svg.querySelectorAll<SVGCircleElement>('[data-glow]'));
+    const nvals = Array.from(svg.querySelectorAll<SVGTextElement>('[data-nval]'));
+    const giroEl = svg.querySelector<SVGTextElement>('[data-giro]')!;
+    const comet = svg.querySelector<SVGCircleElement>('[data-comet]')!;
+    const halo = svg.querySelector<SVGCircleElement>('[data-halo]')!;
+    const fills: Record<string, HTMLElement> = {};
+    const vals: Record<string, HTMLElement> = {};
+    (['C', 'W', 'G'] as const).forEach((k) => {
+      fills[k] = root.querySelector<HTMLElement>(`[data-f="${k}"]`)!;
+      vals[k] = root.querySelector<HTMLElement>(`[data-v="${k}"]`)!;
+    });
+
+    // --- Estado ----------------------------------------------------------------
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const SPEED = 0.0011; // ≈ una vuelta cada 15 s
+    let u = 0, playing = false, raf = 0, giro = 1, dash = 0, sel = -1;
+
+    function render() {
+      const frac = warp(u);
+      const [C, W, G] = sampleAt(frac);
+      const vW = Math.min(1, W / Wmax);
+
+      // Medidores en vivo
+      fills.C.style.width = (C * 100).toFixed(1) + '%';
+      fills.W.style.width = (vW * 100).toFixed(1) + '%';
+      fills.G.style.width = (G * 100).toFixed(1) + '%';
+      vals.C.textContent = (C * 100).toFixed(0) + '%';
+      vals.W.textContent = (vW * 100).toFixed(0) + '%';
+      vals.G.textContent = (G * 100).toFixed(0) + '%';
+
+      // Nodos: brillo + valor
+      const nv = [C, vW, G];
+      nv.forEach((v, i) => {
+        glows[i].setAttribute('opacity', (0.08 + v * 0.42).toFixed(3));
+        nvals[i].textContent = (v * 100).toFixed(0) + '%';
+      });
+
+      // Cometa
+      const a = -90 + u * 360;
+      const [px, py] = polar(a);
+      comet.setAttribute('cx', px.toFixed(1)); comet.setAttribute('cy', py.toFixed(1));
+      halo.setAttribute('cx', px.toFixed(1)); halo.setAttribute('cy', py.toFixed(1));
+      const [lab, col] = phaseOf(u);
+      comet.setAttribute('fill', col); halo.setAttribute('fill', col);
+
+      // Tramo activo
+      const seg = u < 1 / 3 ? 0 : u < 2 / 3 ? 1 : 2;
+      arcs.forEach((el, i) => el.setAttribute('opacity', i === seg ? '0.95' : '0.28'));
+      arcs.forEach((el, i) => el.setAttribute('stroke-width', i === seg ? '5' : '2.5'));
+      flows.forEach((el, i) => { el.setAttribute('opacity', i === seg ? '0.9' : '0'); el.setAttribute('stroke-dashoffset', String(-dash)); });
+      mids.forEach((el, i) => { el.setAttribute('fill', i === seg ? ARC[i].col : COL.muted); el.setAttribute('opacity', i === seg ? '1' : '0.5'); });
+
+      // Cabecera + narración
+      phaseEl.textContent = lab; phaseEl.style.color = col;
+      if (sel < 0) ro.innerHTML = `<b style="color:${ARC[seg].col}">${ARC[seg].txt}</b>`;
+      giroEl.textContent = String(giro);
+    }
+
+    function flashReset() {
+      giroEl.classList.add('is-flash');
+      glows[0].classList.add('is-flash');
+      setTimeout(() => { giroEl.classList.remove('is-flash'); glows[0].classList.remove('is-flash'); }, 650);
+    }
+
+    function frame() {
+      if (!playing) return;
+      const prev = u;
+      u = (u + SPEED) % 1;
+      dash = (dash + 1.4) % 6000;
+      if (u < prev) { giro++; flashReset(); }
+      render();
+      raf = requestAnimationFrame(frame);
+    }
+
+    function setPlaying(on: boolean) {
+      playing = on;
+      playBtn.textContent = on ? '⏸ Pausar' : (sel >= 0 ? '▶ Reanudar giro' : '▶ Reproducir');
+      playBtn.classList.toggle('on', on);
+      if (on) { sel = -1; setNodeSel(-1); raf = requestAnimationFrame(frame); }
+      else if (raf) { cancelAnimationFrame(raf); raf = 0; }
+    }
+
+    function setNodeSel(i: number) {
+      svg.querySelectorAll<SVGCircleElement>('[data-ring]').forEach((el, k) => el.setAttribute('stroke-width', k === i ? '5' : '2.5'));
+    }
+
+    // Inspeccionar una estación: pausa, salta a su fase, muestra su descripción.
+    ST.forEach((n, i) => {
+      svg.querySelector<SVGGElement>(`[data-node="${i}"]`)!.onclick = () => {
+        if (playing) setPlaying(false);
+        sel = i; u = n.u; setNodeSel(i); render();
+        ro.innerHTML = `<b style="color:${n.col}">${n.name}.</b> ${n.desc}`;
+        playBtn.textContent = '▶ Reanudar giro';
+      };
+    });
+
+    playBtn.onclick = () => setPlaying(!playing);
+    resetBtn.onclick = () => { u = 0; giro = 1; sel = -1; setNodeSel(-1); render(); if (!playing && !reduce) setPlaying(true); };
+
+    // Arranque: en movimiento por defecto; estático si se prefiere reducir animación.
+    if (reduce) {
+      u = 1 / 3; // parado en el auge/cima
+      render();
+      playBtn.textContent = '▶ Reproducir';
+    } else {
+      setPlaying(true);
+    }
   }
-  document.querySelectorAll<HTMLElement>('.loop').forEach(init);
+
+  document.querySelectorAll<HTMLElement>('.mloop').forEach(init);
 </script>
 
 <style>
-  .loop { padding: 1rem 1.2rem; margin-block: 1.5rem; }
-  .loop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; align-items: center; }
-  @media (max-width: 720px) { .loop-grid { grid-template-columns: 1fr; } }
-  .loop svg { display: block; width: 100%; max-width: 440px; margin: 0 auto; }
-  @media (min-width: 900px) {
-    .loop svg { max-width: 560px; }
-    .loop svg :global(.c-title) { font-size: 15px; }
-    .loop svg :global(.c-sub) { font-size: 11px; }
+  .mloop { padding: 1rem 1.2rem 0.8rem; margin-block: 2.5rem; }
+  .mloop-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
+  .mloop-title { color: var(--orange-bright); font-size: 0.78rem; letter-spacing: 0.3em; text-transform: uppercase; }
+  .mloop-phase { font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase; }
+
+  .mloop-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 1.4rem; align-items: center; }
+  @media (max-width: 720px) { .mloop-grid { grid-template-columns: 1fr; } }
+
+  .mloop-viz svg { display: block; width: 100%; max-width: 460px; margin: 0 auto; }
+  @media (min-width: 900px) { .mloop-viz svg { max-width: 540px; } }
+
+  .mloop svg :global(.ml-node) { transition: opacity 0.15s; }
+  .mloop svg :global(.ml-node:hover .ml-ring) { stroke-width: 4; }
+  .mloop svg :global(.ml-glow) { transition: opacity 0.2s; }
+  .mloop svg :global(.ml-glow.is-flash) { opacity: 0.9 !important; }
+  .mloop svg :global(.ml-giro.is-flash) { fill: var(--red); }
+
+  .mloop-side { display: flex; flex-direction: column; gap: 0.85rem; }
+  .mloop-meters { display: flex; flex-direction: column; gap: 0.6rem; }
+  .mtr-top { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.68rem; letter-spacing: 0.05em; margin-bottom: 0.2rem; }
+  .mtr-name { color: var(--muted); text-transform: uppercase; }
+  .mtr-val { font-weight: 700; font-family: var(--font-mono); }
+  .mtr-track { height: 9px; background: var(--bg-deep); border: 1px solid var(--line); overflow: hidden; }
+  .mtr-fill { display: block; height: 100%; width: 0; transition: width 0.08s linear; }
+  .mtr-c .mtr-val { color: var(--blue); }
+  .mtr-c .mtr-fill { background: var(--blue); }
+  .mtr-w .mtr-val { color: var(--yellow); }
+  .mtr-w .mtr-fill { background: var(--yellow); }
+  .mtr-g .mtr-val { color: var(--orange); }
+  .mtr-g .mtr-fill { background: var(--orange); }
+
+  .mloop-readout { font-size: 0.75rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); border-left: 2px solid var(--orange); padding: 0.6rem 0.7rem; line-height: 1.7; min-height: 3.4rem; }
+  .mloop-readout :global(b) { color: var(--text); font-weight: 400; }
+
+  .mloop-btns { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+  .mloop button { background: var(--bg-panel-2); color: var(--text); border: 1px solid var(--line); padding: 0.42rem 0.7rem; font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.08em; cursor: pointer; }
+  .mloop button:hover { border-color: var(--orange); color: var(--orange-bright); }
+  .mloop button.prim { background: var(--orange); color: #000; font-weight: 700; border-color: var(--orange); }
+  .mloop button.prim.on { background: var(--yellow); border-color: var(--yellow); }
+  .mloop-hint { font-size: 0.66rem; color: var(--muted); letter-spacing: 0.05em; }
+
+  .mloop-foot { margin-top: 0.9rem; padding-top: 0.5rem; border-top: 1px dashed var(--line); font-size: 0.6rem; letter-spacing: 0.3em; color: var(--muted); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mtr-fill { transition: none; }
+    .mloop svg :global(.ml-glow) { transition: none; }
   }
-  .loop-steps { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0.7rem; font-size: 0.82rem; color: #cfccc5; }
-  .loop-steps b { color: var(--text); }
-  .loop-steps li { counter-increment: ls; position: relative; padding-left: 1.8rem; }
-  .loop-steps { counter-reset: ls; }
-  .loop-steps li::before { content: counter(ls); position: absolute; left: 0; top: 0; color: var(--orange); font-family: var(--font-mono); font-weight: 700; }
-  .loop-btns { display: flex; gap: 0.8rem; align-items: center; flex-wrap: wrap; margin-top: 1rem; }
-  .loop-hint { font-size: 0.72rem; color: var(--muted); }
-  .loop button.prim { background: var(--orange); color: #000; font-weight: 700; border: none; padding: 0.45rem 0.9rem; font-family: var(--font-mono); letter-spacing: 0.1em; cursor: pointer; }
-  .loop button.prim.on { background: var(--yellow); }
-  .readout { font-size: 0.78rem; color: var(--muted); background: var(--bg-deep); border: 1px solid var(--line); padding: 0.6rem 0.7rem; margin-top: 0.8rem; }
-  .readout :global(b) { color: var(--text); }
 </style>

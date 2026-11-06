@@ -1,0 +1,149 @@
+---
+import '../styles/workshop.css';
+import { phases, blockers } from '../../llm/shared.mjs';
+const { host = false } = Astro.props;
+---
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="description" content="Un taller para cuestionar supuestos, compartir contexto y experimentar con agentes de IA." />
+    <title>Lo que podemos delegar · Vozy</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <div id="workshop" data-host={host ? 'true' : 'false'}>
+      <header class="topbar">
+        <a href="/llm/" class="brand" aria-label="Inicio del taller"><span class="brand-mark">v.</span><span>vozy <span class="brand-divider">/</span> laboratorio</span></a>
+        <div class="topbar-right"><span id="sync-state" class="sync-state">Taller de agentes de IA</span><button id="logout" class="text-button" hidden>Salir</button></div>
+      </header>
+      <main class="shell">
+        <section id="welcome" class="welcome">
+          <div class="welcome-copy">
+            <p class="eyebrow">CONTEXTO + CURIOSIDAD + EXPERIMENTOS</p>
+            <h1>¿Y si pudieras<br />delegar <em>más?</em></h1>
+            <p class="welcome-description">Trae una tarea, una duda o algo que dabas por imposible. Juntos vamos a cuestionarlo, aportar contexto y probar qué podemos conseguir con un agente.</p>
+            <div class="welcome-topics"><span>Clientes</span><span>Operaciones</span><span>Producto</span><span>Ingeniería</span></div>
+            <div class="welcome-principle"><span class="principle-symbol">↗</span><p>Tu conocimiento del cliente y del negocio es parte esencial del experimento.</p></div>
+            <p class="welcome-footnote">Dos horas para abrir posibilidades. Un espacio para seguir probándolas.</p>
+          </div>
+          <div class="join-card">
+            <p class="eyebrow">{host ? 'FACILITACIÓN' : 'TU LUGAR EN LA CONVERSACIÓN'}</p>
+            <h2>{host ? 'Conducir la sesión' : 'Entra al laboratorio'}</h2>
+            <p class="muted">{host ? 'Controla los bloques, destaca casos y sigue los próximos experimentos.' : 'Puedes participar desde tu computadora o celular.'}</p>
+            <form id="join-form" class="form-stack">
+              <label>Tu nombre<input name="name" autocomplete="name" maxlength="90" required placeholder="¿Cómo te llamas?" /></label>
+              {!host && <label>Tu área o función<input name="area" maxlength="100" placeholder="FDE, soporte, operaciones, producto…" /></label>}
+              <label>{host ? 'Clave de facilitación' : 'Código del taller'}<input name="code" type={host ? 'password' : 'text'} autocomplete="off" maxlength="300" required placeholder={host ? 'Tu clave privada' : 'Lo comparte el organizador'} /></label>
+              <button class="button primary" type="submit">{host ? 'Abrir panel' : 'Entrar y participar'}<span aria-hidden="true">↗</span></button>
+              <p id="join-error" class="form-error" role="alert"></p>
+            </form>
+            <p class="small muted">Los casos y las preguntas son compartidos. Tus solicitudes de accesos y créditos solo las verán los organizadores.</p>
+            <a class="small host-link" href={host ? '/llm/' : '/llm/host/'}>{host ? 'Entrar como participante' : 'Acceso para organizadores'}</a>
+          </div>
+        </section>
+
+        <section id="session" hidden>
+          <div class="session-heading"><div><p class="eyebrow">ESTE TALLER LO CONSTRUIMOS ENTRE TODOS</p><h1>Lo que podemos delegar<span class="heading-dot">.</span></h1></div><p id="greeting" class="greeting"></p></div>
+          <section class="phase-banner" aria-label="Actividad de la sesión">
+            <div><p id="phase-label" class="eyebrow">BLOQUE ACTUAL</p><h2 id="phase-title">Explorar</h2><p id="phase-prompt">¿Qué resultado te gustaría poder delegar hoy?</p></div>
+            <div class="phase-timing"><span id="timer" class="timer">—:—</span><span id="timer-label" class="small">El facilitador inicia el bloque</span></div>
+          </section>
+          <div id="phase-track" class="phase-track">{phases.map((phase, index) => <span data-phase={index}><b>{index + 1}</b>{phase.title}</span>)}</div>
+          <div class="workspace-grid">
+            <div class="workspace-main">
+              <nav id="view-tabs" class="view-tabs" aria-label="Espacios del taller">
+                <button data-view="board" aria-pressed="true">Casos <span id="case-count">0</span></button>
+                <button data-view="questions" aria-pressed="false">Preguntas <span id="question-count">0</span></button>
+                <button data-view="lab" aria-pressed="false">Cuestionar</button>
+                <button data-view="next" aria-pressed="false">Mi próximo paso</button>
+                <button data-view="host" aria-pressed="false" id="host-tab" hidden>Facilitar</button>
+              </nav>
+
+              <section id="composer" class="panel composer" hidden>
+                <div class="section-heading"><h2 id="composer-title">Comparte tu caso</h2><button id="close-composer" class="text-button" type="button">Cerrar</button></div>
+                <form id="entry-form" class="form-stack">
+                  <input name="id" type="hidden" /><input name="kind" type="hidden" value="case" />
+                  <label id="entry-title-label">¿Qué te gustaría conseguir?<input name="title" maxlength="160" required placeholder="Quiero detectar a tiempo si un cliente necesita ayuda…" /></label>
+                  <label>El contexto que tú conoces<textarea name="context" rows="3" maxlength="2000" placeholder="¿Qué haces hoy? ¿Qué necesita el cliente o el equipo? ¿Dónde está la información?" /></label>
+                  <div data-case-only class="form-stack">
+                    <label>¿Qué resultado te gustaría delegar?<textarea name="outcome" rows="2" maxlength="1200" placeholder="Describe qué debería entregarte el agente." /></label>
+                    <label>¿Qué estás dando por hecho? <span class="optional">opcional</span><textarea name="assumption" rows="2" maxlength="1200" placeholder="Creo que tengo que revisar cada conversación personalmente…" /></label>
+                    <label>¿Cómo comprobarías que funcionó?<textarea name="verification" rows="2" maxlength="1000" placeholder="Una evidencia, un ejemplo o una medida que tú puedas verificar." /></label>
+                  </div>
+                  <label>¿Qué te frena hoy?<select name="blocker">{Object.entries(blockers).map(([value, label]) => <option value={value}>{label}</option>)}</select></label>
+                  <label class="check-label"><input type="checkbox" name="anonymous" />Mostrar sin mi nombre en el muro</label>
+                  <p class="small muted">Si eliges ocultar tu nombre, los organizadores podrán identificar tu aporte para darle seguimiento.</p>
+                  <div class="form-actions"><button type="submit" class="button primary">Compartir aporte <span aria-hidden="true">↗</span></button><span class="small muted">También vale traer una duda sin solución.</span></div>
+                </form>
+              </section>
+
+              <section data-panel="board">
+                <div class="section-heading"><div><h2>Problemas reales. Posibilidades nuevas.</h2><p class="muted">Aporta tu contexto y apoya los casos que también te servirían.</p></div><button id="add-case" class="button primary">+ Mi caso</button></div>
+                <div class="board-toolbar"><label class="search-label"><span class="sr-only">Buscar aportes</span><input id="search" type="search" placeholder="Buscar por problema, contexto o persona…" /></label><label><span class="sr-only">Ordenar casos</span><select id="sort"><option value="support">Más apoyados</option><option value="recent">Más recientes</option><option value="mine">Mis aportes</option></select></label></div>
+                <p id="votes-left" class="small muted">Tienes 3 apoyos para priorizar.</p><div id="cases" class="entry-list"></div>
+              </section>
+              <section data-panel="questions" hidden>
+                <div class="section-heading"><div><h2>Lo que todavía no sabemos</h2><p class="muted">Preguntar también es aportar. Podemos construir la respuesta juntos.</p></div><button id="add-question" class="button primary">+ Mi pregunta</button></div>
+                <div id="questions" class="entry-list"></div>
+              </section>
+              <section data-panel="lab" hidden>
+                <div class="section-heading"><div><p class="eyebrow">CAMBIAR LA PREGUNTA</p><h2>¿Qué estamos dando por hecho?</h2><p class="muted">Elige una situación cercana a tu trabajo. Tu contexto puede cambiar la solución.</p></div></div>
+                <div id="scenario-picker" class="scenario-picker"></div>
+                <article class="panel lab-panel"><p id="scenario-audience" class="eyebrow"></p><h3 id="scenario-question"></h3><p class="muted">Antes de buscar una solución, deja tu hipótesis inicial.</p>
+                  <form id="reflection-form" class="form-stack">
+                    <input type="hidden" name="scenarioId" />
+                    <fieldset class="choice-fieldset"><legend>¿Cómo lo abordarías hoy?</legend><div id="before-choices" class="choice-grid"></div><p id="before-lock" class="small muted" hidden>Tu respuesta inicial quedó guardada para compararla después.</p></fieldset>
+                    <label>¿Qué suposición te llevó a esa respuesta?<textarea name="assumption" rows="2" maxlength="1200" placeholder="Algo que crees necesario, imposible o demasiado difícil." /></label>
+                    <div class="context-prompt"><h4>El contexto que puede cambiar la respuesta</h4><ul id="scenario-context"></ul></div>
+                    <label>¿Qué información pedirías antes de decidir?<textarea name="contextNeeded" rows="3" maxlength="1200" placeholder="Reglas del cliente, ejemplos, datos, herramientas, restricciones…" /></label>
+                    <label>¿Qué experimento pequeño pondría a prueba tu idea?<textarea name="experiment" rows="3" maxlength="1600" placeholder="Qué probarías, con qué información y qué resultado cambiaría tu opinión." /></label>
+                    <p id="scenario-evidence" class="evidence-hint"></p>
+                    <label>Después de explorarlo, ¿cómo lo abordarías?<select name="afterChoice" id="after-choice"><option value="">Lo revisaré después del experimento</option></select></label>
+                    <button class="button primary" type="submit">Guardar mi reflexión <span aria-hidden="true">↗</span></button>
+                  </form>
+                </article>
+                <div class="panel"><h3>Cómo lo está viendo el grupo</h3><p class="small muted">Respuestas iniciales y revisadas de este ejercicio. Ninguna opción viene marcada como correcta.</p><div id="poll-results" class="poll-results"></div></div>
+              </section>
+              <section data-panel="next" hidden>
+                <div class="section-heading"><div><p class="eyebrow">HACER ESPACIO PARA EXPERIMENTAR</p><h2>¿Qué necesitas para dar el siguiente paso?</h2><p class="muted">Esta información es privada para ti y los organizadores. No cambia tus permisos ni asigna créditos automáticamente.</p></div></div>
+                <form id="profile-form" class="panel form-stack">
+                  <label>¿Qué herramientas y plan utilizas hoy?<input name="tools" maxlength="400" placeholder="Herramienta, modelo, plan o forma de acceso. También vale «todavía no uso»" /></label>
+                  <fieldset><legend>¿Qué te gustaría aportar?</legend><div class="check-grid"><label class="check-label"><input type="checkbox" name="intentions" value="feature" />Funcionalidades</label><label class="check-label"><input type="checkbox" name="intentions" value="fix" />Arreglos pequeños</label><label class="check-label"><input type="checkbox" name="intentions" value="diagnosis" />Diagnóstico y atención al cliente</label><label class="check-label"><input type="checkbox" name="intentions" value="automation" />Automatizaciones</label><label class="check-label"><input type="checkbox" name="intentions" value="exploration" />Explorar posibilidades</label></div></fieldset>
+                  <div class="form-columns"><label>¿Puedes leer repositorios?<select name="readAccess"><option value="unknown">No lo sé / no lo he probado</option><option value="yes">Sí</option><option value="no">No</option></select></label><label>¿Puedes crear merge requests?<select name="mrAccess"><option value="unknown">No lo sé / no lo he probado</option><option value="yes">Sí</option><option value="no">No</option></select></label></div>
+                  <div class="form-columns"><label>Créditos y límites de uso<select name="credits"><option value="unknown">No sé qué capacidad tengo</option><option value="enough">Me alcanza para experimentar</option><option value="sometimes">Algunas veces llego al límite</option><option value="blocked">Me está bloqueando una prueba</option></select></label><label>¿Qué límite encuentras?<select name="limitType"><option value="unknown">No lo sé</option><option value="subscription">Límite de mi suscripción</option><option value="api">Saldo o presupuesto de API</option><option value="access">Acceso a herramienta o modelo</option></select></label></div>
+                  <label>¿Qué prueba quedó bloqueada y qué te faltó?<textarea name="blockedTask" rows="3" maxlength="1200" placeholder="Describe el resultado que buscabas y el bloqueo concreto." /></label>
+                  <div class="form-divider"></div><h3>Mi primer experimento</h3>
+                  <label>¿Qué vas a probar?<textarea name="pilot" rows="3" maxlength="1200" placeholder="Una prueba pequeña con un resultado que puedas mostrar." /></label>
+                  <label>¿Cómo vas a evaluar si vale la pena?<textarea name="measure" rows="2" maxlength="1000" placeholder="Calidad, tiempo útil liberado, tareas resueltas, costo, impacto en el cliente…" /></label>
+                  <div class="form-columns"><label>¿Cada cuánto haces esta tarea?<input name="frequency" maxlength="160" placeholder="Diariamente, 5 veces por semana…" /></label><label>Minutos por ejecución, aproximadamente<input name="minutes" type="number" min="0" max="10000" value="0" /></label></div>
+                  <label>¿Cuándo compartirás el resultado?<input name="reviewDate" type="date" /></label>
+                  <button class="button primary" type="submit">Guardar mi próximo paso <span aria-hidden="true">↗</span></button>
+                </form>
+              </section>
+              <section data-panel="host" hidden>
+                <div class="section-heading"><div><p class="eyebrow">PANEL DE FACILITACIÓN</p><h2>Conducir sin perder las ideas</h2></div><button id="export" class="button secondary">Exportar sesión</button></div>
+                <div class="panel form-stack"><h3>Ritmo de la sesión</h3><form id="phase-form" class="form-stack"><div class="form-columns"><label>Bloque<select name="phase" id="phase-select">{phases.map((phase, index) => <option value={index}>{index + 1}. {phase.title} · {phase.minutes} min</option>)}</select></label><label>Duración en minutos<input name="minutes" id="phase-minutes" type="number" min="1" max="180" value="15" /></label></div><label>Pregunta para el grupo <span class="optional">opcional</span><textarea name="prompt" rows="2" maxlength="1000" placeholder="Vacío para usar la pregunta del bloque." /></label><div class="form-actions"><button class="button primary" type="submit">Iniciar bloque</button><button id="stop-timer" class="button secondary" type="button">Detener reloj</button></div></form><div class="form-actions"><button id="toggle-submissions" class="text-button" type="button">Pausar nuevos aportes</button><button id="invite" class="text-button" type="button">Enlace para participantes</button></div><input id="invite-link" type="text" readonly hidden aria-label="Enlace para compartir con los participantes" /></div>
+                <form id="update-form" class="panel form-stack"><h3>Compartir un hallazgo con el grupo</h3><label>Título<input name="title" required maxlength="160" placeholder="Qué acabamos de descubrir" /></label><label>Hallazgo, evidencia y siguiente paso<textarea name="body" rows="4" required maxlength="6000" placeholder="Distingue lo observado, lo que proponemos y lo que falta comprobar." /></label><label>Enlace a evidencia <span class="optional">opcional</span><input name="proofUrl" type="url" maxlength="1000" placeholder="https://…" /></label><button class="button primary" type="submit">Compartir en la sesión</button></form>
+                <div class="panel"><div class="section-heading"><div><h3>Personas y próximos pasos</h3><p class="small muted">Datos declarados por cada persona. Los permisos requieren verificación.</p></div><button id="refresh-people" class="text-button">Actualizar</button></div><div id="people" class="people-list"></div></div>
+              </section>
+            </div>
+            <aside class="session-sidebar">
+              <section class="sidebar-card"><p class="eyebrow">EL GRUPO ESTÁ CONSTRUYENDO</p><div class="session-stats"><div><strong id="participant-count">0</strong><span>personas registradas</span></div><div><strong id="pilot-count">0</strong><span>experimentos propuestos</span></div></div></section>
+              <section class="sidebar-card spotlight-card"><p class="eyebrow">CASO EN EXPLORACIÓN</p><div id="spotlight"><h3>Tu contexto puede abrir el próximo caso.</h3><p class="muted small">El facilitador destacará aquí un aporte para trabajarlo entre todos.</p></div></section>
+              <section class="sidebar-card"><div class="section-heading"><p class="eyebrow">LO QUE VAMOS DESCUBRIENDO</p><span class="live-dot" aria-hidden="true"></span></div><div id="updates" class="updates-list"><p class="small muted">Los hallazgos y resultados aparecerán aquí.</p></div></section>
+              <p class="sidebar-footnote">Objetivo claro. Contexto disponible. Herramientas accesibles. Evidencia del resultado.</p>
+            </aside>
+          </div>
+        </section>
+        <noscript><p class="panel">Activa JavaScript para participar y sincronizar tus aportaciones.</p></noscript>
+      </main>
+      <footer class="site-footer"><span>Vozy · Aprender experimentando</span><span>Tu contexto cambia lo posible.</span></footer>
+      <div id="toast" role="status" aria-live="polite" hidden></div>
+    </div>
+    <script>import '../scripts/workshop.mjs';</script>
+  </body>
+</html>

@@ -8,7 +8,10 @@
     "build": "astro build",
     "preview": "astro preview",
     "deploy": "astro build && wrangler deploy",
-    "astro": "astro"
+    "astro": "astro",
+    "workshop:test": "node --test llm/worker.test.mjs",
+    "workshop:dev": "wrangler dev --config llm/wrangler.jsonc",
+    "workshop:deploy": "astro build && wrangler deploy --config llm/wrangler.jsonc"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"
